@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
@@ -6,6 +7,9 @@ import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { Dashboard } from "./components/Dashboard";
 import { ProfileSetup } from "./components/ProfileSetup";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { SubmitProposalPage } from "./components/SubmitProposalPage"; // Assuming this was moved to components
+import { ProjectDetailsPage } from "./components/ProjectDetailsPage";
 
 export default function App() {
   const seedCategories = useMutation(api.categories.seedCategories);
@@ -15,21 +19,33 @@ export default function App() {
   }, [seedCategories]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Authenticated>
-        <AuthenticatedApp />
-      </Authenticated>
-      <Unauthenticated>
-        <UnauthenticatedApp />
-      </Unauthenticated>
-      <Toaster />
-    </div>
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <Authenticated>
+          <Routes>
+            <Route path="/dashboard" element={<AuthenticatedApp />} />
+            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+            <Route path="/projects/:projectId/propose" element={<SubmitProposalPage />} />
+            <Route path="*" element={<Navigate to="/dashboard" />} />
+          </Routes>
+        </Authenticated>
+        <Unauthenticated>
+          <UnauthenticatedApp />
+        </Unauthenticated>
+        <Toaster />
+      </div>
+    </Router>
   );
 }
 
 function AuthenticatedApp() {
   const profile = useQuery(api.profiles.getCurrentProfile);
+  const isAdmin = useQuery(api.profiles.checkIsAdmin);
 
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+  
   if (profile === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,6 +62,12 @@ function AuthenticatedApp() {
 }
 
 function UnauthenticatedApp() {
+  const signInRef = useRef<HTMLElement>(null);
+
+  const handleLoginClick = () => {
+    signInRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -61,7 +83,12 @@ function UnauthenticatedApp() {
             <nav className="hidden md:flex space-x-8">
               <a href="#" className="text-gray-600 hover:text-gray-900">Browse Services</a>
               <a href="#" className="text-gray-600 hover:text-gray-900">How It Works</a>
-              <a href="#" className="text-gray-600 hover:text-gray-900">For Students</a>
+              <button
+                onClick={handleLoginClick}
+                className="bg-blue-600 text-white px-8 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Login
+              </button>
             </nav>
           </div>
         </div>
@@ -81,10 +108,16 @@ function UnauthenticatedApp() {
               find verified student freelancers ready to bring your projects to life.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              <button
+                onClick={handleLoginClick}
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
                 Hire a Student
               </button>
-              <button className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+              <button
+                onClick={handleLoginClick}
+                className="border border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              >
                 Start Freelancing
               </button>
             </div>
@@ -158,7 +191,7 @@ function UnauthenticatedApp() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
+      <section ref={signInRef} className="py-20 bg-blue-600 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
           <p className="text-xl text-blue-100 mb-8">Join thousands of students and clients already using CollegeSkills</p>

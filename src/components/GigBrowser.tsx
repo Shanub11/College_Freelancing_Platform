@@ -9,27 +9,22 @@ interface GigBrowserProps {
 export function GigBrowser({ userType }: GigBrowserProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [activeView, setActiveView] = useState<"gigs" | "projects">("gigs");
+  const activeView = userType === "freelancer" ? "projects" : "gigs";
 
   const categories = useQuery(api.categories.getCategories) || [];
-  const gigs = useQuery(api.gigs.getGigs, { 
-    category: selectedCategory || undefined,
-    limit: 20 
-  }) || [];
-  const projects = useQuery(api.projects.getProjects, {
-    category: selectedCategory || undefined,
-    limit: 20
-  }) || [];
 
-  const searchResults = searchTerm 
-    ? useQuery(activeView === "gigs" 
-        ? api.gigs.searchGigs 
-        : api.projects.searchProjects, 
-      { 
-        searchTerm, 
-        category: selectedCategory || undefined 
-      }) || []
-    : activeView === "gigs" ? gigs : projects;
+  const results = useQuery(
+    searchTerm
+      ? (activeView === "gigs" ? api.gigs.searchGigs : api.projects.searchProjects)
+      : (activeView === "gigs" ? api.gigs.getGigs : api.projects.getProjects),
+    {
+      ...(searchTerm ? { searchTerm } : { limit: 20 }),
+      category: selectedCategory || undefined,
+    }
+  );
+
+  const searchResults = results || [];
+
 
   return (
     <div className="space-y-6">
@@ -43,30 +38,6 @@ export function GigBrowser({ userType }: GigBrowserProps) {
             : "Discover talented student freelancers"
           }
         </p>
-      </div>
-
-      {/* View Toggle */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-        <button
-          onClick={() => setActiveView("gigs")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeView === "gigs"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Services
-        </button>
-        <button
-          onClick={() => setActiveView("projects")}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-            activeView === "projects"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Project Requests
-        </button>
       </div>
 
       {/* Search and Filters */}
@@ -200,9 +171,10 @@ function ProjectCard({ project }: { project: any }) {
         <span>👤 {project.client?.firstName || "Client"}</span>
       </div>
 
-      <button className="w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+      {/* This should be a <Link> component from your routing library, e.g., react-router-dom */}
+      <a href={`/projects/${project._id}`} className="block text-center w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
         Submit Proposal
-      </button>
+      </a>
     </>
   );
 }

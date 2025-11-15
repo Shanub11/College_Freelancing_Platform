@@ -112,7 +112,8 @@ const applicationTables = {
   })
     .index("by_project", ["projectId"])
     .index("by_freelancer", ["freelancerId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_project_and_freelancer", ["projectId", "freelancerId"]),
 
   // Orders/contracts
   orders: defineTable({

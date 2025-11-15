@@ -12,6 +12,7 @@ interface FreelancerDashboardProps {
 export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardProps) {
   const myGigs = useQuery(api.gigs.getMyGigs) || [];
   const [showCreateGig, setShowCreateGig] = useState(false);
+  const [editingGig, setEditingGig] = useState<any | null>(null);
 
   if (activeTab === "gigs") {
     return (
@@ -34,7 +35,12 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
         {/* Verification Status */}
         <VerificationUpload profile={profile} />
 
-        {showCreateGig && <CreateGigForm onClose={() => setShowCreateGig(false)} />}
+        {(showCreateGig || editingGig) && (
+          <CreateGigForm
+            gigToEdit={editingGig}
+            onClose={() => { setShowCreateGig(false); setEditingGig(null); }}
+          />
+        )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {myGigs.length === 0 ? (
@@ -80,7 +86,10 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                 </div>
 
                 <div className="flex space-x-2 mt-4">
-                  <button className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                  <button
+                    onClick={() => setEditingGig(gig)}
+                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
                     Edit
                   </button>
                   <button className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
@@ -147,37 +156,51 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   return null;
 }
 
-function CreateGigForm({ onClose }: { onClose: () => void }) {
+function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?: any | null }) {
+  const isEditMode = !!gigToEdit;
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    tags: [] as string[],
-    basePrice: 25,
-    deliveryTime: 3,
+    title: gigToEdit?.title || "",
+    description: gigToEdit?.description || "",
+    category: gigToEdit?.category || "",
+    tags: gigToEdit?.tags || [] as string[],
+    basePrice: gigToEdit?.basePrice || 25,
+    deliveryTime: gigToEdit?.deliveryTime || 3,
   });
 
   const categories = useQuery(api.categories.getCategories) || [];
   const createGig = useMutation(api.gigs.createGig);
+  const updateGig = useMutation(api.gigs.updateGig);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await createGig({
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        tags: formData.tags,
-        basePrice: formData.basePrice,
-        deliveryTime: formData.deliveryTime,
-        images: [], // TODO: Add image upload
-      });
-
-      toast.success("Gig created successfully!");
+      if (isEditMode) {
+        await updateGig({
+          gigId: gigToEdit._id,
+          // Only send fields the validator expects
+          title: formData.title,
+          description: formData.description,
+          basePrice: formData.basePrice,
+          deliveryTime: formData.deliveryTime,
+          // The backend validator is missing `category` and `tags`
+        });
+        toast.success("Gig updated successfully!");
+      } else {
+        await createGig({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          tags: formData.tags,
+          basePrice: formData.basePrice,
+          deliveryTime: formData.deliveryTime,
+          images: [], // TODO: Add image upload
+        });
+        toast.success("Gig created successfully!");
+      }
       onClose();
     } catch (error) {
-      toast.error("Failed to create gig");
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} gig`);
       console.error(error);
     }
   };
@@ -194,7 +217,7 @@ function CreateGigForm({ onClose }: { onClose: () => void }) {
   const removeTag = (tag: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(t => t !== tag)
+      tags: prev.tags.filter((t: string) => t !== tag)
     }));
   };
 
@@ -203,7 +226,9 @@ function CreateGigForm({ onClose }: { onClose: () => void }) {
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Create New Gig</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {isEditMode ? "Edit Gig" : "Create New Gig"}
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
@@ -299,7 +324,7 @@ function CreateGigForm({ onClose }: { onClose: () => void }) {
                 Tags
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
-                {formData.tags.map((tag) => (
+                {formData.tags.map((tag: string) => (
                   <span
                     key={tag}
                     className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
@@ -341,7 +366,7 @@ function CreateGigForm({ onClose }: { onClose: () => void }) {
                 type="submit"
                 className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Create Gig
+                {isEditMode ? "Save Changes" : "Create Gig"}
               </button>
             </div>
           </form>

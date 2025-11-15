@@ -1,6 +1,24 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { QueryCtx } from "./_generated/server";
+
+/**
+ * Internal helper to check if the current user is an admin.
+ * @param ctx - The query or mutation context.
+ * @returns {Promise<boolean>} - True if the user is an admin, false otherwise.
+ */
+async function isAdminUser(ctx: QueryCtx): Promise<boolean> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) return false;
+
+  const user = await ctx.db.get(userId);
+  if (!user) return false;
+
+  const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com"];
+
+  return adminEmails.includes(user.email || "");
+}
 
 export const getCurrentProfile = query({
   args: {},
@@ -156,19 +174,82 @@ export const getFreelancers = query({
 export const checkIsAdmin = query({
   args: {},
   handler: async (ctx) => {
+    return await isAdminUser(ctx);
+  },
+});
+
+export const getPendingVerifications = query({
+  handler: async (ctx) => {
+    const isAdmin = await isAdminUser(ctx);
+    if (!isAdmin) {
+      throw new Error("You are not authorized to perform this action.");
+    }
+
+    const requests = await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+
+    // Enrich requests with profile information
+    return Promise.all(
+      requests.map(async (request) => {
+        const profile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", request.userId))
+          .unique();
+        return {
+          ...request,
+          profileId: profile?._id, // Pass profileId to the frontend
+          profileName: profile?.firstName + " " + profile?.lastName,
+        };
+      })
+    );
+  },
+});
+
+export const approveVerification = mutation({
+  args: {
+    requestId: v.id("verificationRequests"),
+    profileId: v.id("profiles"),
+  },
+  handler: async (ctx, { requestId, profileId }) => {
+    const isAdmin = await isAdminUser(ctx);
+    if (!isAdmin) {
+      throw new Error("You are not authorized to perform this action.");
+    }
+
+    // Update profile to be verified
+    await ctx.db.patch(profileId, { isVerified: true });
+
+    // Update request status
+    await ctx.db.patch(requestId, { status: "approved" });
+  },
+});
+
+export const rejectVerification = mutation({
+  args: {
+    requestId: v.id("verificationRequests"),
+  },
+  handler: async (ctx, { requestId }) => {
+    const isAdmin = await isAdminUser(ctx);
+    if (!isAdmin) {
+      throw new Error("You are not authorized to perform this action.");
+    }
+
+    // Update request status
+    await ctx.db.patch(requestId, { status: "rejected" });
+  },
+});
+
+export const getVerificationStatus = query({
+  handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return false;
+    if (!userId) return null;
 
-    const user = await ctx.db.get(userId);
-    if (!user) return false;
-
-    // Check if user is admin - you can modify this logic as needed
-    // For now, checking if email matches admin email
-    const adminEmails = [
-      "admin@collegeskills.com",
-      "owner@collegeskills.com"
-    ];
-    
-    return adminEmails.includes(user.email || "");
+    return await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .first();
   },
 });
