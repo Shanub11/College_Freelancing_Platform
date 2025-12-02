@@ -25,5 +25,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "convex/CustomMessage.tsx", "convex/talkjs.ts", "convex/proposals.ts", "convex/projects.ts"]
+  "include": ["src", "convex/talkjs.ts", "convex/proposals.ts", "convex/projects.ts", "convex/StreamChatRoom.tsx"]
 }

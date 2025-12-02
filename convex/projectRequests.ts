@@ -43,36 +43,158 @@ export const getProjectRequestById = query({
   },
 });
 
+
+
 /**
+
  * Mutation to create a proposal for a project request.
+
+ * This now includes creating a notification for the client.
+
  */
+
 export const createProposal = mutation({
+
   args: {
+
     projectId: v.id("projectRequests"),
+
     coverLetter: v.string(),
+
     proposedPrice: v.number(),
+
     deliveryTime: v.number(),
+
   },
+
   handler: async (ctx, args) => {
+
     const freelancerId = await getAuthUserId(ctx);
+
     if (!freelancerId) {
+
       throw new Error("You must be logged in to submit a proposal.");
+
     }
 
-    // You might want to add a check here to prevent submitting multiple proposals
+
+
+    const project = await ctx.db.get(args.projectId);
+
+    if (!project) {
+
+      throw new Error("Project not found");
+
+    }
+
+
 
     const proposalId = await ctx.db.insert("proposals", {
+
       projectId: args.projectId,
+
       freelancerId,
+
       coverLetter: args.coverLetter,
+
       proposedPrice: args.proposedPrice,
+
       deliveryTime: args.deliveryTime,
+
       status: "pending",
+
     });
 
+
+
     // Increment proposal count on the project request
-    await ctx.db.patch(args.projectId, { proposalCount: (await ctx.db.get(args.projectId))!.proposalCount + 1 });
+
+    await ctx.db.patch(args.projectId, { proposalCount: (project.proposalCount || 0) + 1 });
+
+
+
+    // Create a notification for the client
+
+    await ctx.db.insert("notifications", {
+
+      userId: project.clientId,
+
+      type: "new_proposal",
+
+      message: `You have a new proposal for your project: ${project.title}`,
+
+      isRead: false,
+
+      link: `/projects/${args.projectId}/proposals`,
+
+    });
+
+
+
+
 
     return proposalId;
+
   },
+
+});
+
+
+
+/**
+
+ * Query to get all proposals for a specific project.
+
+ */
+
+export const getProposalsForProject = query({
+
+  args: {
+
+    projectId: v.id("projectRequests"),
+
+  },
+
+  handler: async (ctx, args) => {
+
+    const proposals = await ctx.db
+
+      .query("proposals")
+
+      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+
+      .collect();
+
+
+
+    return Promise.all(
+
+      proposals.map(async (proposal) => {
+
+        const freelancerProfile = await ctx.db
+
+          .query("profiles")
+
+          .withIndex("by_user", (q) => q.eq("userId", proposal.freelancerId))
+
+          .unique();
+
+        return {
+
+          ...proposal,
+
+          freelancerName: freelancerProfile
+
+            ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
+
+            : "Unknown Freelancer",
+
+        };
+
+      })
+
+    );
+
+  },
+
 });

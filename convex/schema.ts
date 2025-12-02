@@ -110,10 +110,21 @@ const applicationTables = {
       v.literal("rejected")
     ),
   })
-    .index("by_project", ["projectId"])
+    .index("by_projectId", ["projectId"])
     .index("by_freelancer", ["freelancerId"])
     .index("by_status", ["status"])
     .index("by_project_and_freelancer", ["projectId", "freelancerId"]),
+
+  // Notifications for users
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.string(), // e.g., 'new_proposal', 'message', 'order_update'
+    message: v.string(),
+    isRead: v.boolean(),
+    link: v.optional(v.string()), // Link to the relevant page
+  })
+    .index("by_user", ["userId"])
+    .index("by_read_status", ["userId", "isRead"]),
 
   // Orders/contracts
   orders: defineTable({

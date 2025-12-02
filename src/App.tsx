@@ -63,15 +63,27 @@ function AuthenticatedApp() {
 
 function UnauthenticatedApp() {
   const signInRef = useRef<HTMLElement>(null);
+  const howItWorksRef = useRef<HTMLElement>(null);
+  const categoriesRef = useRef<HTMLElement>(null);
 
   const handleLoginClick = () => {
     signInRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleHowItWorksClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    howItWorksRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleBrowseServicesClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    categoriesRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
@@ -81,8 +93,8 @@ function UnauthenticatedApp() {
               <span className="text-xl font-bold text-gray-900">CollegeSkills</span>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-gray-600 hover:text-gray-900">Browse Services</a>
-              <a href="#" className="text-gray-600 hover:text-gray-900">How It Works</a>
+              <a href="#categories" onClick={handleBrowseServicesClick} className="text-gray-600 hover:text-gray-900">Browse Services</a>
+              <a href="#how-it-works" onClick={handleHowItWorksClick} className="text-gray-600 hover:text-gray-900">How It Works</a>
               <button
                 onClick={handleLoginClick}
                 className="bg-blue-600 text-white px-8 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
@@ -161,8 +173,62 @@ function UnauthenticatedApp() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section ref={howItWorksRef} className="py-20 bg-gray-50 scroll-mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
+            <p className="text-lg text-gray-600">A simple process for both clients and students.</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-16">
+            {/* For Clients */}
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">For Clients</h3>
+              <ol className="relative border-l border-gray-200">
+                <li className="mb-10 ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-8 ring-white">1</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Post a Project</h4>
+                  <p className="text-gray-600">Describe your project, budget, and required skills. It's free and takes just a few minutes.</p>
+                </li>
+                <li className="mb-10 ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-8 ring-white">2</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Receive Proposals</h4>
+                  <p className="text-gray-600">Get proposals from talented and verified college students who are eager to work.</p>
+                </li>
+                <li className="ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full -left-4 ring-8 ring-white">3</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Hire & Collaborate</h4>
+                  <p className="text-gray-600">Choose the best student for the job. Use our platform for secure payments and easy collaboration.</p>
+                </li>
+              </ol>
+            </div>
+            {/* For Students */}
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">For Students</h3>
+              <ol className="relative border-l border-gray-200">
+                <li className="mb-10 ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-green-100 rounded-full -left-4 ring-8 ring-white">1</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Create Your Profile</h4>
+                  <p className="text-gray-600">Showcase your skills, experience, and portfolio to attract potential clients.</p>
+                </li>
+                <li className="mb-10 ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-green-100 rounded-full -left-4 ring-8 ring-white">2</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Find Projects</h4>
+                  <p className="text-gray-600">Browse projects that match your skills and interests. Send compelling proposals.</p>
+                </li>
+                <li className="ml-6">
+                  <span className="absolute flex items-center justify-center w-8 h-8 bg-green-100 rounded-full -left-4 ring-8 ring-white">3</span>
+                  <h4 className="font-semibold text-lg text-gray-900">Earn & Build Experience</h4>
+                  <p className="text-gray-600">Get paid for your work, receive feedback, and build a strong portfolio for your future career.</p>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Categories Section */}
-      <section className="py-20 bg-gray-50">
+      <section ref={categoriesRef} className="py-20 bg-white scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Popular Categories</h2>
@@ -219,7 +285,7 @@ function UnauthenticatedApp() {
             <div>
               <h3 className="font-semibold mb-4">For Clients</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Browse Services</a></li>
+                <li><a href="#categories" onClick={handleBrowseServicesClick} className="hover:text-white">Browse Services</a></li>
                 <li><a href="#" className="hover:text-white">Post a Project</a></li>
                 <li><a href="#" className="hover:text-white">How It Works</a></li>
               </ul>
