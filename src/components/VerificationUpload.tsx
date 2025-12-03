@@ -12,11 +12,14 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
   const [formData, setFormData] = useState({
     collegeEmail: profile.collegeEmail || "",
     collegeName: profile.collegeName || "",
+    course: "",
+    department: "",
+    graduationYear: new Date().getFullYear() + 1,
   });
 
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
-  const submitVerification = useMutation(api.verification.submitVerification);
-  const verificationStatus = useQuery(api.verification.getMyVerificationStatus);
+  const submitVerification = useMutation(api.profiles.submitForVerification);
+  const verificationStatus = useQuery(api.profiles.getVerificationStatus);
 
   const handleFileUpload = async (file: File) => {
     if (!file) return null;
@@ -53,14 +56,16 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
     e.preventDefault();
 
     const fileInput = document.getElementById("studentId") as HTMLInputElement;
-    const file = fileInput?.files?.[0];
+    const studentIdFile = fileInput?.files?.[0];
+    const govtIdInput = document.getElementById("govtId") as HTMLInputElement;
+    const govtIdFile = govtIdInput?.files?.[0];
 
-    if (!file) {
-      toast.error("Please select a student ID file");
+    if (!studentIdFile || !govtIdFile) {
+      toast.error("Please upload both your Student ID and Government ID.");
       return;
     }
 
-    if (!formData.collegeEmail || !formData.collegeName) {
+    if (!formData.collegeEmail || !formData.collegeName || !formData.course || !formData.department) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -69,14 +74,20 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
       setIsUploading(true);
 
       // Upload the student ID file
-      const studentIdFile = await handleFileUpload(file);
-      if (!studentIdFile) return;
+      const studentIdStorageId = await handleFileUpload(studentIdFile);
+      const govtIdStorageId = await handleFileUpload(govtIdFile);
+
+      if (!studentIdStorageId || !govtIdStorageId) return;
 
       // Submit verification request
       await submitVerification({
         collegeEmail: formData.collegeEmail,
         collegeName: formData.collegeName,
-        studentIdFile,
+        course: formData.course,
+        department: formData.department,
+        graduationYear: formData.graduationYear,
+        studentId: studentIdStorageId,
+        govtId: govtIdStorageId,
       });
 
       toast.success("Verification request submitted successfully!");
@@ -181,8 +192,8 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
 }
 
 interface VerificationFormProps {
-  formData: { collegeEmail: string; collegeName: string };
-  setFormData: (updater: (prev: { collegeEmail: string; collegeName: string }) => { collegeEmail: string; collegeName: string }) => void;
+  formData: any;
+  setFormData: (updater: (prev: any) => any) => void;
   onSubmit: (e: React.FormEvent) => void;
   isUploading: boolean;
 }
@@ -204,6 +215,50 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Current Course *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.course}
+            onChange={(e) => setFormData(prev => ({ ...prev, course: e.target.value }))}
+            placeholder="e.g., B.Tech in Computer Science"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Department *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.department}
+            onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+            placeholder="e.g., Computer Engineering"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Expected Graduation Year *
+        </label>
+        <input
+          type="number"
+          required
+          value={formData.graduationYear}
+          onChange={(e) => setFormData(prev => ({ ...prev, graduationYear: parseInt(e.target.value) }))}
+          min={new Date().getFullYear()}
+          max={new Date().getFullYear() + 10}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           College Email *
@@ -217,13 +272,13 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Must be your official college email address ending in .edu
+          Must be your official college email address (e.g., .edu, .ac.in domains).
         </p>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Student ID Document *
+          Student ID Card *
         </label>
         <input
           type="file"
@@ -234,6 +289,22 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
         />
         <p className="text-xs text-gray-500 mt-1">
           Upload a clear photo of your student ID card or official enrollment letter (JPG, PNG, or PDF)
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Government ID *
+        </label>
+        <input
+          type="file"
+          id="govtId"
+          required
+          accept="image/*,.pdf"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          e.g., Adhaar Card, Driver's License, Passport, or PAN Card.
         </p>
       </div>
 

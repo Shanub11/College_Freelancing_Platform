@@ -15,7 +15,7 @@ async function isAdminUser(ctx: QueryCtx): Promise<boolean> {
   const user = await ctx.db.get(userId);
   if (!user) return false;
 
-  const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com"];
+  const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
 
   return adminEmails.includes(user.email || "");
 }
@@ -75,9 +75,16 @@ export const createProfile = mutation({
       throw new Error("Profile already exists");
     }
 
+    const user = await ctx.db.get(userId);
+    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
+    const isAdmin = adminEmails.includes(user?.email || "");
+
+    // If user is admin, set userType to 'admin'.
+    const userType = isAdmin ? "admin" : args.userType;
+
     const profileId = await ctx.db.insert("profiles", {
       userId,
-      userType: args.userType,
+      userType: userType,
       firstName: args.firstName,
       lastName: args.lastName,
       bio: args.bio,
@@ -86,23 +93,47 @@ export const createProfile = mutation({
       graduationYear: args.graduationYear,
       skills: args.skills,
       company: args.company,
-      isVerified: false,
+      isAdmin: isAdmin,
+      isVerified: isAdmin,
       totalReviews: 0,
     });
-
-    // If freelancer with college email, create verification request
-    if (args.userType === "freelancer" && args.collegeEmail && args.collegeName) {
-      await ctx.db.insert("verificationRequests", {
-        userId,
-        collegeEmail: args.collegeEmail,
-        collegeName: args.collegeName,
-        status: "pending",
-      });
-    }
 
     return profileId;
   },
 });
+
+export const submitForVerification = mutation({
+  args: {
+    collegeName: v.string(),
+    collegeEmail: v.string(),
+    course: v.string(),
+    department: v.string(),
+    graduationYear: v.number(),
+    studentId: v.id("_storage"),
+    govtId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const existingRequest = await ctx.db
+      .query("verificationRequests")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter(q => q.eq(q.field("status"), "pending"))
+      .first();
+
+    if (existingRequest) {
+      throw new Error("You already have a pending verification request.");
+    }
+
+    await ctx.db.insert("verificationRequests", {
+      userId,
+      status: "pending",
+      ...args,
+    });
+  },
+});
+
 
 export const updateProfile = mutation({
   args: {
@@ -197,10 +228,20 @@ export const getPendingVerifications = query({
           .query("profiles")
           .withIndex("by_user", (q) => q.eq("userId", request.userId))
           .unique();
+
+        const studentIdUrl = request.studentId
+          ? await ctx.storage.getUrl(request.studentId)
+          : null;
+        const govtIdUrl = request.govtId
+          ? await ctx.storage.getUrl(request.govtId)
+          : null;
+
         return {
           ...request,
           profileId: profile?._id, // Pass profileId to the frontend
           profileName: profile?.firstName + " " + profile?.lastName,
+          studentIdUrl,
+          govtIdUrl,
         };
       })
     );

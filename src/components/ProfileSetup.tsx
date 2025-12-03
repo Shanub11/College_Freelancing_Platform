@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { SignOutButton } from "../SignOutButton";
 
 export function ProfileSetup() {
   const [step, setStep] = useState(1);
@@ -32,10 +33,7 @@ export function ProfileSetup() {
         userType,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        bio: formData.bio || undefined,
-        collegeName: userType === "freelancer" ? formData.collegeName || undefined : undefined,
-        collegeEmail: userType === "freelancer" ? formData.collegeEmail || undefined : undefined,
-        graduationYear: userType === "freelancer" ? formData.graduationYear || undefined : undefined,
+        bio: formData.bio || undefined, // Bio is optional
         skills: userType === "freelancer" && formData.skills.length > 0 ? formData.skills : undefined,
         company: userType === "client" ? formData.company || undefined : undefined,
       });
@@ -65,11 +63,12 @@ export function ProfileSetup() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 relative">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-white font-bold text-xl">CS</span>
           </div>
+          
           <h1 className="text-2xl font-bold text-gray-900">Welcome to CollegeSkills</h1>
           <p className="text-gray-600 mt-2">Let's set up your profile</p>
         </div>
@@ -175,85 +174,6 @@ export function ProfileSetup() {
 
             {userType === "freelancer" && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    College Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.collegeName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, collegeName: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Stanford University"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    College Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.collegeEmail}
-                    onChange={(e) => setFormData(prev => ({ ...prev, collegeEmail: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="your.name@college.edu"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Use your official college email for verification
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Graduation Year
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.graduationYear}
-                    onChange={(e) => setFormData(prev => ({ ...prev, graduationYear: parseInt(e.target.value) }))}
-                    min={new Date().getFullYear()}
-                    max={new Date().getFullYear() + 10}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Skills
-                  </label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {formData.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
-                      >
-                        <span>{skill}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(skill)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Add a skill and press Enter"
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addSkill(e.currentTarget.value);
-                        e.currentTarget.value = "";
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
               </>
             )}
 
@@ -279,13 +199,6 @@ export function ProfileSetup() {
               Create Profile
             </button>
 
-            {userType === "freelancer" && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Verification Required:</strong> Your college email will be verified before you can start offering services. This helps maintain trust and quality on our platform.
-                </p>
-              </div>
-            )}
           </form>
         )}
       </div>

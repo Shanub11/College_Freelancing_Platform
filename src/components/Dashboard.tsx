@@ -1,37 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { GigBrowser } from "./GigBrowser";
 import { FreelancerDashboard } from "./FreelancerDashboard";
 import { ClientDashboard } from "./ClientDashboard";
-import { AdminVerification } from "./AdminVerification";
+import { AdminDashboard } from "./AdminDashboard";
+import { VerificationUpload } from "./VerificationUpload";
 
 interface DashboardProps {
   profile: any;
 }
 
 export function Dashboard({ profile }: DashboardProps) {
-  const [activeTab, setActiveTab] = useState("browse");
-  
   // Check if user is admin
   const isAdmin = useQuery(api.profiles.checkIsAdmin);
 
-  const tabs = profile.userType === "freelancer" 
-    ? [
-        { id: "browse", label: "Browse Projects", icon: "🔍" },
-        { id: "my-gigs", label: "My Gigs", icon: "💼" },
-        { id: "orders", label: "Orders", icon: "📋" },
-        { id: "earnings", label: "Earnings", icon: "💰" },
-        ...(isAdmin ? [{ id: "admin", label: "Admin Panel", icon: "⚙️" }] : []),
-      ]
-    : [
-        { id: "browse", label: "Browse Services", icon: "🔍" },
-        { id: "projects", label: "My Projects", icon: "📋" },
-        { id: "orders", label: "Orders", icon: "💼" },
-        { id: "post-project", label: "Post Project", icon: "➕" },
-        ...(isAdmin ? [{ id: "admin", label: "Admin Panel", icon: "⚙️" }] : []),
-      ];
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // Set the initial tab after isAdmin query has resolved.
+  useEffect(() => {
+    // This effect runs when isAdmin is no longer undefined (i.e., loaded).
+    if (isAdmin !== undefined) {
+      setActiveTab(isAdmin ? "admin" : "browse");
+    }
+  }, [isAdmin]);
+
+  let tabs = [];
+  if (profile.userType === "admin") {
+    tabs = [{ id: "admin", label: "Admin Panel", icon: "⚙️" }];
+  } else if (profile.userType === "freelancer") {
+    tabs = [
+      { id: "browse", label: "Browse Projects", icon: "🔍" },
+      { id: "my-gigs", label: "My Gigs", icon: "💼" },
+      { id: "orders", label: "Orders", icon: "📋" },
+      { id: "earnings", label: "Earnings", icon: "💰" },
+    ];
+    // If freelancer is not verified, add verification tab
+    if (!profile.isVerified) {
+      tabs.unshift({ id: "verification", label: "Verify Account", icon: "🛡️" });
+    }
+  } else { // client
+    tabs = [
+      { id: "browse", label: "Browse Services", icon: "🔍" },
+      { id: "projects", label: "My Projects", icon: "📋" },
+      { id: "orders", label: "Orders", icon: "💼" },
+      { id: "post-project", label: "Post Project", icon: "➕" },
+    ];
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,10 +150,17 @@ export function Dashboard({ profile }: DashboardProps) {
 
           {/* Main Content */}
           <div className="flex-1">
+            {/* Show a loading state until the active tab is determined */}
+            {activeTab === null && (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            )}
             {activeTab === "browse" && <GigBrowser userType={profile.userType} />}
-            {activeTab === "admin" && isAdmin && <AdminVerification />}
+            {activeTab === "admin" && profile.userType === "admin" && <AdminDashboard />}
             {profile.userType === "freelancer" && (
               <>
+                {activeTab === "verification" && <VerificationUpload profile={profile} />}
                 {activeTab === "my-gigs" && <FreelancerDashboard profile={profile} activeTab="gigs" />}
                 {activeTab === "orders" && <FreelancerDashboard profile={profile} activeTab="orders" />}
                 {activeTab === "earnings" && <FreelancerDashboard profile={profile} activeTab="earnings" />}

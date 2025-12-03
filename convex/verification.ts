@@ -7,6 +7,9 @@ export const submitVerification = mutation({
     collegeEmail: v.string(),
     collegeName: v.string(),
     studentIdFile: v.id("_storage"),
+    course: v.string(),
+    department: v.string(),
+    graduationYear: v.number(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -44,6 +47,9 @@ export const submitVerification = mutation({
       collegeEmail: args.collegeEmail,
       collegeName: args.collegeName,
       studentId: args.studentIdFile,
+      course: args.course,
+      department: args.department,
+      graduationYear: args.graduationYear,
       status: "pending",
     });
 

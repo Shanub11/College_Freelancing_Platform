@@ -6,7 +6,7 @@ const applicationTables = {
   // User profiles extending auth
   profiles: defineTable({
     userId: v.id("users"),
-    userType: v.union(v.literal("freelancer"), v.literal("client")),
+    userType: v.union(v.literal("freelancer"), v.literal("client"), v.literal("admin")),
     // Common fields
     firstName: v.string(),
     lastName: v.string(),
@@ -27,6 +27,8 @@ const applicationTables = {
     }))),
     // Client specific fields
     company: v.optional(v.string()),
+    // Admin flag
+    isAdmin: v.optional(v.boolean()),
     // Ratings
     averageRating: v.optional(v.number()),
     totalReviews: v.number(),
@@ -194,7 +196,11 @@ const applicationTables = {
     userId: v.id("users"),
     collegeEmail: v.string(),
     collegeName: v.string(),
+    course: v.optional(v.string()),
+    department: v.optional(v.string()),
+    graduationYear: v.optional(v.number()),
     studentId: v.optional(v.id("_storage")),
+    govtId: v.optional(v.id("_storage")), // Add field for government ID
     status: v.union(
       v.literal("pending"),
       v.literal("approved"),
