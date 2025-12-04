@@ -40,4 +40,9 @@ window.addEventListener('message', async (message) => {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // This is to prevent the CSP error from happening in development.
+  build: {
+    // `true` will generate a separate source map file.
+    sourcemap: true,
+  },
 }));
