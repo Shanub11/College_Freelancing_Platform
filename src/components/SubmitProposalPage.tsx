@@ -40,22 +40,30 @@ export function SubmitProposalPage() {
     }
   };
 
-  if (!project) {
-    return <div>Loading project details...</div>;
+  if (project === undefined) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-lg font-semibold text-gray-600">Loading project details...</div>
+      </div>
+    );
+  }
+
+  if (project === null) {
+    return <div className="text-center p-8">Project not found.</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="bg-white shadow-sm rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit a Proposal</h1>
-        <p className="text-gray-600 mt-1">For project: <span className="font-semibold">{project.title}</span></p>
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="bg-white shadow-lg rounded-xl p-8">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Submit a Proposal</h1>
+        <p className="text-gray-600 mt-2">For project: <span className="font-semibold text-gray-800">{project.title}</span></p>
 
         {submittedProposalId ? (
-          <div className="mt-6 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🎉</span>
+          <div className="mt-8 text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+              <span className="text-4xl">🎉</span>
             </div>
-            <h2 className="text-xl font-semibold">Proposal Submitted!</h2>
+            <h2 className="text-2xl font-semibold text-gray-800">Proposal Submitted!</h2>
             <p className="text-gray-600 mt-2">You can now discuss the project details with the client.</p>
             <button
               onClick={() => navigate(`/proposals/${submittedProposalId}/discussion`)}
@@ -65,42 +73,45 @@ export function SubmitProposalPage() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
             <div>
-              <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700">Cover Letter</label>
+              <label htmlFor="coverLetter" className="block text-m font-medium text-gray-700">Cover Letter</label>
               <textarea
                 id="coverLetter"
                 {...register("coverLetter", { required: "Cover letter is required." })}
                 rows={6}
-                className="mt-1 px-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-2 px-3 py-2 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-150 ease-in-out"
+                placeholder="Introduce yourself and explain why you're a great fit for this project..."
               />
               {errors.coverLetter && <p className="text-red-500 text-sm mt-1">{errors.coverLetter.message}</p>}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="proposedPrice" className="block text-sm font-medium text-gray-700">Your Price ($)</label>
+                <label htmlFor="proposedPrice" className="block text-m font-medium text-gray-700">Your Price ($)</label>
                 <input
                   type="number"
                   id="proposedPrice"
                   {...register("proposedPrice", { required: "Price is required.", valueAsNumber: true })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-2 px-3 py-2 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  placeholder="e.g., 500"
                 />
                 {errors.proposedPrice && <p className="text-red-500 text-sm mt-1">{errors.proposedPrice.message}</p>}
               </div>
               <div>
-                <label htmlFor="deliveryTime" className="block text-sm font-medium text-gray-700">Estimated Delivery (in days)</label>
+                <label htmlFor="deliveryTime" className="block text-m font-medium text-gray-700">Estimated Delivery (in days)</label>
                 <input
                   type="number"
                   id="deliveryTime"
                   {...register("deliveryTime", { required: "Delivery time is required.", valueAsNumber: true })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-2 px-3 py-2 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-150 ease-in-out"
+                  placeholder="e.g., 7"
                 />
                 {errors.deliveryTime && <p className="text-red-500 text-sm mt-1">{errors.deliveryTime.message}</p>}
               </div>
             </div>
 
-            <button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-300">
+            <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-all duration-200 ease-in-out transform hover:scale-105">
               {isSubmitting ? "Submitting..." : "Submit Proposal"}
             </button>
           </form>
