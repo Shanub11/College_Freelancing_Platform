@@ -95,6 +95,8 @@ function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
   );
 }
 
+
+
 function ProfileAvatar({ profile }: { profile: any }) {
   const profilePictureUrl = useStorage(profile.profilePicture);
 
@@ -267,12 +269,16 @@ function ProjectProposals({ projectId, onBack, onViewProfile }: { projectId: Id<
                 <p className="text-sm text-gray-600 mb-2">{p.coverLetter}</p>
               </div>
               <div className="flex items-center space-x-2 mt-4">
-                <button onClick={() => handleAccept(p._id)} disabled={p.status === 'accepted'} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-green-300 transition-colors">
-                  {p.status === 'accepted' ? 'Accepted' : 'Accept'}
-                </button>
-                <button onClick={() => handleReject(p._id)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
-                  Reject
-                </button>
+                {project?.status === 'open' && p.status !== 'accepted' && p.status !== 'rejected' && (
+                  <>
+                    <button onClick={() => handleAccept(p._id)} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                      Accept
+                    </button>
+                    <button onClick={() => handleReject(p._id)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
+                      Reject
+                    </button>
+                  </>
+                )}
                 <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
                   View Profile
                 </button>
