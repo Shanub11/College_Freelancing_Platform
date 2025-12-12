@@ -26,6 +26,8 @@ const applicationTables = {
       url: v.optional(v.string())
     }))),
     // Client specific fields
+    paypalMerchantId: v.optional(v.string()), // To store the freelancer's PayPal Merchant ID
+    razorpayAccountId: v.optional(v.string()), // Linked Razorpay Account ID (acc_...)
     company: v.optional(v.string()),
     // Admin flag
     isAdmin: v.optional(v.boolean()),
@@ -37,6 +39,7 @@ const applicationTables = {
     .index("by_type", ["userType"])
     .index("by_verified", ["isVerified"])
     .index("by_college", ["collegeName"]),
+    // .index("by_paypalMerchantId", ["paypalMerchantId"]), // You can add this if needed for lookups
 
   // Service gigs posted by freelancers
   gigs: defineTable({
@@ -109,7 +112,8 @@ const applicationTables = {
     status: v.union(
       v.literal("pending"),
       v.literal("accepted"),
-      v.literal("rejected")
+      v.literal("rejected"),
+      v.literal("payment_pending")
     ),
   })
     .index("by_projectId", ["projectId"])
@@ -139,6 +143,7 @@ const applicationTables = {
     price: v.number(),
     deliveryTime: v.number(),
     status: v.union(
+      v.literal("pending_payment"),
       v.literal("active"),
       v.literal("in_progress"),
       v.literal("delivered"),
@@ -222,6 +227,22 @@ const applicationTables = {
     isActive: v.boolean(),
   })
     .index("by_active", ["isActive"]),
+
+  // Add the new 'payments' table
+  payments: defineTable({
+    orderId: v.id("orders"),
+    razorpayOrderId: v.string(),
+    razorpayTransferId: v.optional(v.string()), // Transfer ID for Escrow release
+    amount: v.number(),
+    status: v.union(
+      v.literal("pending"), // Client needs to pay
+      v.literal("funded"),  // Payment held in escrow
+      v.literal("released"), // Paid out to freelancer
+      v.literal("refunded")  // Refunded to client
+    ),
+  })
+    .index("by_orderId", ["orderId"])
+    .index("by_razorpayOrderId", ["razorpayOrderId"]),
 };
 
 export default defineSchema({

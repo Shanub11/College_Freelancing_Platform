@@ -72,31 +72,31 @@ export const acceptProposal = mutation({
       throw new Error("You are not authorized to accept proposals for this project.");
     }
 
-    // Accept the selected proposal
-    await ctx.db.patch(args.proposalId, { status: "accepted" });
+    // Mark proposal as payment pending instead of accepted
+    await ctx.db.patch(args.proposalId, { status: "payment_pending" });
 
-    // Update the project status to ongoing and assign the freelancer
-    await ctx.db.patch(proposalToAccept.projectId, { status: "in_progress", selectedFreelancer: proposalToAccept.freelancerId });
+    // Create the Order record with 'pending_payment' status
+    const orderId = await ctx.db.insert("orders", {
+      projectId: proposalToAccept.projectId,
+      freelancerId: proposalToAccept.freelancerId,
+      clientId: project.clientId,
+      title: project.title,
+      description: project.description,
+      price: proposalToAccept.proposedPrice,
+      deliveryTime: proposalToAccept.deliveryTime,
+      status: "pending_payment",
+    });
 
     // Notify the freelancer
     await ctx.db.insert("notifications", {
       userId: proposalToAccept.freelancerId,
       type: "proposalAccepted",
-      message: `Your proposal for "${project.title}" has been accepted!`,
-      link: `/projects/${project._id}`,
+      message: `Your proposal for "${project.title}" has been accepted! Waiting for client payment.`,
+      link: `/orders/${orderId}`,
       isRead: false,
     });
 
-    // Reject other proposals for the same project
-    const otherProposals = await ctx.db
-      .query("proposals")
-      .withIndex("by_projectId", (q) => q.eq("projectId", proposalToAccept.projectId))
-      .filter((q) => q.neq(q.field("_id"), args.proposalId))
-      .collect();
-
-    for (const proposal of otherProposals) {
-      await ctx.db.patch(proposal._id, { status: "rejected" });
-    }
+    return orderId;
   },
 });
 

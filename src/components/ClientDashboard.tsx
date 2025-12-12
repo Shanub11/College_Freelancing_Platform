@@ -17,6 +17,7 @@ function useStorage(fileRef: any): string | null {
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
+import { ProposalActions } from "./ProposalActions";
 
 // Main component for the client dashboard
 export function ClientDashboard({ profile, activeTab }: { profile: any, activeTab: string }) {
@@ -33,7 +34,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   }
 
   if (selectedProject && !viewingFreelancer) {
-    return <ProjectProposals projectId={selectedProject} onBack={() => setSelectedProject(null)} onViewProfile={setViewingFreelancer} />;
+    return <ProjectProposals projectId={selectedProject} onBack={() => setSelectedProject(null)} onViewProfile={setViewingFreelancer} clientProfile={profile} />;
   }
 
   return (
@@ -154,7 +155,7 @@ function OrderList({ orders }: { orders: any[] }) {
             </div>
             <div className="text-right">
               {getStatusChip(order.status)}
-              <p className="text-sm text-gray-500 mt-1">Budget: ${order.budget.min} - ${order.budget.max}</p>
+              <p className="text-sm text-gray-500 mt-1">Budget: INR{order.budget.min} - INR{order.budget.max}</p>
             </div>
           </div>
         </div>
@@ -210,32 +211,10 @@ function ProjectList({ projects, onSelectProject }: { projects: any[], onSelectP
 }
 
 // Component to display proposals for a selected project
-function ProjectProposals({ projectId, onBack, onViewProfile }: { projectId: Id<"projectRequests">, onBack: () => void, onViewProfile: (userId: Id<"users">) => void }) {
+function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile }: { projectId: Id<"projectRequests">, onBack: () => void, onViewProfile: (userId: Id<"users">) => void, clientProfile: any }) {
   const proposals = useQuery(api.projects.getProposalsForProject, { projectId }) || [];
   const project = useQuery(api.projects.getProjectById, { projectId });
 
-  const acceptProposal = useMutation(api.proposals.acceptProposal);
-  const rejectProposal = useMutation(api.proposals.rejectProposal);
-
-  const handleAccept = async (proposalId: Id<"proposals">) => {
-    try {
-      await acceptProposal({ proposalId });
-      toast.success("Proposal accepted successfully!");
-    } catch (error) {
-      toast.error("Failed to accept proposal.");
-      console.error(error);
-    }
-  };
-
-  const handleReject = async (proposalId: Id<"proposals">) => {
-    try {
-      await rejectProposal({ proposalId });
-      toast.success("Proposal rejected.");
-    } catch (error) {
-      toast.error("Failed to reject proposal.");
-      console.error(error);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -262,7 +241,13 @@ function ProjectProposals({ projectId, onBack, onViewProfile }: { projectId: Id<
                   <p className="text-gray-600">Proposed Price: <span className="font-medium text-gray-800">${p.proposedPrice}</span></p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-semibold px-2 py-1 rounded-full ${p.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{p.status}</p>
+                  <p className={`text-sm font-semibold px-2 py-1 rounded-full ${
+                    p.status === 'accepted' ? 'bg-green-100 text-green-800' : 
+                    p.status === 'payment_pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {p.status === 'payment_pending' ? 'Payment Pending' : p.status}
+                  </p>
                 </div>
               </div>
               <div className="mt-4 border-t pt-4">
@@ -271,12 +256,11 @@ function ProjectProposals({ projectId, onBack, onViewProfile }: { projectId: Id<
               <div className="flex items-center space-x-2 mt-4">
                 {project?.status === 'open' && p.status !== 'accepted' && p.status !== 'rejected' && (
                   <>
-                    <button onClick={() => handleAccept(p._id)} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                      Accept
-                    </button>
-                    <button onClick={() => handleReject(p._id)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
-                      Reject
-                    </button>
+                    <ProposalActions 
+                      proposalId={p._id}
+                      amount={p.proposedPrice}
+                      clientName={`${clientProfile.firstName} ${clientProfile.lastName}`}
+                    />
                   </>
                 )}
                 <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
