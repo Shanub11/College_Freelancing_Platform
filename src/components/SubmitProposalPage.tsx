@@ -88,7 +88,7 @@ export function SubmitProposalPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="proposedPrice" className="block text-m font-medium text-gray-700">Your Price ($)</label>
+                <label htmlFor="proposedPrice" className="block text-m font-medium text-gray-700">Your Price (₹)</label>
                 <input
                   type="number"
                   id="proposedPrice"

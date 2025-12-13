@@ -57,9 +57,9 @@ export function Dashboard({ profile }: DashboardProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CS</span>
+                <span className="text-white font-bold text-sm">CG</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">CollegeSkills</span>
+              <span className="text-xl font-bold text-gray-900">CollegeGig</span>
               
               {profile.userType === "freelancer" && !profile.isVerified && (
                 <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">

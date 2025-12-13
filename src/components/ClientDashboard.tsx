@@ -238,7 +238,7 @@ function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile }: {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-semibold text-lg text-gray-900">{p.freelancerName}</p>
-                  <p className="text-gray-600">Proposed Price: <span className="font-medium text-gray-800">${p.proposedPrice}</span></p>
+                  <p className="text-gray-600">Proposed Price: <span className="font-medium text-gray-800">₹{p.proposedPrice}</span></p>
                 </div>
                 <div className="text-right">
                   <p className={`text-sm font-semibold px-2 py-1 rounded-full ${
@@ -318,7 +318,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               {completedProjects.map((project: any) => (
                 <div key={project._id} className="border rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800">{project.title}</h4>
-                  <p className="text-sm text-gray-600 mt-1">Budget: ${project.budget.min} - ${project.budget.max}</p>
+                  <p className="text-sm text-gray-600 mt-1">Budget: ₹{project.budget.min} - ₹{project.budget.max}</p>
                   {/* You could add client feedback here if you have a reviews system */}
                 </div>
               ))}
@@ -457,7 +457,7 @@ function PostProjectForm() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Budget ($) *
+                Minimum Budget (₹) *
               </label>
               <input
                 type="number"
@@ -471,7 +471,7 @@ function PostProjectForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Budget ($) *
+                Maximum Budget (₹) *
               </label>
               <input
                 type="number"

@@ -145,7 +145,7 @@ function ProjectCard({ project }: { project: any }) {
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-semibold text-gray-900 line-clamp-2">{project.title}</h3>
         <span className="text-sm font-medium text-green-600">
-          ${project.budget.min} - ${project.budget.max}
+          ₹{project.budget.min} - ₹{project.budget.max}
         </span>
       </div>
 
