@@ -73,7 +73,7 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price:</span>
-                    <span className="font-medium">${gig.basePrice}</span>
+                    <span className="font-medium">₹{gig.basePrice}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Orders:</span>

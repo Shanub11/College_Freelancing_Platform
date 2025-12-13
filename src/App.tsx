@@ -88,9 +88,9 @@ function UnauthenticatedApp() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CS</span>
+                <span className="text-white font-bold text-sm">CG</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">CollegeSkills</span>
+              <span className="text-xl font-bold text-gray-900">CollegeGig</span>
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#categories" onClick={handleBrowseServicesClick} className="text-gray-600 hover:text-gray-900">Browse Services</a>
@@ -141,7 +141,7 @@ function UnauthenticatedApp() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose CollegeSkills?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose CollegeGig?</h2>
             <p className="text-lg text-gray-600">Verified students, quality work, competitive prices</p>
           </div>
           
@@ -275,9 +275,9 @@ function UnauthenticatedApp() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">CS</span>
+                  <span className="text-white font-bold text-sm">CG</span>
                 </div>
-                <span className="text-xl font-bold">CollegeSkills</span>
+                <span className="text-xl font-bold">CollegeGig</span>
               </div>
               <p className="text-gray-400">Empowering students. Connecting talent to opportunity.</p>
             </div>
@@ -311,7 +311,7 @@ function UnauthenticatedApp() {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 CollegeSkills. All rights reserved.</p>
+            <p>&copy; 2025 CollegeGig. All rights reserved.</p>
           </div>
         </div>
       </footer>
