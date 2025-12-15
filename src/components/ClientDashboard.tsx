@@ -41,10 +41,21 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   }
 
   if (selectedProject && !viewingFreelancer) {
-    return <ProjectProposals projectId={selectedProject} onBack={() => setSelectedProject(null)} onViewProfile={setViewingFreelancer} clientProfile={profile} onChat={(freelancerId) => {
-      setChatInitData({ projectId: selectedProject, clientId: profile.userId, freelancerId });
-      setIsChatOpen(true);
-    }} />;
+    return (
+      <>
+        <ProjectProposals
+          projectId={selectedProject}
+          onBack={() => setSelectedProject(null)}
+          onViewProfile={setViewingFreelancer}
+          clientProfile={profile}
+          onChat={(freelancerId) => {
+            setChatInitData({ projectId: selectedProject, clientId: profile.userId, freelancerId });
+            setIsChatOpen(true);
+          }}
+        />
+        <ChatInterface isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} initialConversation={chatInitData} currentUserId={profile.userId} />
+      </>
+    );
   }
 
   return (
