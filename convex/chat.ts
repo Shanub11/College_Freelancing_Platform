@@ -43,6 +43,7 @@ export const sendMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
     text: v.string(),
+    attachment: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -54,6 +55,7 @@ export const sendMessage = mutation({
       text: args.text,
       createdAt: Date.now(),
       seen: false,
+      attachment: args.attachment,
     });
 
     await ctx.db.patch(args.conversationId, {
@@ -69,13 +71,20 @@ export const getMessages = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    return await ctx.db
+    const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
         q.eq("conversationId", args.conversationId)
       )
       .order("asc")
       .collect();
+
+    return await Promise.all(messages.map(async (msg) => {
+      return {
+        ...msg,
+        attachmentUrl: msg.attachment ? await ctx.storage.getUrl(msg.attachment) : null,
+      };
+    }));
   },
 });
 
@@ -144,4 +153,8 @@ export const markAsRead = mutation({
       await ctx.db.patch(msg._id, { seen: true });
     }
   }
+});
+
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
 });

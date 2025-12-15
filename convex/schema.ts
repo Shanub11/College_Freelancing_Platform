@@ -179,6 +179,7 @@ const applicationTables = {
     text: v.string(),
     createdAt: v.number(),
     seen: v.boolean(),
+    attachment: v.optional(v.id("_storage")),
   })
     .index("by_conversation", ["conversationId"]),
 

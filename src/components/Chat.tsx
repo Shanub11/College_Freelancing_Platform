@@ -109,14 +109,35 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
 function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: { conversationId: Id<"conversations">, currentUserId: Id<"users">, recipientName: string, onClose: () => void }) {
   const messages = useQuery(api.chat.getMessages, { conversationId }) || [];
   const sendMessage = useMutation(api.chat.sendMessage);
+  const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
+  
   const [newMessage, setNewMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    await sendMessage({ conversationId, text: newMessage });
+    if (!newMessage.trim() && !selectedFile) return;
+
+    let attachmentId = undefined;
+    if (selectedFile) {
+      setIsUploading(true);
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": selectedFile.type },
+        body: selectedFile,
+      });
+      const { storageId } = await result.json();
+      attachmentId = storageId;
+    }
+
+    await sendMessage({ conversationId, text: newMessage, attachment: attachmentId });
     setNewMessage("");
+    setSelectedFile(null);
+    setIsUploading(false);
   };
 
   useEffect(() => {
@@ -140,6 +161,17 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
               <div className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${
                 isMe ? "bg-blue-600 text-white rounded-br-none" : "bg-white text-gray-800 border rounded-bl-none"
               }`}>
+                {msg.attachmentUrl && (
+                  <div className="mb-2">
+                    {msg.attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                      <img src={msg.attachmentUrl} alt="Attachment" className="max-w-full rounded-lg max-h-48 object-cover" />
+                    ) : (
+                      <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 underline ${isMe ? "text-blue-100" : "text-blue-600"}`}>
+                        📎 View Attachment
+                      </a>
+                    )}
+                  </div>
+                )}
                 <p>{msg.text}</p>
                 <p className={`text-[10px] mt-1 text-right ${isMe ? "text-blue-100" : "text-gray-400"}`}>
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -153,7 +185,31 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
       </div>
       
       <form onSubmit={handleSend} className="p-4 border-t bg-white">
+        {selectedFile && (
+          <div className="mb-2 flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-lg text-sm w-fit">
+            <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+            <button type="button" onClick={() => setSelectedFile(null)} className="text-gray-500 hover:text-red-500">✕</button>
+          </div>
+        )}
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+            title="Attach file"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
+            }}
+          />
           <input
             type="text"
             value={newMessage}
@@ -163,10 +219,14 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
           />
           <button 
             type="submit"
-            disabled={!newMessage.trim()}
+            disabled={(!newMessage.trim() && !selectedFile) || isUploading}
             className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            {isUploading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg className="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            )}
           </button>
         </div>
       </form>
