@@ -33,12 +33,7 @@ export function ProjectDetailsPage() {
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-start">
               <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
-              <button
-                onClick={() => setIsChatOpen(!isChatOpen)}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-              >
-                {isChatOpen ? "Close Chat" : "Chat with Client"}
-              </button>
+              
             </div>
             <p className="text-gray-500 mt-2">Posted by Client</p>
 
@@ -50,7 +45,7 @@ export function ProjectDetailsPage() {
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-800 font-semibold">Budget</p>
-                <p className="text-lg font-bold text-blue-900">${project.budget.min} - ${project.budget.max}</p>
+                <p className="text-lg font-bold text-blue-900">₹{project.budget.min} - ₹{project.budget.max}</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm text-green-800 font-semibold">Deadline</p>
@@ -83,21 +78,7 @@ export function ProjectDetailsPage() {
         </div>
       </main>
 
-      {/* Chat Sidebar */}
-      <aside className={`fixed top-0 right-0 h-full bg-white border-l shadow-lg w-80 transform transition-transform duration-300 ease-in-out ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-4 h-full flex flex-col">
-          <div className="flex justify-between items-center border-b pb-2">
-            <h2 className="font-bold text-lg">Project Chat</h2>
-            <button onClick={() => setIsChatOpen(false)} className="text-gray-500 hover:text-gray-800">&times;</button>
-          </div>
-          <div className="flex-1 mt-4 text-gray-500 text-center">
-            Chat functionality will be implemented here.
-          </div>
-          <div className="mt-auto">
-            <input type="text" placeholder="Type a message..." className="w-full border rounded-lg p-2" />
-          </div>
-        </div>
-      </aside>
+      
     </div>
   );
 }

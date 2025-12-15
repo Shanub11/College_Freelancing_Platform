@@ -18,6 +18,7 @@ import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { ProposalActions } from "./ProposalActions";
+import { ChatInterface } from "./Chat";
 
 // Main component for the client dashboard
 export function ClientDashboard({ profile, activeTab }: { profile: any, activeTab: string }) {
@@ -26,6 +27,12 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   const myOrders = useQuery(api.projects.getMyClientOrders) || [];
   const [selectedProject, setSelectedProject] = useState<Id<"projectRequests"> | null>(null);
   const [viewingFreelancer, setViewingFreelancer] = useState<Id<"users"> | null>(null);
+  
+  // Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInitData, setChatInitData] = useState<any>(null);
+  const conversations = useQuery(api.chat.getConversations) || [];
+  const totalUnread = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -34,7 +41,10 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   }
 
   if (selectedProject && !viewingFreelancer) {
-    return <ProjectProposals projectId={selectedProject} onBack={() => setSelectedProject(null)} onViewProfile={setViewingFreelancer} clientProfile={profile} />;
+    return <ProjectProposals projectId={selectedProject} onBack={() => setSelectedProject(null)} onViewProfile={setViewingFreelancer} clientProfile={profile} onChat={(freelancerId) => {
+      setChatInitData({ projectId: selectedProject, clientId: profile.userId, freelancerId });
+      setIsChatOpen(true);
+    }} />;
   }
 
   return (
@@ -55,7 +65,17 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
               "Welcome back, " + profile.firstName}
           </p>
         </div>
-        <div className="relative">
+        <div className="relative flex gap-4">
+          <button onClick={() => { setChatInitData(null); setIsChatOpen(true); }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            {totalUnread > 0 && (
+              <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                {totalUnread}
+              </span>
+            )}
+          </button>
           <button className="relative">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
@@ -80,6 +100,13 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       {activeTab === 'post-project' && (
         <PostProjectForm />
       )}
+      
+      <ChatInterface 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)} 
+        initialConversation={chatInitData}
+        currentUserId={profile.userId}
+      />
       
     </div>
   );
@@ -211,9 +238,10 @@ function ProjectList({ projects, onSelectProject }: { projects: any[], onSelectP
 }
 
 // Component to display proposals for a selected project
-function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile }: { projectId: Id<"projectRequests">, onBack: () => void, onViewProfile: (userId: Id<"users">) => void, clientProfile: any }) {
+function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile, onChat }: { projectId: Id<"projectRequests">, onBack: () => void, onViewProfile: (userId: Id<"users">) => void, clientProfile: any, onChat: (freelancerId: Id<"users">) => void }) {
   const proposals = useQuery(api.projects.getProposalsForProject, { projectId }) || [];
   const project = useQuery(api.projects.getProjectById, { projectId });
+  const recommendations = useQuery(api.recommendations.getRecommendedFreelancers, { projectId }) || [];
 
 
   return (
@@ -263,12 +291,56 @@ function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile }: {
                     />
                   </>
                 )}
+                <button onClick={() => onChat(p.freelancerId)} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-2">
+                  <span>Chat</span>
+                </button>
                 <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
                   View Profile
                 </button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* AI Recommendations Section */}
+      {project?.status === 'open' && (
+        <div className="mt-12 border-t pt-8">
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-2xl">✨</span>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Recommended Freelancers</h2>
+              <p className="text-gray-600 text-sm">Top matches based on skills, rating, and college.</p>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {recommendations.map((freelancer) => (
+              <div key={freelancer._id} className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-lg p-6 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <img src={useStorage(freelancer.profilePicture) || '/default-avatar.png'} className="w-12 h-12 rounded-full object-cover" />
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{freelancer.firstName} {freelancer.lastName}</h3>
+                      <p className="text-xs text-blue-600 font-medium">{Math.round(freelancer.score)}% Match Score</p>
+                    </div>
+                  </div>
+                  <button onClick={() => onViewProfile(freelancer.userId)} className="text-sm text-gray-600 hover:text-blue-600">View Profile</button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {freelancer.skills?.slice(0, 3).map((s: string) => (
+                    <span key={s} className="text-xs bg-white border px-2 py-0.5 rounded text-gray-600">{s}</span>
+                  ))}
+                </div>
+                <button onClick={() => onChat(freelancer.userId)} className="w-full mt-4 bg-white border border-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                  Message Freelancer
+                </button>
+              </div>
+            ))}
+            {recommendations.length === 0 && (
+              <p className="text-gray-500 italic col-span-2">No specific recommendations found for this project yet.</p>
+            )}
+          </div>
         </div>
       )}
     </div>

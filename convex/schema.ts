@@ -163,25 +163,24 @@ const applicationTables = {
 
   // Real-time messaging
   conversations: defineTable({
-    participants: v.array(v.id("users")),
-    orderId: v.optional(v.id("orders")),
+    clientId: v.id("users"),
+    freelancerId: v.id("users"),
+    projectId: v.optional(v.id("projectRequests")),
     lastMessage: v.optional(v.string()),
-    lastMessageAt: v.optional(v.number()),
-    unreadCount: v.object({
-      // userId -> count
-    }),
+    updatedAt: v.number(),
   })
-    .index("by_participants", ["participants"]),
+    .index("by_project_client_freelancer", ["projectId", "clientId", "freelancerId"])
+    .index("by_client", ["clientId"])
+    .index("by_freelancer", ["freelancerId"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),
     senderId: v.id("users"),
-    content: v.string(),
-    attachments: v.optional(v.array(v.id("_storage"))),
-    isRead: v.boolean(),
+    text: v.string(),
+    createdAt: v.number(),
+    seen: v.boolean(),
   })
-    .index("by_conversation", ["conversationId"])
-    .index("by_sender", ["senderId"]),
+    .index("by_conversation", ["conversationId"]),
 
   // Reviews and ratings
   reviews: defineTable({

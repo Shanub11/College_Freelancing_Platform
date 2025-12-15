@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useNavigate } from "react-router-dom";
 
 interface GigBrowserProps {
   userType: "freelancer" | "client";
@@ -103,11 +104,13 @@ export function GigBrowser({ userType }: GigBrowserProps) {
 }
 
 function GigCard({ gig }: { gig: any }) {
+  const navigate = useNavigate();
+
   return (
     <>
       <div className="flex justify-between items-start mb-3">
         <h3 className="font-semibold text-gray-900 line-clamp-2">{gig.title}</h3>
-        <span className="text-lg font-bold text-green-600">${gig.basePrice}</span>
+        <span className="text-lg font-bold text-green-600">₹{gig.basePrice}</span>
       </div>
 
       <p className="text-gray-600 text-sm mb-4 line-clamp-3">{gig.description}</p>
@@ -132,7 +135,10 @@ function GigCard({ gig }: { gig: any }) {
         <span>📦 {gig.totalOrders} orders</span>
       </div>
 
-      <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+      <button 
+        onClick={() => navigate(`/profile/${gig.freelancerId}`)}
+        className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+      >
         View Details
       </button>
     </>

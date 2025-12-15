@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as categories from "../categories.js";
+import type * as chat from "../chat.js";
 import type * as gigs from "../gigs.js";
 import type * as http from "../http.js";
 import type * as paymentActions from "../paymentActions.js";
@@ -19,6 +20,7 @@ import type * as projectRequests from "../projectRequests.js";
 import type * as projects from "../projects.js";
 import type * as proposals from "../proposals.js";
 import type * as razorpay from "../razorpay.js";
+import type * as recommendations from "../recommendations.js";
 import type * as router from "../router.js";
 import type * as storage from "../storage.js";
 import type * as verification from "../verification.js";
@@ -32,6 +34,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   categories: typeof categories;
+  chat: typeof chat;
   gigs: typeof gigs;
   http: typeof http;
   paymentActions: typeof paymentActions;
@@ -41,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   proposals: typeof proposals;
   razorpay: typeof razorpay;
+  recommendations: typeof recommendations;
   router: typeof router;
   storage: typeof storage;
   verification: typeof verification;
