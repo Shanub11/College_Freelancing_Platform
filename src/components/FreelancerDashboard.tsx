@@ -1,9 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { VerificationUpload } from "./VerificationUpload";
 import { ChatInterface } from "./Chat";
+
+function useStorage(fileRef: any): string | null {
+  if (!fileRef) return null;
+  if (typeof fileRef === "string") return fileRef;
+  if (typeof fileRef === "object") {
+    if (typeof fileRef.url === "string") return fileRef.url;
+    if (typeof fileRef.path === "string") return fileRef.path;
+    if (typeof (fileRef as any).filename === "string") return (fileRef as any).filename;
+  }
+  return null;
+}
 
 interface FreelancerDashboardProps {
   profile: any;
@@ -24,6 +35,32 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   const categories = useQuery(api.categories.getCategories) || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+
+  // Profile Picture Upload
+  const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
+  const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      await updateProfile({ profilePicture: storageId });
+      toast.success("Profile picture updated!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload image");
+    }
+  };
 
   const filteredProjects = recommendedProjects.filter((project) => {
     // Filter by category first
@@ -80,6 +117,8 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
               Create New Gig
             </button>
           )}
+
+          
         </div>
       </div>
 
@@ -270,6 +309,45 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
         initialConversation={chatInitData}
         currentUserId={profile.userId}
       />
+
+      {/* Profile Photo Modal */}
+      {showProfilePhotoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowProfilePhotoModal(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Profile Photo</h3>
+            <div className="mb-6 flex justify-center">
+              <img 
+                src={profile.profilePictureUrl || useStorage(profile.profilePicture) || '/default-avatar.png'} 
+                alt="Profile" 
+                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+              />
+            </div>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowProfilePhotoModal(false);
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Change Photo
+              </button>
+              <button
+                onClick={() => setShowProfilePhotoModal(false)}
+                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { GigBrowser } from "./GigBrowser";
@@ -7,6 +7,7 @@ import { FreelancerDashboard } from "./FreelancerDashboard";
 import { ClientDashboard } from "./ClientDashboard";
 import { AdminDashboard } from "./AdminDashboard";
 import { VerificationUpload } from "./VerificationUpload";
+import { toast } from "sonner";
 
 interface DashboardProps {
   profile: any;
@@ -17,6 +18,32 @@ export function Dashboard({ profile }: DashboardProps) {
   const isAdmin = useQuery(api.profiles.checkIsAdmin);
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Profile Picture Upload
+  const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
+  const updateProfile = useMutation((api as any).profiles.updateProfile);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      await updateProfile({ profilePicture: storageId });
+      toast.success("Profile picture updated!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload image");
+    }
+  };
 
   // Set the initial tab after isAdmin query has resolved.
   useEffect(() => {
@@ -83,15 +110,30 @@ export function Dashboard({ profile }: DashboardProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {profile.firstName?.[0]}{profile.lastName?.[0]}
-                  </span>
-                </div>
+              <div 
+                className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setShowProfilePhotoModal(true)}
+                title="View or change profile photo"
+              >
+                {profile.profilePictureUrl ? (
+                  <img src={profile.profilePictureUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium">
+                      {profile.firstName?.[0]}{profile.lastName?.[0]}
+                    </span>
+                  </div>
+                )}
                 <span className="text-sm font-medium text-gray-700">
                   {profile.firstName} {profile.lastName}
                 </span>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
               </div>
               <SignOutButton />
             </div>
@@ -176,6 +218,53 @@ export function Dashboard({ profile }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Profile Photo Modal */}
+      {showProfilePhotoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowProfilePhotoModal(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Profile Photo</h3>
+            <div className="mb-6 flex justify-center">
+              {profile.profilePictureUrl ? (
+                <img 
+                  src={profile.profilePictureUrl} 
+                  alt="Profile" 
+                  className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+                />
+              ) : (
+                <div className="w-48 h-48 bg-gray-200 rounded-full flex items-center justify-center border-4 border-gray-100">
+                  <span className="text-4xl font-medium text-gray-500">
+                    {profile.firstName?.[0]}{profile.lastName?.[0]}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowProfilePhotoModal(false);
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Change Photo
+              </button>
+              <button
+                onClick={() => setShowProfilePhotoModal(false)}
+                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

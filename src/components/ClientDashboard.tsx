@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 // Optional file storage hook: convex/react-file-storage may not be available in all environments.
 // Provide a local fallback that returns a string URL when the stored reference is already a URL,
@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { ProposalActions } from "./ProposalActions";
 import { ChatInterface } from "./Chat";
+import { GigBrowser } from "./GigBrowser";
 
 // Main component for the client dashboard
 export function ClientDashboard({ profile, activeTab }: { profile: any, activeTab: string }) {
@@ -33,6 +34,32 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   const [chatInitData, setChatInitData] = useState<any>(null);
   const conversations = useQuery(api.chat.getConversations) || [];
   const totalUnread = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
+
+  // Profile Picture Upload
+  const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
+  const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const postUrl = await generateUploadUrl();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const { storageId } = await result.json();
+      await updateProfile({ profilePicture: storageId });
+      toast.success("Profile picture updated!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to upload image");
+    }
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -66,13 +93,15 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
             {activeTab === "projects" && "My Projects"}
             {activeTab === "orders" && "My Orders"}
             {activeTab === "post-project" && "Post a Project"}
-            {activeTab !== "projects" && activeTab !== "post-project" && activeTab !== "orders" && "Dashboard"}
+            {activeTab === "browse-services" && "Browse Services"}
+            {activeTab !== "projects" && activeTab !== "post-project" && activeTab !== "orders" && activeTab !== "browse-services" && "Dashboard"}
           </h1>
           <p className="text-gray-600">
             {activeTab === "projects" && "Manage your posted project requests"}
             {activeTab === "orders" && "Track your ongoing and completed projects"}
             {activeTab === "post-project" && "Describe your project and receive proposals from talented students"}
-            {activeTab !== "projects" && activeTab !== "post-project" && activeTab !== "orders" &&
+            {activeTab === "browse-services" && "Find talented freelancers for your projects"}
+            {activeTab !== "projects" && activeTab !== "post-project" && activeTab !== "orders" && activeTab !== "browse-services" &&
               "Welcome back, " + profile.firstName}
           </p>
         </div>
@@ -97,6 +126,8 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
               </span>
             )}
           </button>
+
+          
         </div>
       </div>
       
@@ -111,6 +142,10 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       {activeTab === 'post-project' && (
         <PostProjectForm />
       )}
+
+      {activeTab === 'browse-services' && (
+        <GigBrowser userType="client" />
+      )}
       
       <ChatInterface 
         isOpen={isChatOpen} 
@@ -118,6 +153,45 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
         initialConversation={chatInitData}
         currentUserId={profile.userId}
       />
+
+      {/* Profile Photo Modal */}
+      {showProfilePhotoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowProfilePhotoModal(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Profile Photo</h3>
+            <div className="mb-6 flex justify-center">
+              <img 
+                src={profile.profilePictureUrl || useStorage(profile.profilePicture) || '/default-avatar.png'} 
+                alt="Profile" 
+                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+              />
+            </div>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowProfilePhotoModal(false);
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Change Photo
+              </button>
+              <button
+                onClick={() => setShowProfilePhotoModal(false)}
+                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
     </div>
   );
@@ -193,7 +267,7 @@ function OrderList({ orders }: { orders: any[] }) {
             </div>
             <div className="text-right">
               {getStatusChip(order.status)}
-              <p className="text-sm text-gray-500 mt-1">Budget: INR{order.budget.min} - INR{order.budget.max}</p>
+              <p className="text-sm text-gray-500 mt-1">Budget: ₹{order.budget.min} - ₹{order.budget.max}</p>
             </div>
           </div>
         </div>

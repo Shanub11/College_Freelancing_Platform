@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx } from "./_generated/server";
 
@@ -31,7 +31,12 @@ export const getCurrentProfile = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
-    return profile;
+    if (!profile) return null;
+
+    return {
+      ...profile,
+      profilePictureUrl: profile.profilePicture ? await ctx.storage.getUrl(profile.profilePicture) : null,
+    };
   },
 });
 
@@ -43,7 +48,12 @@ export const getProfile = query({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .unique();
 
-    return profile;
+    if (!profile) return null;
+
+    return {
+      ...profile,
+      profilePictureUrl: profile.profilePicture ? await ctx.storage.getUrl(profile.profilePicture) : null,
+    };
   },
 });
 
@@ -53,6 +63,7 @@ export const createProfile = mutation({
     firstName: v.string(),
     lastName: v.string(),
     bio: v.optional(v.string()),
+    profilePicture: v.optional(v.id("_storage")),
     // Freelancer fields
     collegeName: v.optional(v.string()),
     collegeEmail: v.optional(v.string()),
@@ -88,6 +99,7 @@ export const createProfile = mutation({
       firstName: args.firstName,
       lastName: args.lastName,
       bio: args.bio,
+      profilePicture: args.profilePicture,
       collegeName: args.collegeName,
       collegeEmail: args.collegeEmail,
       graduationYear: args.graduationYear,
@@ -140,6 +152,7 @@ export const updateProfile = mutation({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     bio: v.optional(v.string()),
+    profilePicture: v.optional(v.id("_storage")),
     skills: v.optional(v.array(v.string())),
     company: v.optional(v.string()),
   },
@@ -158,6 +171,7 @@ export const updateProfile = mutation({
     if (args.firstName !== undefined) updates.firstName = args.firstName;
     if (args.lastName !== undefined) updates.lastName = args.lastName;
     if (args.bio !== undefined) updates.bio = args.bio;
+    if (args.profilePicture !== undefined) updates.profilePicture = args.profilePicture;
     if (args.skills !== undefined) updates.skills = args.skills;
     if (args.company !== undefined) updates.company = args.company;
 
@@ -293,4 +307,8 @@ export const getVerificationStatus = query({
       .order("desc")
       .first();
   },
+});
+
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
 });
