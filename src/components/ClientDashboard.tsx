@@ -198,11 +198,9 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
 }
 
 function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
-  const profilePictureUrl = useStorage(freelancer.profilePicture);
-
   return (
     <div className="flex items-center space-x-2 text-sm text-gray-600">
-      <img src={profilePictureUrl || '/default-avatar.png'} alt="Freelancer" className="w-6 h-6 rounded-full" />
+      <img src={freelancer.profilePictureUrl || useStorage(freelancer.profilePicture) || '/default-avatar.png'} alt="Freelancer" className="w-6 h-6 rounded-full object-cover" />
       <span>{freelancer.firstName} {freelancer.lastName}</span>
     </div>
   );

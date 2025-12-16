@@ -89,7 +89,7 @@ export function GigBrowser({ userType }: GigBrowserProps) {
           </div>
         ) : (
           searchResults.map((item: any) => (
-            <div key={item._id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+            <div key={item._id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex flex-col h-full">
               {activeView === "gigs" ? (
                 <GigCard gig={item} />
               ) : (
@@ -129,7 +129,7 @@ function GigCard({ gig }: { gig: any }) {
         )}
       </div>
 
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
+      <div className="mt-auto flex justify-between items-center text-sm text-gray-600 mb-4">
         <span>⭐ {gig.averageRating ? gig.averageRating.toFixed(1) : "New"}</span>
         <span>🚚 {gig.deliveryTime} days</span>
         <span>📦 {gig.totalOrders} orders</span>
