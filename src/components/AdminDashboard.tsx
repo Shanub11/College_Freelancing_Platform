@@ -187,11 +187,11 @@ function ActivityLogList() {
           <h3 className="text-lg leading-6 font-medium text-gray-900">Activity Logs</h3>
           
           {/* Filters */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <select
               value={filterAction}
               onChange={(e) => setFilterAction(e.target.value)}
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All Actions</option>
               <option value="User Login">User Login</option>
@@ -210,7 +210,7 @@ function ActivityLogList() {
               type="date"
               value={filterDate}
               onChange={(e) => setFilterDate(e.target.value)}
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              className="text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             />
 
             <input
@@ -218,7 +218,7 @@ function ActivityLogList() {
               placeholder="Search by Name"
               value={filterPerformerName}
               onChange={(e) => setFilterPerformerName(e.target.value)}
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-48"
+              className="text-sm px-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 w-48"
             />
 
             {(filterAction || filterDate || filterPerformerName) && (
