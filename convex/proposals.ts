@@ -96,6 +96,15 @@ export const acceptProposal = mutation({
       isRead: false,
     });
 
+    // Log activity
+    await ctx.db.insert("activityLogs", {
+      action: "Proposal Accepted",
+      details: `Proposal for project "${project.title}" accepted. Price: ${proposalToAccept.proposedPrice}`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: orderId,
+    });
+
     return orderId;
   },
 });
@@ -121,5 +130,14 @@ export const rejectProposal = mutation({
     }
 
     await ctx.db.patch(args.proposalId, { status: "rejected" });
+
+    // Log activity
+    await ctx.db.insert("activityLogs", {
+      action: "Proposal Rejected",
+      details: `Proposal for project "${project.title}" rejected.`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: args.proposalId,
+    });
   },
 });

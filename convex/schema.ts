@@ -243,6 +243,17 @@ const applicationTables = {
   })
     .index("by_orderId", ["orderId"])
     .index("by_razorpayOrderId", ["razorpayOrderId"]),
+
+  // Activity Logs for Admin
+  activityLogs: defineTable({
+    action: v.string(),
+    details: v.string(),
+    userId: v.id("users"),
+    timestamp: v.number(),
+    relatedId: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_timestamp", ["timestamp"]),
 };
 
 export default defineSchema({

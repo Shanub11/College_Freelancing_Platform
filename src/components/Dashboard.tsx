@@ -24,6 +24,19 @@ export function Dashboard({ profile }: DashboardProps) {
   // Profile Picture Upload
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const logActivity = useMutation((api as any).logs.logActivity);
+
+  // Log User Login
+  useEffect(() => {
+    const hasLogged = sessionStorage.getItem("hasLoggedLogin");
+    if (!hasLogged && profile) {
+      logActivity({
+        action: "User Login",
+        details: `User ${profile.firstName} ${profile.lastName} logged in`,
+      });
+      sessionStorage.setItem("hasLoggedLogin", "true");
+    }
+  }, [profile]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,7 +148,15 @@ export function Dashboard({ profile }: DashboardProps) {
                   onChange={handleImageUpload}
                 />
               </div>
-              <SignOutButton />
+              <div onClickCapture={() => {
+                logActivity({
+                  action: "User Logout",
+                  details: `User ${profile.firstName} ${profile.lastName} logged out`,
+                });
+                sessionStorage.removeItem("hasLoggedLogin");
+              }}>
+                <SignOutButton />
+              </div>
             </div>
           </div>
         </div>

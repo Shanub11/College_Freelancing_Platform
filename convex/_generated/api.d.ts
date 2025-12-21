@@ -13,6 +13,7 @@ import type * as categories from "../categories.js";
 import type * as chat from "../chat.js";
 import type * as gigs from "../gigs.js";
 import type * as http from "../http.js";
+import type * as logs from "../logs.js";
 import type * as paymentActions from "../paymentActions.js";
 import type * as payments from "../payments.js";
 import type * as profiles from "../profiles.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   gigs: typeof gigs;
   http: typeof http;
+  logs: typeof logs;
   paymentActions: typeof paymentActions;
   payments: typeof payments;
   profiles: typeof profiles;

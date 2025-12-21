@@ -500,6 +500,7 @@ function PostProjectForm() {
 
   const categories = useQuery(api.categories.getCategories, {}) || [];
   const createProject = useMutation(api.projects.createProject);
+  const logActivity = useMutation((api as any).logs.logActivity);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -510,7 +511,7 @@ function PostProjectForm() {
     }
 
     try {
-      await createProject({
+      const projectId = await createProject({
         title: formData.title,
         description: formData.description,
         category: formData.category,
@@ -520,6 +521,12 @@ function PostProjectForm() {
         },
         deadline: new Date(formData.deadline).getTime(),
         skills: formData.skills,
+      });
+
+      await logActivity({
+        action: "Project Created",
+        details: `Project "${formData.title}" created`,
+        relatedId: projectId,
       });
 
       toast.success("Project posted successfully!");

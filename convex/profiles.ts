@@ -110,6 +110,15 @@ export const createProfile = mutation({
       totalReviews: 0,
     });
 
+    // Log activity
+    await ctx.db.insert("activityLogs", {
+      action: "Profile Created",
+      details: `New ${userType} profile created: ${args.firstName} ${args.lastName}`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: profileId,
+    });
+
     return profileId;
   },
 });
@@ -138,10 +147,19 @@ export const submitForVerification = mutation({
       throw new Error("You already have a pending verification request.");
     }
 
-    await ctx.db.insert("verificationRequests", {
+    const requestId = await ctx.db.insert("verificationRequests", {
       userId,
       status: "pending",
       ...args,
+    });
+
+    // Log activity
+    await ctx.db.insert("activityLogs", {
+      action: "Verification Requested",
+      details: `Verification requested by user`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: requestId,
     });
   },
 });
@@ -176,6 +194,16 @@ export const updateProfile = mutation({
     if (args.company !== undefined) updates.company = args.company;
 
     await ctx.db.patch(profile._id, updates);
+
+    // Log activity
+    await ctx.db.insert("activityLogs", {
+      action: "Profile Updated",
+      details: `Profile updated for ${profile.firstName} ${profile.lastName}`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: profile._id,
+    });
+
     return profile._id;
   },
 });
@@ -278,6 +306,18 @@ export const approveVerification = mutation({
 
     // Update request status
     await ctx.db.patch(requestId, { status: "approved" });
+
+    // Log activity
+    const adminId = await getAuthUserId(ctx);
+    if (adminId) {
+      await ctx.db.insert("activityLogs", {
+        action: "Verification Approved",
+        details: `Verification approved for profile ${profileId}`,
+        userId: adminId,
+        timestamp: Date.now(),
+        relatedId: requestId,
+      });
+    }
   },
 });
 
@@ -293,6 +333,18 @@ export const rejectVerification = mutation({
 
     // Update request status
     await ctx.db.patch(requestId, { status: "rejected" });
+
+    // Log activity
+    const adminId = await getAuthUserId(ctx);
+    if (adminId) {
+      await ctx.db.insert("activityLogs", {
+        action: "Verification Rejected",
+        details: `Verification rejected for request ${requestId}`,
+        userId: adminId,
+        timestamp: Date.now(),
+        relatedId: requestId,
+      });
+    }
   },
 });
 
