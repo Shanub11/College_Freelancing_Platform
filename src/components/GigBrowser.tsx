@@ -171,7 +171,7 @@ function ProjectCard({ project }: { project: any }) {
         )}
       </div>
 
-      <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
+      <div className="mt-auto flex justify-between items-center text-sm text-gray-600 mb-4">
         <span>📅 {new Date(project.deadline).toLocaleDateString()}</span>
         <span>💼 {project.proposalCount} proposals</span>
         <span>👤 {project.client?.firstName || "Client"}</span>
