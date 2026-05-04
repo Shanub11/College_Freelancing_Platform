@@ -21,6 +21,7 @@ export function Dashboard({ profile }: DashboardProps) {
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const verificationStatus = useQuery(api.profiles.getVerificationStatus);
   // Profile Picture Upload
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
@@ -102,8 +103,14 @@ export function Dashboard({ profile }: DashboardProps) {
               <span className="text-xl font-bold text-gray-900">CollegeGig</span>
               
               {profile.userType === "freelancer" && !profile.isVerified && (
-                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                  Verification Pending
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  verificationStatus?.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                  verificationStatus?.status === "rejected" ? "bg-red-100 text-red-800" :
+                  "bg-gray-100 text-gray-800"
+                }`}>
+                  {verificationStatus?.status === "pending" ? "Verification Pending" :
+                   verificationStatus?.status === "rejected" ? "Verification Rejected" :
+                   "Unverified"}
                 </div>
               )}
               

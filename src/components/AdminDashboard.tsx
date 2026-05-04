@@ -23,8 +23,11 @@ export function AdminDashboard() {
   };
 
   const handleReject = async (requestId: Id<"verificationRequests">) => {
+    const reason = window.prompt("Reason for rejection (optional):");
+    if (reason === null) return; // User cancelled
+
     try {
-      await reject({ requestId });
+      await reject({ requestId, adminNotes: reason || "Does not meet verification criteria." });
       toast.warning("Profile verification rejected.");
     } catch (error) {
       toast.error("Failed to reject verification.");

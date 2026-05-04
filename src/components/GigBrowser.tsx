@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface GigBrowserProps {
   userType: "freelancer" | "client";
@@ -178,9 +178,9 @@ function ProjectCard({ project }: { project: any }) {
       </div>
 
       {/* This should be a <Link> component from your routing library, e.g., react-router-dom */}
-      <a href={`/projects/${project._id}`} className="block text-center w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+      <Link to={`/projects/${project._id}`} className="block text-center w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
         Submit Proposal
-      </a>
+      </Link>
     </>
   );
 }

@@ -2,6 +2,7 @@ import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 export function ReleaseFundsButton({ paymentId }: { paymentId: Id<"payments"> }) {
   const release = useAction(api.paymentActions.releaseEscrow);
@@ -13,10 +14,10 @@ export function ReleaseFundsButton({ paymentId }: { paymentId: Id<"payments"> })
     setIsLoading(true);
     try {
       await release({ paymentId });
-      alert("Funds released successfully!");
+      toast.success("Funds released successfully!");
     } catch (error) {
       console.error("Release failed:", error);
-      alert("Failed to release funds. Please try again.");
+      toast.error("Failed to release funds. Please try again.");
     } finally {
       setIsLoading(false);
     }

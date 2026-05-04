@@ -3,6 +3,7 @@ import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export function ProposalActions({ 
   proposalId, 
@@ -43,7 +44,7 @@ export function ProposalActions({
 
       // 3. Open Razorpay Checkout
       const options = {
-        key: (import.meta as any).env.VITE_RAZORPAY_KEY_ID || (typeof process !== "undefined" ? process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID : undefined),
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
         amount: amount * 100, // Amount in paise
         currency: "INR",
         name: "College Freelancing Platform",
@@ -66,7 +67,7 @@ export function ProposalActions({
       rzp.open();
     } catch (error: any) {
       console.error("Accept flow failed:", error);
-      alert(error.message || "Failed to process acceptance.");
+      toast.error(error.message || "Failed to process acceptance.");
     } finally {
       setIsLoading(false);
     }
@@ -77,11 +78,12 @@ export function ProposalActions({
     
     try {
       await rejectProposal({ proposalId });
+      toast.success("Proposal rejected successfully.");
       // Refresh the page to remove the rejected proposal from the list
       navigate(0);
     } catch (error) {
       console.error("Reject failed:", error);
-      alert("Failed to reject proposal.");
+      toast.error("Failed to reject proposal.");
     }
   };
 

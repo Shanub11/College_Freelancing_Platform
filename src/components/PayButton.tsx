@@ -2,6 +2,7 @@ import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { Id } from "../../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: number }) {
   const createOrder = useAction(api.paymentActions.createRazorpayOrder);
@@ -25,7 +26,7 @@ export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: 
 
       // 2. Open Razorpay Checkout
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
         amount: amount * 100, // Amount in paise
         currency: "INR",
         name: "College Freelancing Platform",
@@ -33,7 +34,7 @@ export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: 
         order_id: razorpayOrderId,
         handler: function (response: any) {
           // Success! The webhook will handle the database update.
-          alert("Payment Successful! Funds are now held in Escrow.");
+          toast.success("Payment Successful! Funds are now held in Escrow.");
           // Ideally, redirect to the order status page here
         },
         prefill: {
@@ -50,7 +51,7 @@ export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: 
       rzp.open();
     } catch (error) {
       console.error("Payment initialization failed:", error);
-      alert("Failed to initiate payment.");
+      toast.error("Failed to initiate payment.");
     } finally {
       setIsLoading(false);
     }

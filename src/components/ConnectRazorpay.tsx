@@ -2,6 +2,7 @@ import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 export function ConnectRazorpay({ userId, email, name }: { userId: Id<"users">, email: string, name: string }) {
   const onboard = useAction(api.paymentActions.onboardFreelancer);
@@ -11,10 +12,10 @@ export function ConnectRazorpay({ userId, email, name }: { userId: Id<"users">, 
     setIsLoading(true);
     try {
       const accountId = await onboard({ userId, email, name });
-      alert(`Razorpay Account Connected! ID: ${accountId}`);
+      toast.success(`Razorpay Account Connected! ID: ${accountId}`);
     } catch (error) {
       console.error("Onboarding failed:", error);
-      alert("Failed to connect Razorpay account.");
+      toast.error("Failed to connect Razorpay account.");
     } finally {
       setIsLoading(false);
     }

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { VerificationUpload } from "./VerificationUpload";
+import { useNavigate } from "react-router-dom";
 import { ChatInterface } from "./Chat";
 
 function useStorage(fileRef: any): string | null {
@@ -22,6 +23,7 @@ interface FreelancerDashboardProps {
 }
 
 export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardProps) {
+  const navigate = useNavigate();
   const myGigs = useQuery(api.gigs.getMyGigs) || [];
   const [showCreateGig, setShowCreateGig] = useState(false);
   const [editingGig, setEditingGig] = useState<any | null>(null);
@@ -259,7 +261,7 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                       </div>
                     </div>
                     <button 
-                      onClick={() => window.location.href = `/projects/${project._id}/submit`}
+                      onClick={() => navigate(`/projects/${project._id}/propose`)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
                     >
                       Apply Now

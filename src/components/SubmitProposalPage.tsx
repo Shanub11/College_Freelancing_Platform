@@ -64,12 +64,12 @@ export function SubmitProposalPage() {
               <span className="text-4xl">🎉</span>
             </div>
             <h2 className="text-2xl font-semibold text-gray-800">Proposal Submitted!</h2>
-            <p className="text-gray-600 mt-2">You can now discuss the project details with the client.</p>
+            <p className="text-gray-600 mt-2">The client has been notified. You can view your proposals on your dashboard.</p>
             <button
-              onClick={() => navigate(`/proposals/${submittedProposalId}/discussion`)}
+              onClick={() => navigate(`/dashboard`)}
               className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700"
             >
-              Discuss Proposal
+              Go to Dashboard
             </button>
           </div>
         ) : (

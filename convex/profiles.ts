@@ -324,15 +324,16 @@ export const approveVerification = mutation({
 export const rejectVerification = mutation({
   args: {
     requestId: v.id("verificationRequests"),
+    adminNotes: v.optional(v.string()),
   },
-  handler: async (ctx, { requestId }) => {
+  handler: async (ctx, { requestId, adminNotes }) => {
     const isAdmin = await isAdminUser(ctx);
     if (!isAdmin) {
       throw new Error("You are not authorized to perform this action.");
     }
 
     // Update request status
-    await ctx.db.patch(requestId, { status: "rejected" });
+    await ctx.db.patch(requestId, { status: "rejected", adminNotes });
 
     // Log activity
     const adminId = await getAuthUserId(ctx);
