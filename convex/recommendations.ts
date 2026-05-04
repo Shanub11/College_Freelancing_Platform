@@ -33,38 +33,65 @@ export const getRecommendedFreelancers = query({
       .withIndex("by_user", q => q.eq("userId", project.clientId))
       .unique();
 
-    // Fetch freelancers (In production, use a search index or limit this query)
-    const freelancers = await ctx.db
-      .query("profiles")
-      .withIndex("by_type", q => q.eq("userType", "freelancer"))
-      .collect();
+    // 1. Fetch a bounded pool of relevant freelancers using the Search Index for performance
+    let freelancers = [];
+    if (project.skills && project.skills.length > 0) {
+      const searchTerm = project.skills.join(" ");
+      freelancers = await ctx.db
+        .query("profiles")
+        .withSearchIndex("search_skills", (q) =>
+          q.search("skills", searchTerm).eq("userType", "freelancer").eq("isVerified", true)
+        )
+        .take(50);
+    } else {
+      freelancers = await ctx.db
+        .query("profiles")
+        .withIndex("by_type", q => q.eq("userType", "freelancer"))
+        .filter((q) => q.eq(q.field("isVerified"), true))
+        .take(50);
+    }
 
-    const scoredFreelancers = freelancers.map(f => {
-      // 1. Skill Match (Weight: 50%)
-      const skillScore = calculateSkillMatch(project.skills, f.skills || []);
+    // 2. Score the fetched freelancers using advanced metrics
+    const scoredFreelancers = await Promise.all(freelancers.map(async (f) => {
+      // Fetch freelancer's order history
+      const orders = await ctx.db
+        .query("orders")
+        .withIndex("by_freelancer", q => q.eq("freelancerId", f.userId))
+        .collect();
+
+      let completed = 0, active = 0, cancelled = 0;
+      for (const o of orders) {
+        if (o.status === "completed") completed++;
+        else if (o.status === "in_progress" || o.status === "active" || o.status === "pending_payment") active++;
+        else if (o.status === "cancelled" || o.status === "disputed") cancelled++;
+      }
+
+      const totalResolved = completed + cancelled;
       
-      // 2. Rating (Weight: 20%) - Normalize 5 stars to 1.0
+      const successRate = totalResolved > 0 ? completed / totalResolved : 1.0; // Default 100% if no history
+      const availabilityScore = Math.max(0, 1 - (active / 5)); // Penalize if >= 5 active orders
       const ratingScore = (f.averageRating || 0) / 5;
-      
-      // 3. Experience (Weight: 15%) - Cap at 10 reviews
-      const experienceScore = Math.min((f.totalReviews || 0), 10) / 10;
-      
-      // 4. College Match (Weight: 15%) - Bonus for same college
+      const responseTimeScore = f.averageRating ? 0.9 : 0.8; // Note: In a fully scaled app, aggregate real chat message deltas via CRON
+      const skillScore = calculateSkillMatch(project.skills, f.skills || []);
+      const experienceScore = Math.min((f.totalReviews || 0), 20) / 20; // Capped at 20 reviews
       const collegeMatch = (clientProfile?.collegeName && f.collegeName && 
                             clientProfile.collegeName === f.collegeName) ? 1 : 0;
 
       const totalScore = 
-        (skillScore * 50) + 
-        (ratingScore * 20) + 
-        (experienceScore * 15) + 
-        (collegeMatch * 15);
+        (skillScore * 40) +          // Core competency
+        (successRate * 15) +         // Project success rate
+        (ratingScore * 15) +         // Historical review score
+        (availabilityScore * 10) +   // Bandwidth to accept work
+        (responseTimeScore * 10) +   // Responsiveness
+        (experienceScore * 5) +      // Platform experience
+        (collegeMatch * 5);          // Alumni connection
 
-      return { ...f, score: totalScore, matchDetails: { skillScore, collegeMatch } };
-    });
+      return { ...f, score: totalScore };
+    }));
 
     // Return top 5 matches
     return scoredFreelancers
-      .filter(f => f.score > 10) // Filter out very poor matches
+      .filter(f => f.score > 20) // Filter out very poor matches
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
   }
@@ -83,26 +110,45 @@ export const getRecommendedProjects = query({
 
     if (!freelancerProfile || freelancerProfile.userType !== "freelancer") return [];
 
-    // Fetch open projects
-    const projects = await ctx.db
-      .query("projectRequests")
-      .withIndex("by_status", q => q.eq("status", "open"))
-      .collect();
+    // Fetch a bounded set of open projects using Search Index
+    let projects = [];
+    if (freelancerProfile.skills && freelancerProfile.skills.length > 0) {
+      const searchTerm = freelancerProfile.skills.join(" ");
+      projects = await ctx.db
+        .query("projectRequests")
+        .withSearchIndex("search_projects", q => 
+          q.search("title", searchTerm).eq("status", "open")
+        )
+        .take(50);
+    } else {
+      projects = await ctx.db
+        .query("projectRequests")
+        .withIndex("by_status", q => q.eq("status", "open"))
+        .order("desc")
+        .take(50);
+    }
 
-    const scoredProjects = projects.map(p => {
-      // 1. Skill Match (Weight: 70%) - Most important for finding work
+    const scoredProjects = await Promise.all(projects.map(async p => {
+      // 1. Skill Match (Weight: 50%)
       const skillScore = calculateSkillMatch(p.skills, freelancerProfile.skills || []);
       
-      // 2. Recency (Weight: 30%) - Newer projects are better
-      // Decay over 7 days
+      // 2. Recency (Weight: 20%) - Decay over 7 days
       const oneWeek = 7 * 24 * 60 * 60 * 1000;
       const timeDiff = Date.now() - p._creationTime;
       const recencyScore = Math.max(0, (oneWeek - timeDiff) / oneWeek);
 
-      const totalScore = (skillScore * 70) + (recencyScore * 30);
+      // 3. Client Reliability (Weight: 30%) - Does this client actively hire?
+      const clientOrders = await ctx.db
+        .query("orders")
+        .withIndex("by_client", q => q.eq("clientId", p.clientId))
+        .collect();
+        
+      const clientSuccessScore = clientOrders.length > 0 ? 1.0 : 0.5; // Boost if they have hired before
+
+      const totalScore = (skillScore * 50) + (recencyScore * 20) + (clientSuccessScore * 30);
 
       return { ...p, score: totalScore };
-    });
+    }));
 
     // Return top 10 matches
     return scoredProjects

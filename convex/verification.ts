@@ -1,6 +1,9 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, action } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
+
+declare const process: any;
 
 export const submitVerification = mutation({
   args: {
@@ -23,6 +26,16 @@ export const submitVerification = mutation({
 
     if (!profile || profile.userType !== "freelancer") {
       throw new Error("Only freelancers can submit verification requests");
+    }
+
+    // Verify email was actually verified via OTP
+    const emailRecord = await ctx.db
+      .query("emailVerifications")
+      .withIndex("by_email", (q) => q.eq("email", args.collegeEmail))
+      .first();
+
+    if (!emailRecord || !emailRecord.verified) {
+      throw new Error("College email has not been verified via OTP yet.");
     }
 
     // Check if there's already a pending or approved request
@@ -224,5 +237,80 @@ export const getVerificationDetails = query({
       profile,
       user: user_data,
     };
+  },
+});
+
+export const sendOtpEmail = action({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await ctx.runMutation(internal.verification.saveOtp, {
+      email: args.email,
+      otp,
+      expiresAt,
+    });
+
+    const apiKey = process.env.BREVO_API_KEY;
+
+    if (apiKey) {
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": apiKey,
+          "Content-Type": "application/json",
+          "accept": "application/json"
+        },
+        body: JSON.stringify({
+          sender: { name: "CollegeGig", email: "verify@collegeskills.com" }, // You should verify this email/domain in Brevo
+          to: [{ email: args.email }],
+          subject: "CollegeGig Verification OTP",
+          htmlContent: `<p>Your verification code is: <strong style="font-size: 24px;">${otp}</strong></p><p>This code will expire in 10 minutes.</p>`,
+        }),
+      });
+      if (!res.ok) {
+        console.error("Brevo error", await res.text());
+        throw new Error("Failed to send OTP email via Brevo.");
+      }
+    } else {
+      console.warn(`[DEV MODE] Mock OTP for ${args.email}: ${otp}. Please set BREVO_API_KEY in your Convex dashboard to send real emails.`);
+    }
+  },
+});
+
+export const saveOtp = internalMutation({
+  args: { email: v.string(), otp: v.string(), expiresAt: v.number() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("emailVerifications")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .collect();
+    for (const record of existing) {
+      await ctx.db.delete(record._id);
+    }
+    await ctx.db.insert("emailVerifications", {
+      email: args.email,
+      otp: args.otp,
+      expiresAt: args.expiresAt,
+      verified: false,
+    });
+  },
+});
+
+export const verifyOtp = mutation({
+  args: { email: v.string(), otp: v.string() },
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("emailVerifications")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!record) throw new Error("No OTP requested for this email.");
+    if (record.otp !== args.otp) throw new Error("Invalid OTP.");
+    if (Date.now() > record.expiresAt) throw new Error("OTP has expired.");
+
+    await ctx.db.patch(record._id, { verified: true });
+    return true;
   },
 });

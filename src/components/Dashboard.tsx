@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
-import { GigBrowser } from "./GigBrowser";
-import { FreelancerDashboard } from "./FreelancerDashboard";
-import { ClientDashboard } from "./ClientDashboard";
-import { AdminDashboard } from "./AdminDashboard";
-import { VerificationUpload } from "./VerificationUpload";
 import { toast } from "sonner";
+import { compressImage } from "../../convex/image";
+import posthog from "posthog-js";
+
+const GigBrowser = lazy(() => import("./GigBrowser").then(m => ({ default: m.GigBrowser })));
+const FreelancerDashboard = lazy(() => import("./FreelancerDashboard").then(m => ({ default: m.FreelancerDashboard })));
+const ClientDashboard = lazy(() => import("./ClientDashboard").then(m => ({ default: m.ClientDashboard })));
+const AdminDashboard = lazy(() => import("./AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const VerificationUpload = lazy(() => import("./VerificationUpload").then(m => ({ default: m.VerificationUpload })));
 
 interface DashboardProps {
   profile: any;
@@ -36,6 +39,14 @@ export function Dashboard({ profile }: DashboardProps) {
         details: `User ${profile.firstName} ${profile.lastName} logged in`,
       });
       sessionStorage.setItem("hasLoggedLogin", "true");
+      
+      // Identify user in PostHog
+      posthog.identify(profile.userId, {
+        name: `${profile.firstName} ${profile.lastName}`,
+        userType: profile.userType,
+        college: profile.collegeName
+      });
+      posthog.capture("user_logged_in");
     }
   }, [profile]);
 
@@ -44,11 +55,12 @@ export function Dashboard({ profile }: DashboardProps) {
     if (!file) return;
 
     try {
+      const compressedFile = await compressImage(file, 800, 800, 0.8);
       const postUrl = await generateUploadUrl();
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": compressedFile.type },
+        body: compressedFile,
       });
       const { storageId } = await result.json();
       await updateProfile({ profilePicture: storageId });
@@ -161,6 +173,7 @@ export function Dashboard({ profile }: DashboardProps) {
                   details: `User ${profile.firstName} ${profile.lastName} logged out`,
                 });
                 sessionStorage.removeItem("hasLoggedLogin");
+                posthog.reset(); // Clear PostHog session on logout
               }}>
                 <SignOutButton />
               </div>
@@ -220,6 +233,7 @@ export function Dashboard({ profile }: DashboardProps) {
 
           {/* Main Content */}
           <div className="flex-1">
+            <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
             {/* Show a loading state until the active tab is determined */}
             {activeTab === null && (
               <div className="flex justify-center items-center h-64">
@@ -243,6 +257,7 @@ export function Dashboard({ profile }: DashboardProps) {
                 {activeTab === "post-project" && <ClientDashboard profile={profile} activeTab="post-project" />}
               </>
             )}
+            </Suspense>
           </div>
         </div>
       </div>

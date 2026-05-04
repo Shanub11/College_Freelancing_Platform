@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
-import { Dashboard } from "./components/Dashboard";
-import { ProfileSetup } from "./components/ProfileSetup";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { SubmitProposalPage } from "./components/SubmitProposalPage"; // Assuming this was moved to components
-import { ProjectDetailsPage } from "./components/ProjectDetailsPage";
+
+const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
+const ProfileSetup = lazy(() => import("./components/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const SubmitProposalPage = lazy(() => import("./components/SubmitProposalPage").then(m => ({ default: m.SubmitProposalPage })));
+const ProjectDetailsPage = lazy(() => import("./components/ProjectDetailsPage").then(m => ({ default: m.ProjectDetailsPage })));
 
 export default function App() {
   const seedCategories = useMutation(api.categories.seedCategories);
@@ -22,12 +23,14 @@ export default function App() {
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Authenticated>
-          <Routes>
-            <Route path="/dashboard" element={<AuthenticatedApp />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-            <Route path="/projects/:projectId/propose" element={<SubmitProposalPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
+            <Routes>
+              <Route path="/dashboard" element={<AuthenticatedApp />} />
+              <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+              <Route path="/projects/:projectId/propose" element={<SubmitProposalPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </Suspense>
         </Authenticated>
         <Unauthenticated>
           <UnauthenticatedApp />

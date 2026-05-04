@@ -38,7 +38,11 @@ const applicationTables = {
     .index("by_user", ["userId"])
     .index("by_type", ["userType"])
     .index("by_verified", ["isVerified"])
-    .index("by_college", ["collegeName"]),
+    .index("by_college", ["collegeName"])
+    .searchIndex("search_skills", {
+      searchField: "skills",
+      filterFields: ["userType", "isVerified", "collegeName"]
+    }),
     // .index("by_paypalMerchantId", ["paypalMerchantId"]), // You can add this if needed for lookups
 
   // Service gigs posted by freelancers
@@ -88,7 +92,8 @@ const applicationTables = {
       v.literal("open"),
       v.literal("in_progress"),
       v.literal("completed"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
+      v.literal("disputed")
     ),
     selectedFreelancer: v.optional(v.id("users")),
     proposalCount: v.number(),
@@ -218,6 +223,14 @@ const applicationTables = {
     .index("by_user", ["userId"])
     .index("by_status", ["status"]),
 
+  // Email verifications for OTP
+  emailVerifications: defineTable({
+    email: v.string(),
+    otp: v.string(),
+    expiresAt: v.number(),
+    verified: v.boolean(),
+  }).index("by_email", ["email"]),
+
   // Categories for organization
   categories: defineTable({
     name: v.string(),
@@ -227,6 +240,24 @@ const applicationTables = {
     isActive: v.boolean(),
   })
     .index("by_active", ["isActive"]),
+
+  // Disputes for orders
+  disputes: defineTable({
+    projectId: v.id("projectRequests"),
+    creatorId: v.id("users"),
+    reason: v.string(),
+    description: v.string(),
+    status: v.union(
+      v.literal("open"),
+      v.literal("resolved_refund"),
+      v.literal("resolved_release")
+    ),
+    resolutionNotes: v.optional(v.string()),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_projectId", ["projectId"])
+    .index("by_status", ["status"]),
 
   // Add the new 'payments' table
   payments: defineTable({

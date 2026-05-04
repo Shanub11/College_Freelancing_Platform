@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator } from "convex/server";
+import { enforceModeration } from "./moderation";
 
 export const getOrCreateConversation = mutation({
   args: {
@@ -12,19 +14,25 @@ export const getOrCreateConversation = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
-    // Check if conversation exists
-    const existing = await ctx.db
+    // Check if conversation exists between these two users (ignoring project)
+    const existingAsClient = await ctx.db
       .query("conversations")
-      .withIndex("by_project_client_freelancer", (q) =>
-        q
-          .eq("projectId", args.projectId)
-          .eq("clientId", args.clientId)
-          .eq("freelancerId", args.freelancerId)
-      )
-      .unique();
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .filter((q) => q.eq(q.field("freelancerId"), args.freelancerId))
+      .first();
 
-    if (existing) {
-      return existing._id;
+    if (existingAsClient) {
+      return existingAsClient._id;
+    }
+
+    const existingAsFreelancer = await ctx.db
+      .query("conversations")
+      .withIndex("by_client", (q) => q.eq("clientId", args.freelancerId))
+      .filter((q) => q.eq(q.field("freelancerId"), args.clientId))
+      .first();
+
+    if (existingAsFreelancer) {
+      return existingAsFreelancer._id;
     }
 
     // Create new conversation
@@ -48,6 +56,8 @@ export const sendMessage = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
+
+    await enforceModeration(ctx, userId, args.text, "chat");
 
     await ctx.db.insert("messages", {
       conversationId: args.conversationId,
@@ -89,27 +99,36 @@ export const getMessages = query({
 });
 
 export const getConversations = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    if (!userId) return { page: [], isDone: true, continueCursor: "" };
 
-    // Get conversations where user is client
-    const asClient = await ctx.db
+    const conversations = await ctx.db
       .query("conversations")
-      .withIndex("by_client", (q) => q.eq("clientId", userId))
-      .collect();
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("clientId"), userId),
+          q.eq(q.field("freelancerId"), userId)
+        )
+      )
+      .paginate(args.paginationOpts);
 
-    // Get conversations where user is freelancer
-    const asFreelancer = await ctx.db
-      .query("conversations")
-      .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
-      .collect();
-
-    // Combine and sort by most recent update
-    const allConversations = [...asClient, ...asFreelancer].sort((a, b) => b.updatedAt - a.updatedAt);
+    // Deduplicate by other participant to ensure only one chat card per person
+    const uniqueConversations = [];
+    const seenUsers = new Set<string>();
+    for (const c of conversations.page) {
+      const otherUserId = c.clientId === userId ? c.freelancerId : c.clientId;
+      if (!seenUsers.has(otherUserId)) {
+        seenUsers.add(otherUserId);
+        uniqueConversations.push(c);
+      }
+    }
 
     // Enrich with other participant's details and unread count
-    return await Promise.all(allConversations.map(async (c) => {
+    const page = await Promise.all(uniqueConversations.map(async (c) => {
       const otherUserId = c.clientId === userId ? c.freelancerId : c.clientId;
       const profile = await ctx.db
         .query("profiles")
@@ -133,6 +152,13 @@ export const getConversations = query({
         unreadCount
       };
     }));
+
+    page.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return {
+      ...conversations,
+      page
+    };
   }
 });
 

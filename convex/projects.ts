@@ -67,10 +67,15 @@ export const searchProjects = query({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // This is a simplified version. You might want to use a search index.
     const projects = await ctx.db
       .query("projectRequests")
-      .filter((q) => q.eq(q.field("title"), args.searchTerm))
+      .withSearchIndex("search_projects", (q) => {
+        const search = q.search("title", args.searchTerm);
+        if (args.category) {
+          return search.eq("category", args.category);
+        }
+        return search;
+      })
       .take(20);
     return projects;
   },
@@ -163,11 +168,71 @@ export const getMyClientOrders = query({
           .withIndex("by_user", (q) => q.eq("userId", freelancerId))
           .first();
 
-        return { ...project, freelancer: freelancerProfile };
+        const order = await ctx.db
+          .query("orders")
+          .withIndex("by_client", q => q.eq("clientId", clientId))
+          .filter(q => q.eq(q.field("projectId"), project._id))
+          .first();
+
+        let hasReviewed = false;
+        if (order) {
+          const review = await ctx.db
+            .query("reviews")
+            .withIndex("by_order", q => q.eq("orderId", order._id))
+            .filter(q => q.eq(q.field("reviewerId"), clientId))
+            .first();
+          if (review) hasReviewed = true;
+        }
+
+        return { ...project, freelancer: freelancerProfile, orderId: order?._id, hasReviewed };
       })
     );
 
     return ordersWithFreelancerDetails;
+  },
+});
+
+export const getMyFreelancerOrders = query({
+  handler: async (ctx) => {
+    const freelancerId = await getAuthUserId(ctx);
+    if (!freelancerId) {
+      return [];
+    }
+
+    const myProjects = await ctx.db
+      .query("projectRequests")
+      .filter((q) => q.eq(q.field("selectedFreelancer"), freelancerId))
+      .order("desc")
+      .collect();
+
+    const ordersWithClientDetails = await Promise.all(
+      myProjects.map(async (project) => {
+        const clientProfile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", project.clientId))
+          .first();
+
+        const order = await ctx.db
+          .query("orders")
+          .withIndex("by_freelancer", q => q.eq("freelancerId", freelancerId))
+          .filter(q => q.eq(q.field("projectId"), project._id))
+          .first();
+
+        let hasReviewed = false;
+        if (order) {
+          const review = await ctx.db
+            .query("reviews")
+            .withIndex("by_order", q => q.eq("orderId", order._id))
+            .filter(q => q.eq(q.field("reviewerId"), freelancerId))
+            .first();
+          if (review) hasReviewed = true;
+        }
+
+        return { ...project, client: clientProfile, orderId: order?._id, hasReviewed };
+      })
+    );
+
+    return ordersWithClientDetails;
   },
 });
 

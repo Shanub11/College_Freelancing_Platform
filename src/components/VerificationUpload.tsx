@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
+import { compressImage } from "../../convex/image";
+import posthog from "posthog-js";
 
 interface VerificationUploadProps {
   profile: any;
@@ -27,14 +29,16 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
     try {
       setIsUploading(true);
 
+      const compressedFile = await compressImage(file, 1600, 1600, 0.8);
+
       // Generate upload URL
       const uploadUrl = await generateUploadUrl();
 
       // Upload file
       const result = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": compressedFile.type },
+        body: compressedFile,
       });
 
       if (!result.ok) {
@@ -91,6 +95,7 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
       });
 
       toast.success("Verification request submitted successfully!");
+      posthog.capture("verification_submitted", { college: formData.collegeName });
     } catch (error) {
       console.error("Verification submission error:", error);
       toast.error("Failed to submit verification request");
@@ -199,8 +204,132 @@ interface VerificationFormProps {
 }
 
 function VerificationForm({ formData, setFormData, onSubmit, isUploading }: VerificationFormProps) {
+  const [step, setStep] = useState<"email" | "otp" | "details">("email");
+  const [otp, setOtp] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const sendOtpAction = useAction(api.verification.sendOtpEmail);
+  const verifyOtpMutation = useMutation(api.verification.verifyOtp);
+
+  // Track funnel step progression
+  useEffect(() => {
+    posthog.capture("verification_step_viewed", { step });
+  }, [step]);
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.collegeEmail) {
+      toast.error("Please enter your college email first");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      await sendOtpAction({ email: formData.collegeEmail });
+      toast.success("OTP sent to your email!");
+      setStep("otp");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp) return;
+
+    try {
+      setIsVerifying(true);
+      await verifyOtpMutation({ email: formData.collegeEmail, otp });
+      toast.success("Email verified successfully!");
+      setStep("details");
+    } catch (err: any) {
+      toast.error(err.message || "Invalid OTP");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  if (step === "email") {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            College Email *
+          </label>
+          <input
+            type="email"
+            required
+            value={formData.collegeEmail}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, collegeEmail: e.target.value }))}
+            placeholder="your.name@college.edu"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Must be your official college email address (e.g., .edu, .ac.in domains).
+          </p>
+        </div>
+        <button
+          onClick={handleSendOtp}
+          disabled={isSending || !formData.collegeEmail}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {isSending ? "Sending OTP..." : "Send Verification OTP"}
+        </button>
+      </div>
+    );
+  }
+
+  if (step === "otp") {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Enter Verification Code (OTP) *
+          </label>
+          <p className="text-sm text-gray-600 mb-2">Sent to {formData.collegeEmail}</p>
+          <input
+            type="text"
+            required
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="123456"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-widest"
+            maxLength={6}
+          />
+        </div>
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => setStep("email")}
+            className="w-1/3 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleVerifyOtp}
+            disabled={isVerifying || otp.length < 6}
+            className="w-2/3 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {isVerifying ? "Verifying..." : "Verify Email"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      <div className="bg-green-50 text-green-800 p-4 rounded-lg flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">✓</span>
+          <p className="font-medium">Email Verified: {formData.collegeEmail}</p>
+        </div>
+        <button type="button" onClick={() => setStep("email")} className="text-sm text-green-700 underline">Change</button>
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           College Name *
@@ -257,23 +386,6 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           max={new Date().getFullYear() + 10}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          College Email *
-        </label>
-        <input
-          type="email"
-          required
-          value={formData.collegeEmail}
-          onChange={(e) => setFormData(prev => ({ ...prev, collegeEmail: e.target.value }))}
-          placeholder="your.name@college.edu"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Must be your official college email address (e.g., .edu, .ac.in domains).
-        </p>
       </div>
 
       <div>

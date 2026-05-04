@@ -6,7 +6,7 @@ import { Id } from "../../convex/_generated/dataModel";
 import { SignOutButton } from "../SignOutButton";
 
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"verifications" | "logs">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "disputes">("verifications");
   const [expandedRequestId, setExpandedRequestId] = useState<Id<"verificationRequests"> | null>(null);
   const pendingVerifications = useQuery(api.profiles.getPendingVerifications) || [];
   const approve = useMutation(api.profiles.approveVerification);
@@ -54,6 +54,16 @@ export function AdminDashboard() {
                 }`}
               >
                 Verifications
+              </button>
+              <button
+                onClick={() => setActiveTab("disputes")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "disputes"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Disputes
               </button>
               <button
                 onClick={() => setActiveTab("logs")}
@@ -156,11 +166,89 @@ export function AdminDashboard() {
               </div>
             </div>
             </div>
+          ) : activeTab === "disputes" ? (
+            <DisputesList />
           ) : (
             <ActivityLogList />
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function DisputesList() {
+  const disputes = useQuery((api as any).disputes?.getOpenDisputes) || [];
+  const resolveDispute = useMutation((api as any).disputes?.resolveDispute);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState("");
+
+  const handleResolve = async (disputeId: Id<"disputes">, resolution: "resolved_refund" | "resolved_release") => {
+    if (!resolutionNotes.trim()) {
+      toast.error("Please provide resolution notes");
+      return;
+    }
+
+    try {
+      await resolveDispute({ disputeId, resolution, notes: resolutionNotes });
+      toast.success("Dispute resolved successfully!");
+      setResolvingId(null);
+      setResolutionNotes("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resolve dispute");
+    }
+  };
+
+  return (
+    <div className="bg-white shadow-sm rounded-lg p-6">
+      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+        Open Disputes ({disputes.length})
+      </h3>
+      {disputes.length === 0 ? (
+        <p className="text-gray-500">No open disputes requiring your attention.</p>
+      ) : (
+        <div className="space-y-6">
+          {disputes.map((dispute: any) => (
+            <div key={dispute._id} className="border border-red-200 rounded-lg p-4 bg-red-50">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h4 className="font-bold text-red-900">Dispute for Project: {dispute.project?.title}</h4>
+                  <p className="text-sm text-red-800 font-medium">Opened by: {dispute.creatorName}</p>
+                </div>
+                <span className="text-xs bg-red-200 text-red-900 px-2 py-1 rounded-full font-bold">Needs Resolution</span>
+              </div>
+              <p className="text-sm text-red-800 bg-white p-3 rounded border border-red-100 my-3">
+                <span className="font-semibold">Reason:</span> {dispute.reason}
+              </p>
+              
+              <div className="mt-4 pt-4 border-t border-red-200">
+                {resolvingId === dispute._id ? (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-red-900">Admin Resolution Notes:</label>
+                    <textarea 
+                      rows={2}
+                      value={resolutionNotes}
+                      onChange={(e) => setResolutionNotes(e.target.value)}
+                      placeholder="Explain the ruling (visible in logs)..."
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setResolvingId(null)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                      <button onClick={() => handleResolve(dispute._id, "resolved_refund")} className="px-3 py-1.5 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700">Refund Client</button>
+                      <button onClick={() => handleResolve(dispute._id, "resolved_release")} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700">Release to Freelancer</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end gap-3">
+                    <button className="text-sm text-blue-700 underline" onClick={() => toast.info("Contract & Chat History feature coming soon!")}>View Chat History</button>
+                    <button onClick={() => setResolvingId(dispute._id)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">Resolve Dispute</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

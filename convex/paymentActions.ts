@@ -4,6 +4,8 @@ import { action } from "./_generated/server";
 import { internal as internalApi } from "./_generated/api";
 import Razorpay from "razorpay";
 
+declare const process: any;
+
 const internal = internalApi as any;
 
 export const createRazorpayOrder = action({

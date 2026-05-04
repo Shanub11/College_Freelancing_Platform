@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect, useRef, Fragment } from "react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { compressImage } from "../../convex/image";
 
 interface ChatInterfaceProps {
   isOpen: boolean;
@@ -15,7 +16,11 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ isOpen, onClose, initialConversation, currentUserId }: ChatInterfaceProps) {
-  const conversations = useQuery(api.chat.getConversations) || [];
+  const { results: conversations, status, loadMore } = usePaginatedQuery(
+    api.chat.getConversations,
+    {},
+    { initialNumItems: 20 }
+  );
   const getOrCreate = useMutation(api.chat.getOrCreateConversation);
   const markAsRead = useMutation(api.chat.markAsRead);
   
@@ -53,10 +58,11 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
             <button onClick={onClose} className="md:hidden text-gray-500">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {conversations.length === 0 ? (
+            {!conversations || conversations.length === 0 ? (
               <p className="p-4 text-gray-500 text-center">No conversations yet.</p>
             ) : (
-              conversations.map(c => (
+              <>
+                {conversations.map(c => (
                 <div 
                   key={c._id}
                   onClick={() => setSelectedConversationId(c._id)}
@@ -79,7 +85,16 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
                     {new Date(c.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
-              ))
+                ))}
+                {status === "CanLoadMore" && (
+                  <button 
+                    onClick={() => loadMore(20)}
+                    className="w-full p-4 text-blue-600 hover:bg-gray-100 text-sm font-medium transition-colors"
+                  >
+                    Load More
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -124,11 +139,12 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
     let attachmentId = undefined;
     if (selectedFile) {
       setIsUploading(true);
+      const compressedFile = await compressImage(selectedFile, 1200, 1200, 0.8);
       const postUrl = await generateUploadUrl();
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": selectedFile.type },
-        body: selectedFile,
+        headers: { "Content-Type": compressedFile.type },
+        body: compressedFile,
       });
       const { storageId } = await result.json();
       attachmentId = storageId;
@@ -154,10 +170,38 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {messages?.map((msg) => {
+        {messages?.map((msg, index) => {
           const isMe = msg.senderId === currentUserId;
+
+          // Date separator logic
+          const msgDate = new Date(msg.createdAt);
+          const prevMsgDate = index > 0 ? new Date(messages[index - 1].createdAt) : null;
+          const showDate = !prevMsgDate || msgDate.toDateString() !== prevMsgDate.toDateString();
+
+          let dateString = "";
+          if (showDate) {
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (msgDate.toDateString() === today.toDateString()) {
+              dateString = "Today";
+            } else if (msgDate.toDateString() === yesterday.toDateString()) {
+              dateString = "Yesterday";
+            } else {
+              dateString = msgDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+          }
+
           return (
-            <div key={msg._id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+            <Fragment key={msg._id}>
+              {showDate && (
+                <div className="flex justify-center my-2">
+                  <span className="bg-gray-200 text-gray-600 text-[11px] px-3 py-1 rounded-full shadow-sm font-medium">
+                    {dateString}
+                  </span>
+                </div>
+              )}
+              <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${
                 isMe ? "bg-blue-600 text-white rounded-br-none" : "bg-white text-gray-800 border rounded-bl-none"
               }`}>
@@ -179,6 +223,7 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
                 </p>
               </div>
             </div>
+            </Fragment>
           );
         })}
         <div ref={messagesEndRef} />

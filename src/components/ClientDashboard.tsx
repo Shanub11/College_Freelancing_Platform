@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useState, useRef, Suspense, lazy } from "react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 // Optional file storage hook: convex/react-file-storage may not be available in all environments.
 // Provide a local fallback that returns a string URL when the stored reference is already a URL,
 // or null otherwise. Replace this with the real useStorage from 'convex/react-file-storage' if available.
@@ -18,8 +18,11 @@ import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { ProposalActions } from "./ProposalActions";
-import { ChatInterface } from "./Chat";
 import { GigBrowser } from "./GigBrowser";
+import { compressImage } from "../../convex/image";
+import posthog from "posthog-js";
+
+const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
 // Main component for the client dashboard
 export function ClientDashboard({ profile, activeTab }: { profile: any, activeTab: string }) {
@@ -32,8 +35,8 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInitData, setChatInitData] = useState<any>(null);
-  const conversations = useQuery(api.chat.getConversations) || [];
-  const totalUnread = conversations.reduce((acc, c) => acc + c.unreadCount, 0);
+  const { results: conversations } = usePaginatedQuery(api.chat.getConversations, {}, { initialNumItems: 20 });
+  const totalUnread = (conversations || []).reduce((acc, c) => acc + c.unreadCount, 0);
 
   // Profile Picture Upload
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
@@ -41,16 +44,22 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
 
+  const handleSelectProject = (projectId: Id<"projectRequests">) => {
+    setSelectedProject(projectId);
+    posthog.capture("viewed_proposals", { projectId });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
+      const compressedFile = await compressImage(file, 800, 800, 0.8);
       const postUrl = await generateUploadUrl();
       const result = await fetch(postUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": compressedFile.type },
+        body: compressedFile,
       });
       const { storageId } = await result.json();
       await updateProfile({ profilePicture: storageId });
@@ -80,7 +89,9 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
             setIsChatOpen(true);
           }}
         />
-        <ChatInterface isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} initialConversation={chatInitData} currentUserId={profile.userId} />
+        <Suspense fallback={null}>
+          <ChatInterface isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} initialConversation={chatInitData} currentUserId={profile.userId} />
+        </Suspense>
       </>
     );
   }
@@ -132,7 +143,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       </div>
       
       {activeTab === 'projects' && (
-        <ProjectList projects={myProjects} onSelectProject={setSelectedProject} />
+        <ProjectList projects={myProjects} onSelectProject={handleSelectProject} />
       )}
 
       {activeTab === 'orders' && (
@@ -147,12 +158,14 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
         <GigBrowser userType="client" />
       )}
       
-      <ChatInterface 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)} 
-        initialConversation={chatInitData}
-        currentUserId={profile.userId}
-      />
+      <Suspense fallback={null}>
+        <ChatInterface 
+          isOpen={isChatOpen} 
+          onClose={() => setIsChatOpen(false)} 
+          initialConversation={chatInitData}
+          currentUserId={profile.userId}
+        />
+      </Suspense>
 
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
@@ -211,16 +224,26 @@ function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
 function ProfileAvatar({ profile }: { profile: any }) {
   const profilePictureUrl = useStorage(profile.profilePicture);
 
+  const renderStars = (rating: number) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span key={i} className={i <= Math.round(rating) ? "text-yellow-400" : "text-gray-300"}>★</span>
+      );
+    }
+    return stars;
+  };
+
   return (
     <div className="flex items-center space-x-6 mb-6">
-      <img src={profilePictureUrl || '/default-avatar.png'} alt="Freelancer" className="w-24 h-24 rounded-full" />
+      <img src={profilePictureUrl || '/default-avatar.png'} alt="Freelancer" className="w-24 h-24 rounded-full object-cover" />
       <div>
         <h1 className="text-3xl font-bold text-gray-900">{profile.firstName} {profile.lastName}</h1>
         <p className="text-gray-600">{profile.tagline}</p>
         <div className="flex items-center mt-2">
-          {/* Placeholder for rating */}
-          <span className="text-yellow-500">★★★★☆</span>
-          <span className="ml-2 text-gray-600">({profile.totalReviews || 0} reviews)</span>
+          <div className="flex text-lg mr-2">{renderStars(profile.averageRating || 0)}</div>
+          <span className="text-gray-600 font-medium">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
+          <span className="ml-2 text-gray-500">({profile.totalReviews || 0} reviews)</span>
         </div>
       </div>
     </div>
@@ -229,6 +252,20 @@ function ProfileAvatar({ profile }: { profile: any }) {
 
 // Component to display the list of orders
 function OrderList({ orders }: { orders: any[] }) {
+  const openDispute = useMutation((api as any).disputes?.openDispute);
+  const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+
+  const handleDispute = async (projectId: string) => {
+    const reason = window.prompt("Why are you disputing this project?");
+    if (!reason) return;
+    try {
+      await openDispute({ projectId, reason });
+      toast.success("Dispute opened. An admin will review it soon.");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to open dispute");
+    }
+  };
+
   if (orders.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -247,6 +284,8 @@ function OrderList({ orders }: { orders: any[] }) {
         return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Completed</span>;
       case 'cancelled':
         return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Cancelled</span>;
+      case 'disputed':
+        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Disputed</span>;
       default:
         return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">{status}</span>;
     }
@@ -268,8 +307,89 @@ function OrderList({ orders }: { orders: any[] }) {
               <p className="text-sm text-gray-500 mt-1">Budget: ₹{order.budget.min} - ₹{order.budget.max}</p>
             </div>
           </div>
+          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && order.status !== 'open' && order.status !== 'pending_payment' && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => handleDispute(order._id)}
+                className="text-red-600 hover:text-red-800 text-sm font-medium"
+              >
+                Open Dispute
+              </button>
+            </div>
+          )}
+          {order.status === 'completed' && !order.hasReviewed && order.orderId && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+              <button 
+                onClick={() => setReviewOrderId(order.orderId)}
+                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Leave Review
+              </button>
+            </div>
+          )}
+          {order.status === 'completed' && order.hasReviewed && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+              <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                Review Submitted
+              </span>
+            </div>
+          )}
         </div>
       ))}
+      {reviewOrderId && (
+        <ReviewModal orderId={reviewOrderId} onClose={() => setReviewOrderId(null)} />
+      )}
+    </div>
+  );
+}
+
+function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => void }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitReview = useMutation((api as any).reviews?.submitReview);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await submitReview({ orderId, rating, comment });
+      toast.success("Review submitted! It stays hidden until both parties review.");
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit review");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Leave a Review</h2>
+        <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-6">
+          <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button type="button" key={star} onClick={() => setRating(star)} className={`text-3xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none`}>★</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback</label>
+            <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
+          </div>
+          <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            {isSubmitting ? "Submitting..." : "Submit Review"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -530,6 +650,7 @@ function PostProjectForm() {
       });
 
       toast.success("Project posted successfully!");
+      posthog.capture("project_posted", { category: formData.category, budgetMin: formData.budgetMin, budgetMax: formData.budgetMax });
       
       // Reset form
       setFormData({

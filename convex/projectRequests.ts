@@ -1,21 +1,26 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator } from "convex/server";
+import { enforceModeration } from "./moderation";
 
 /**
  * Query to get all project requests that are currently open.
  */
 export const getOpenProjectRequests = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const requests = await ctx.db
       .query("projectRequests")
       .withIndex("by_status", (q) => q.eq("status", "open"))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
     // Enrich with client information
-    return Promise.all(
-      requests.map(async (req) => {
+    const page = await Promise.all(
+      requests.page.map(async (req) => {
         const clientProfile = await ctx.db
           .query("profiles")
           .withIndex("by_user", (q) => q.eq("userId", req.clientId))
@@ -28,6 +33,11 @@ export const getOpenProjectRequests = query({
         };
       })
     );
+
+    return {
+      ...requests,
+      page,
+    };
   },
 });
 

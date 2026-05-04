@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 
 /**
  * Internal helper to check if the current user is an admin.
@@ -137,6 +138,16 @@ export const submitForVerification = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    // Verify email was actually verified via OTP
+    const emailRecord = await ctx.db
+      .query("emailVerifications")
+      .withIndex("by_email", (q) => q.eq("email", args.collegeEmail))
+      .first();
+
+    if (!emailRecord || !emailRecord.verified) {
+      throw new Error("College email has not been verified via OTP yet.");
+    }
+
     const existingRequest = await ctx.db
       .query("verificationRequests")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -210,11 +221,31 @@ export const updateProfile = mutation({
 
 export const getFreelancers = query({
   args: {
-    limit: v.optional(v.number()),
     college: v.optional(v.string()),
     skills: v.optional(v.array(v.string())),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
+    // Perform full-text database search if skills are provided
+    if (args.skills && args.skills.length > 0) {
+      const searchTerm = args.skills.join(" ");
+      
+      return await ctx.db
+        .query("profiles")
+        .withSearchIndex("search_skills", (q) => {
+          const search = q.search("skills", searchTerm)
+            .eq("userType", "freelancer")
+            .eq("isVerified", true);
+            
+          if (args.college) {
+            return search.eq("collegeName", args.college);
+          }
+          return search;
+        })
+        .paginate(args.paginationOpts);
+    }
+
+    // Fallback to standard indexes if no skills are searched
     let query = ctx.db
       .query("profiles")
       .withIndex("by_type", (q) => q.eq("userType", "freelancer"));
@@ -225,22 +256,14 @@ export const getFreelancers = query({
         .withIndex("by_college", (q) => q.eq("collegeName", args.college));
     }
 
-    const freelancers = await query
-      .filter((q) => q.eq(q.field("isVerified"), true))
-      .take(args.limit || 20);
-
-    // Filter by skills if provided
-    if (args.skills && args.skills.length > 0) {
-      return freelancers.filter(freelancer => 
-        freelancer.skills?.some(skill => 
-          args.skills!.some(searchSkill => 
-            skill.toLowerCase().includes(searchSkill.toLowerCase())
-          )
+    return await query
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("isVerified"), true),
+          q.eq(q.field("userType"), "freelancer") // Ensure we restrict to freelancers even if we used by_college index
         )
-      );
-    }
-
-    return freelancers;
+      )
+      .paginate(args.paginationOpts);
   },
 });
 
