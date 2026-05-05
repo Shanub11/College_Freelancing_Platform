@@ -53,8 +53,20 @@ export function SubmitProposalPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="bg-white shadow-lg rounded-xl p-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header with Back Button */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10 px-4 py-4 flex items-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+        >
+          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          <span className="font-medium text-lg">Back</span>
+        </button>
+      </header>
+
+      <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 w-full">
+        <div className="bg-white shadow-lg rounded-xl p-8">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Submit a Proposal</h1>
         <p className="text-gray-600 mt-2">For project: <span className="font-semibold text-gray-800">{project.title}</span></p>
 
@@ -116,6 +128,7 @@ export function SubmitProposalPage() {
             </button>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

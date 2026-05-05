@@ -19,11 +19,12 @@ const applicationTables = {
     studentId: v.optional(v.id("_storage")), // uploaded student ID for verification
     isVerified: v.boolean(),
     skills: v.optional(v.array(v.string())),
-    portfolio: v.optional(v.array(v.object({
+    portfolioItems: v.optional(v.array(v.object({
+      id: v.string(),
       title: v.string(),
       description: v.string(),
       image: v.optional(v.id("_storage")),
-      url: v.optional(v.string())
+      link: v.optional(v.string())
     }))),
     // Client specific fields
     paypalMerchantId: v.optional(v.string()), // To store the freelancer's PayPal Merchant ID

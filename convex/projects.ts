@@ -248,6 +248,16 @@ export const getFreelancerPublicProfile = query({
       return null;
     }
 
+    const portfolioItems = profile.portfolioItems ? await Promise.all(profile.portfolioItems.map(async (item: any) => ({
+      ...item,
+      imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
+    }))) : [];
+    
+    const profileWithPortfolio = {
+      ...profile,
+      portfolioItems,
+    };
+
     // NOTE: This assumes an index on `selectedFreelancer` and `status`.
     // You may need to create a new index in your schema:
     // .index("by_freelancer_status", ["selectedFreelancer", "status"])
@@ -293,6 +303,6 @@ export const getFreelancerPublicProfile = query({
       activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
     }
 
-    return { profile, completedProjects, reviews: reviewsWithReviewer, activityMap };
+    return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap };
   },
 });

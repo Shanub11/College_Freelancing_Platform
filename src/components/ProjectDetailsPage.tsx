@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Id } from "../../convex/_generated/dataModel";
 
 export function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: Id<"projectRequests"> }>();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const navigate = useNavigate();
 
   const project = useQuery(
     api.projectRequests.getProjectRequestById,
@@ -26,10 +27,21 @@ export function ProjectDetailsPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Header with Back Button */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-10 px-4 py-4 flex items-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+        >
+          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          <span className="font-medium text-lg">Back</span>
+        </button>
+      </header>
+
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ease-in-out ${isChatOpen ? 'mr-80' : 'mr-0'}`}>
-        <div className="max-w-4xl mx-auto p-8">
+      <main className={`flex-1 w-full transition-all duration-300 ease-in-out ${isChatOpen ? 'mr-80' : 'mr-0'}`}>
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-start">
               <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>

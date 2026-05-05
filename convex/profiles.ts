@@ -34,8 +34,17 @@ export const getCurrentProfile = query({
 
     if (!profile) return null;
 
+    let portfolioItems = profile.portfolioItems || [];
+    portfolioItems = await Promise.all(
+      portfolioItems.map(async (item: any) => ({
+        ...item,
+        imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
+      }))
+    );
+
     return {
       ...profile,
+      portfolioItems,
       profilePictureUrl: profile.profilePicture ? await ctx.storage.getUrl(profile.profilePicture) : null,
     };
   },
@@ -51,8 +60,17 @@ export const getProfile = query({
 
     if (!profile) return null;
 
+    let portfolioItems = profile.portfolioItems || [];
+    portfolioItems = await Promise.all(
+      portfolioItems.map(async (item: any) => ({
+        ...item,
+        imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
+      }))
+    );
+
     return {
       ...profile,
+      portfolioItems,
       profilePictureUrl: profile.profilePicture ? await ctx.storage.getUrl(profile.profilePicture) : null,
     };
   },
@@ -70,6 +88,17 @@ export const createProfile = mutation({
     collegeEmail: v.optional(v.string()),
     graduationYear: v.optional(v.number()),
     skills: v.optional(v.array(v.string())),
+    portfolioItems: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          description: v.string(),
+          link: v.optional(v.string()),
+          image: v.optional(v.id("_storage")),
+        })
+      )
+    ),
     // Client fields
     company: v.optional(v.string()),
   },
@@ -105,6 +134,7 @@ export const createProfile = mutation({
       collegeEmail: args.collegeEmail,
       graduationYear: args.graduationYear,
       skills: args.skills,
+      portfolioItems: args.portfolioItems,
       company: args.company,
       isAdmin: isAdmin,
       isVerified: isAdmin,
@@ -183,6 +213,17 @@ export const updateProfile = mutation({
     bio: v.optional(v.string()),
     profilePicture: v.optional(v.id("_storage")),
     skills: v.optional(v.array(v.string())),
+    portfolioItems: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          title: v.string(),
+          description: v.string(),
+          link: v.optional(v.string()),
+          image: v.optional(v.id("_storage")),
+        })
+      )
+    ),
     company: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -202,6 +243,7 @@ export const updateProfile = mutation({
     if (args.bio !== undefined) updates.bio = args.bio;
     if (args.profilePicture !== undefined) updates.profilePicture = args.profilePicture;
     if (args.skills !== undefined) updates.skills = args.skills;
+    if (args.portfolioItems !== undefined) updates.portfolioItems = args.portfolioItems;
     if (args.company !== undefined) updates.company = args.company;
 
     await ctx.db.patch(profile._id, updates);

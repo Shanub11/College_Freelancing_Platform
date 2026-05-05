@@ -155,7 +155,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       )}
 
       {activeTab === 'browse-services' && (
-        <GigBrowser userType="client" />
+        <GigBrowser userType="client" onViewProfile={setViewingFreelancer} hideHeader={true} />
       )}
       
       <Suspense fallback={null}>
@@ -420,8 +420,9 @@ function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile, onC
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="text-blue-600 hover:underline">
-        &larr; Back to Projects
+      <button onClick={onBack} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium">
+        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        Back to Projects
       </button>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Proposals for {project?.title}</h1>
@@ -552,8 +553,9 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <button onClick={onBack} className="text-blue-600 hover:underline flex items-center gap-2">
-        <span>&larr;</span> Back to Proposals
+      <button onClick={onBack} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium mb-4">
+        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        Back
       </button>
       
       <div className="bg-white rounded-lg shadow-sm p-8">
@@ -720,6 +722,36 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
             </p>
           )}
         </div>
+
+        {/* Portfolio Section */}
+        {profile.portfolioItems && profile.portfolioItems.length > 0 && (
+          <div className="border-t pt-8 mt-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {profile.portfolioItems.map((item: any) => (
+                <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.title} className="w-full h-40 object-cover" />
+                  ) : (
+                    <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+                      <span className="text-4xl text-gray-300">🖼️</span>
+                    </div>
+                  )}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h4 className="font-bold text-gray-900">{item.title}</h4>
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-3 flex-1">{item.description}</p>
+                    {item.link && (
+                      <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline mt-4 flex items-center gap-1 font-medium">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        View Project
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Completed Projects Catalog */}
         <div className="border-t pt-8 mt-8">

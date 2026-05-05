@@ -242,7 +242,7 @@ export function Dashboard({ profile }: DashboardProps) {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               </div>
             )}
-            {activeTab === "browse" && <GigBrowser userType={profile.userType} />}
+            {activeTab === "browse" && profile.userType !== "client" && <GigBrowser userType={profile.userType} />}
             {activeTab === "admin" && profile.userType === "admin" && <AdminDashboard />}
             {profile.userType === "freelancer" && (
               <>
@@ -254,6 +254,7 @@ export function Dashboard({ profile }: DashboardProps) {
             )}
             {profile.userType === "client" && (
               <>
+                {activeTab === "browse" && <ClientDashboard profile={profile} activeTab="browse-services" />}
                 {activeTab === "projects" && <ClientDashboard profile={profile} activeTab="projects" />}
                 {activeTab === "orders" && <ClientDashboard profile={profile} activeTab="orders" />}
                 {activeTab === "post-project" && <ClientDashboard profile={profile} activeTab="post-project" />}
@@ -320,13 +321,33 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
   
   const [bio, setBio] = useState(profile.bio || "");
   const [skills, setSkills] = useState<string[]>(profile.skills || []);
+  const [portfolioItems, setPortfolioItems] = useState<any[]>(profile.portfolioItems || []);
   const [company, setCompany] = useState(profile.company || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
+  
+  const [isAddingPortfolio, setIsAddingPortfolio] = useState(false);
+  const [newPortfolioItem, setNewPortfolioItem] = useState({
+    title: "",
+    description: "",
+    link: "",
+    image: null as string | null,
+    imageUrl: null as string | null,
+  });
+  const [isUploadingPortfolioImage, setIsUploadingPortfolioImage] = useState(false);
+
+  useEffect(() => {
+    setBio(profile.bio || "");
+    setSkills(profile.skills || []);
+    setPortfolioItems(profile.portfolioItems || []);
+    setCompany(profile.company || "");
+  }, [profile]);
 
   const hasChanges = 
     bio !== (profile.bio || "") || 
     JSON.stringify(skills) !== JSON.stringify(profile.skills || []) ||
+    JSON.stringify(portfolioItems.map((i: any) => ({ id: i.id, title: i.title, description: i.description, link: i.link || undefined, image: i.image || undefined }))) !== JSON.stringify(profile.portfolioItems || []) ||
     company !== (profile.company || "");
 
   const handleSaveChanges = async () => {
@@ -335,6 +356,13 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
       await updateProfile({
         bio,
         skills: profile.userType === "freelancer" ? skills : undefined,
+        portfolioItems: profile.userType === "freelancer" ? portfolioItems.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          link: item.link || undefined,
+          image: item.image || undefined,
+        })) : undefined,
         company: profile.userType === "client" ? company : undefined,
       });
       toast.success("Profile updated successfully!");
@@ -493,6 +521,156 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
+            </div>
+
+            {/* Portfolio Editing */}
+            <div className="mt-8 border-t pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Portfolio</h3>
+                <button 
+                  onClick={() => setIsAddingPortfolio(true)}
+                  className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 font-medium"
+                >
+                  + Add Project
+                </button>
+              </div>
+
+              {isAddingPortfolio && (
+                <div className="bg-gray-50 p-4 rounded-lg border mb-4">
+                  <div className="space-y-3">
+                    <input 
+                      type="text" 
+                      placeholder="Project Title *" 
+                      value={newPortfolioItem.title} 
+                      onChange={e => setNewPortfolioItem({...newPortfolioItem, title: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                    <textarea 
+                      placeholder="Description *" 
+                      value={newPortfolioItem.description} 
+                      onChange={e => setNewPortfolioItem({...newPortfolioItem, description: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Link (e.g. GitHub or Live Demo)" 
+                      value={newPortfolioItem.link} 
+                      onChange={e => setNewPortfolioItem({...newPortfolioItem, link: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 bg-white border px-3 py-2 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                        {isUploadingPortfolioImage ? "Uploading..." : newPortfolioItem.image ? "Change Image" : "Upload Image"}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              setIsUploadingPortfolioImage(true);
+                              const compressedFile = await compressImage(file, 800, 800, 0.8);
+                              const postUrl = await generateUploadUrl();
+                              const result = await fetch(postUrl, {
+                                method: "POST",
+                                headers: { "Content-Type": compressedFile.type },
+                                body: compressedFile,
+                              });
+                              const { storageId } = await result.json();
+                              const objectUrl = URL.createObjectURL(file);
+                              setNewPortfolioItem(prev => ({ ...prev, image: storageId, imageUrl: objectUrl }));
+                            } catch (err) {
+                              toast.error("Failed to upload image");
+                            } finally {
+                              setIsUploadingPortfolioImage(false);
+                            }
+                          }}
+                          disabled={isUploadingPortfolioImage}
+                        />
+                      </label>
+                      {newPortfolioItem.imageUrl && (
+                        <img src={newPortfolioItem.imageUrl} alt="Preview" className="h-10 w-10 object-cover rounded border" />
+                      )}
+                    </div>
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button 
+                        onClick={() => {
+                          setIsAddingPortfolio(false);
+                          setNewPortfolioItem({ title: "", description: "", link: "", image: null, imageUrl: null });
+                        }} 
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (!newPortfolioItem.title.trim() || !newPortfolioItem.description.trim()) {
+                            toast.error("Title and description are required.");
+                            return;
+                          }
+                          setPortfolioItems([...portfolioItems, { 
+                            id: Math.random().toString(36).substring(2, 9), 
+                            ...newPortfolioItem 
+                          }]);
+                          setNewPortfolioItem({ title: "", description: "", link: "", image: null, imageUrl: null });
+                          setIsAddingPortfolio(false);
+                        }} 
+                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      >
+                        Save Project
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {portfolioItems.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {portfolioItems.map((item: any) => (
+                    <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col relative group">
+                      <button 
+                        onClick={() => {
+                          setNewPortfolioItem({ title: item.title, description: item.description, link: item.link || "", image: item.image || null, imageUrl: item.imageUrl || null });
+                          setPortfolioItems(portfolioItems.filter(i => i.id !== item.id));
+                          setIsAddingPortfolio(true);
+                        }}
+                        className="absolute top-2 right-11 bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                        title="Edit project"
+                      >
+                        ✎
+                      </button>
+                      <button 
+                        onClick={() => setPortfolioItems(portfolioItems.filter(i => i.id !== item.id))}
+                        className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                        title="Delete project"
+                      >
+                        ✕
+                      </button>
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.title} className="w-full h-32 object-cover" />
+                      ) : (
+                        <div className="w-full h-32 bg-gray-100 flex items-center justify-center border-b">
+                          <span className="text-4xl text-gray-300">🖼️</span>
+                        </div>
+                      )}
+                      <div className="p-4 flex-1 flex flex-col">
+                        <h4 className="font-bold text-gray-900 line-clamp-1">{item.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2 flex-1">{item.description}</p>
+                        {item.link && (
+                          <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline mt-3 flex items-center gap-1 font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            Link
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">No portfolio items added yet.</p>
+              )}
             </div>
             
             {hasChanges && (

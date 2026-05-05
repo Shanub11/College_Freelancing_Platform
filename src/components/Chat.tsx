@@ -53,9 +53,11 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[80vh] flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-1/3 border-r bg-gray-50 flex flex-col">
-          <div className="p-4 border-b bg-white flex justify-between items-center">
+          <div className="p-4 border-b bg-white flex items-center gap-3">
+            <button onClick={onClose} className="text-gray-500 hover:text-blue-600 transition-colors" title="Back">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            </button>
             <h2 className="text-xl font-bold text-gray-800">Messages</h2>
-            <button onClick={onClose} className="md:hidden text-gray-500">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto">
             {!conversations || conversations.length === 0 ? (

@@ -2,12 +2,15 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate, Link } from "react-router-dom";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface GigBrowserProps {
   userType: "freelancer" | "client";
+  onViewProfile?: (userId: Id<"users">) => void;
+  hideHeader?: boolean;
 }
 
-export function GigBrowser({ userType }: GigBrowserProps) {
+export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const activeView = userType === "freelancer" ? "projects" : "gigs";
@@ -29,17 +32,19 @@ export function GigBrowser({ userType }: GigBrowserProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {userType === "freelancer" ? "Browse Projects" : "Browse Services"}
-        </h1>
-        <p className="text-gray-600">
-          {userType === "freelancer" 
-            ? "Find exciting projects to work on" 
-            : "Discover talented student freelancers"
-          }
-        </p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {userType === "freelancer" ? "Browse Projects" : "Browse Services"}
+          </h1>
+          <p className="text-gray-600">
+            {userType === "freelancer" 
+              ? "Find exciting projects to work on" 
+              : "Discover talented student freelancers"
+            }
+          </p>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow-sm p-4">
@@ -91,7 +96,7 @@ export function GigBrowser({ userType }: GigBrowserProps) {
           searchResults.map((item: any) => (
             <div key={item._id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex flex-col h-full">
               {activeView === "gigs" ? (
-                <GigCard gig={item} />
+                <GigCard gig={item} onViewProfile={onViewProfile} />
               ) : (
                 <ProjectCard project={item} />
               )}
@@ -103,7 +108,7 @@ export function GigBrowser({ userType }: GigBrowserProps) {
   );
 }
 
-function GigCard({ gig }: { gig: any }) {
+function GigCard({ gig, onViewProfile }: { gig: any, onViewProfile?: (userId: Id<"users">) => void }) {
   const navigate = useNavigate();
 
   return (
@@ -136,7 +141,13 @@ function GigCard({ gig }: { gig: any }) {
       </div>
 
       <button 
-        onClick={() => navigate(`/profile/${gig.freelancerId}`)}
+        onClick={() => {
+          if (onViewProfile) {
+            onViewProfile(gig.freelancerId);
+          } else {
+            navigate(`/profile/${gig.freelancerId}`);
+          }
+        }}
         className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
       >
         View Details
