@@ -26,26 +26,26 @@ interface FreelancerDashboardProps {
 
 export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardProps) {
   const navigate = useNavigate();
-  const myGigs = useQuery(api.gigs.getMyGigs) || [];
-  const myOrders = useQuery((api as any).projects?.getMyFreelancerOrders) || [];
+  const myGigs = useQuery(api.gigs.getMyGigs);
+  const myOrders = useQuery((api as any).projects?.getMyFreelancerOrders);
   const [showCreateGig, setShowCreateGig] = useState(false);
   const [editingGig, setEditingGig] = useState<any | null>(null);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   
   // Notifications
-  const notifications = useQuery(api.proposals.getNotifications, {}) || [];
+  const notifications = useQuery(api.proposals.getNotifications, {});
   const markAsRead = useMutation(api.proposals.markAsRead);
   const markAllAsRead = useMutation(api.proposals.markAllAsRead);
   const [showNotifications, setShowNotifications] = useState(false);
-  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+  const unreadCount = (notifications || []).filter((n: any) => !n.isRead).length;
 
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInitData, setChatInitData] = useState<any>(null);
   const { results: conversations } = usePaginatedQuery(api.chat.getConversations, {}, { initialNumItems: 20 });
   const totalUnread = (conversations || []).reduce((acc, c) => acc + c.unreadCount, 0);
-  const recommendedProjects = useQuery(api.recommendations.getRecommendedProjects) || [];
-  const categories = useQuery(api.categories.getCategories) || [];
+  const recommendedProjects = useQuery(api.recommendations.getRecommendedProjects);
+  const categories = useQuery(api.categories.getCategories);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
@@ -88,7 +88,7 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
     }
   };
 
-  const filteredProjects = recommendedProjects.filter((project) => {
+  const filteredProjects = (recommendedProjects || []).filter((project) => {
     // Filter by category first
     if (selectedCategory && project.category !== selectedCategory) {
       return false;
@@ -104,6 +104,14 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
       (project.skills || []).some((skill: string) => skill.toLowerCase().includes(term))
     );
   });
+
+  const completedOrders = (myOrders || []).filter((o: any) => o.status === 'completed');
+  const totalEarnings = completedOrders.reduce((sum: number, o: any) => sum + (o.freelancerPayout || Math.round(o.price * 0.9)), 0);
+  const thisMonthEarnings = completedOrders.filter((o: any) => {
+    const completedAt = o.completedAt || o._creationTime;
+    return new Date(completedAt).getMonth() === new Date().getMonth() &&
+           new Date(completedAt).getFullYear() === new Date().getFullYear();
+  }).reduce((sum: number, o: any) => sum + (o.freelancerPayout || Math.round(o.price * 0.9)), 0);
 
   return (
     <div className="space-y-6">
@@ -158,7 +166,9 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                   <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {notifications.length === 0 ? (
+                  {!notifications ? (
+                    <div className="p-4 text-center text-gray-500 animate-pulse">Loading...</div>
+                  ) : notifications.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">No notifications</div>
                   ) : (
                     notifications.map((n: any) => (
@@ -199,7 +209,13 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
           )}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myGigs.length === 0 ? (
+            {myGigs === undefined ? (
+              <>
+                <GigSkeleton />
+                <GigSkeleton />
+                <GigSkeleton />
+              </>
+            ) : myGigs.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">💼</div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No gigs yet</h3>
@@ -260,7 +276,13 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
       )}
 
       {activeTab === "orders" && (
-        myOrders.length === 0 ? (
+        myOrders === undefined ? (
+          <div className="space-y-4">
+            <OrderSkeleton />
+            <OrderSkeleton />
+            <OrderSkeleton />
+          </div>
+        ) : myOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">📋</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
@@ -279,7 +301,8 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                   </div>
                   <div className="text-right">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' : order.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span>
-                    <p className="text-sm text-gray-500 mt-1">Budget: ₹{order.budget.min} - ₹{order.budget.max}</p>
+                    <p className="text-sm text-gray-500 mt-2">Price: ₹{order.price}</p>
+                    <p className="text-sm font-semibold text-green-600 mt-1">Payout: ₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
                   </div>
                 </div>
                 {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && (
@@ -336,10 +359,11 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
+              disabled={categories === undefined}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[200px]"
             >
               <option value="">All Categories</option>
-              {categories.map((category: any) => (
+              {(categories || []).map((category: any) => (
                 <option key={category._id} value={category.name}>
                   {category.name}
                 </option>
@@ -347,7 +371,13 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
             </select>
           </div>
 
-          {filteredProjects.length === 0 ? (
+          {recommendedProjects === undefined ? (
+            <div className="grid gap-6 mt-6">
+              <ProjectSkeleton />
+              <ProjectSkeleton />
+              <ProjectSkeleton />
+            </div>
+          ) : filteredProjects.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <div className="text-gray-400 text-6xl mb-4">🔍</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No matches found yet</h3>
@@ -393,23 +423,25 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Total Earnings</h3>
-              <p className="text-2xl font-bold text-gray-900">$0.00</p>
+              <p className="text-2xl font-bold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-medium text-gray-600 mb-2">This Month</h3>
-              <p className="text-2xl font-bold text-gray-900">$0.00</p>
+              <p className="text-2xl font-bold text-gray-900">₹{thisMonthEarnings.toLocaleString()}</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-sm font-medium text-gray-600 mb-2">Available for Withdrawal</h3>
-              <p className="text-2xl font-bold text-gray-900">$0.00</p>
+              <p className="text-2xl font-bold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="text-gray-400 text-6xl mb-4">💰</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No earnings yet</h3>
-            <p className="text-gray-600">Complete orders to start earning money</p>
-          </div>
+          {totalEarnings === 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center mt-6">
+              <div className="text-gray-400 text-6xl mb-4">💰</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No earnings yet</h3>
+              <p className="text-gray-600">Complete orders to start earning money</p>
+            </div>
+          )}
         </>
       )}
 
@@ -464,6 +496,80 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
       {reviewOrderId && (
         <ReviewModal orderId={reviewOrderId} onClose={() => setReviewOrderId(null)} />
       )}
+    </div>
+  );
+}
+
+function GigSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+      <div className="flex justify-between items-start mb-3">
+        <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+        <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+      </div>
+      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+      <div className="space-y-2 mb-4">
+        <div className="flex justify-between">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+        <div className="flex justify-between">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+        <div className="flex justify-between">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+      </div>
+      <div className="flex space-x-2 mt-4">
+        <div className="h-9 bg-gray-200 rounded w-full"></div>
+        <div className="h-9 bg-gray-200 rounded w-full"></div>
+      </div>
+    </div>
+  );
+}
+
+function OrderSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+      <div className="flex justify-between items-start mb-4">
+        <div className="w-1/2">
+          <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+        <div className="w-1/4 flex flex-col items-end">
+          <div className="h-6 bg-gray-200 rounded-full w-24 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-20"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-gray-200 animate-pulse">
+      <div className="flex justify-between items-start">
+        <div className="w-2/3">
+          <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div className="flex gap-2 mb-3">
+            <div className="h-4 bg-gray-200 rounded w-16"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="h-4 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+        <div className="h-9 bg-gray-200 rounded w-24"></div>
+      </div>
+      <div className="h-4 bg-gray-200 rounded w-full mb-2 mt-3"></div>
+      <div className="h-4 bg-gray-200 rounded w-5/6 mb-4"></div>
+      <div className="flex gap-2 mt-4">
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+        <div className="h-6 bg-gray-200 rounded w-20"></div>
+        <div className="h-6 bg-gray-200 rounded w-16"></div>
+      </div>
     </div>
   );
 }

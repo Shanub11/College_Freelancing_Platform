@@ -147,6 +147,8 @@ const applicationTables = {
     title: v.string(),
     description: v.string(),
     price: v.number(),
+    platformFee: v.optional(v.number()),
+    freelancerPayout: v.optional(v.number()),
     deliveryTime: v.number(),
     status: v.union(
       v.literal("pending_payment"),

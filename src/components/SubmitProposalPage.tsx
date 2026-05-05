@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useParams, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
@@ -23,8 +23,13 @@ export function SubmitProposalPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ProposalFormData>();
+
+  const proposedPrice = useWatch({ control, name: "proposedPrice" }) || 0;
+  const platformFee = Math.round(proposedPrice * 0.10);
+  const payout = proposedPrice - platformFee;
 
   const onSubmit = async (data: ProposalFormData) => {
     try {
@@ -109,6 +114,26 @@ export function SubmitProposalPage() {
                   placeholder="e.g., 500"
                 />
                 {errors.proposedPrice && <p className="text-red-500 text-sm mt-1">{errors.proposedPrice.message}</p>}
+                
+                {proposedPrice > 0 && (
+                  <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm">
+                    <div className="flex justify-between text-gray-600 mb-1">
+                      <span>Project Amount:</span>
+                      <span>₹{proposedPrice}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600 mb-1">
+                      <span>Platform Fee (10%):</span>
+                      <span>-₹{platformFee}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-gray-900 border-t border-blue-200 pt-2 mt-2">
+                      <span>You'll Receive:</span>
+                      <span className="text-green-700">₹{payout}</span>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-3 flex items-start gap-1">
+                      <span>ℹ️</span> Platform fee helps us maintain secure payments and support.
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label htmlFor="deliveryTime" className="block text-m font-medium text-gray-700">Estimated Delivery (in days)</label>

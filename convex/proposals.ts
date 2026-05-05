@@ -90,6 +90,9 @@ export const acceptProposal = mutation({
 
     // Mark proposal as payment pending instead of accepted
     await ctx.db.patch(args.proposalId, { status: "payment_pending" });
+    
+    const platformFee = Math.round(proposalToAccept.proposedPrice * 0.10);
+    const freelancerPayout = proposalToAccept.proposedPrice - platformFee;
 
     // Create the Order record with 'pending_payment' status
     const orderId = await ctx.db.insert("orders", {
@@ -99,6 +102,8 @@ export const acceptProposal = mutation({
       title: project.title,
       description: project.description,
       price: proposalToAccept.proposedPrice,
+      platformFee,
+      freelancerPayout,
       deliveryTime: proposalToAccept.deliveryTime,
       status: "pending_payment",
     });

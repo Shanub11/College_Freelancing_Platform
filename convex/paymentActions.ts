@@ -86,7 +86,7 @@ export const releaseEscrow = action({
 
     if (!payment) throw new Error("Payment not found");
 
-    const { freelancerProfile } = await ctx.runQuery(internal.payments.getOrderAndFreelancer, {
+    const { freelancerProfile, order } = await ctx.runQuery(internal.payments.getOrderAndFreelancer, {
       orderId: payment.orderId,
     });
 
@@ -102,10 +102,12 @@ export const releaseEscrow = action({
       key_id: process.env.RAZORPAY_KEY_ID!,
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
     });
+    
+    const payoutAmount = order.freelancerPayout || Math.round(payment.amount * 0.9); // Fallback for legacy orders
 
     await razorpay.transfers.create({
       account: freelancerProfile.razorpayAccountId,
-      amount: payment.amount * 100,
+      amount: payoutAmount * 100,
       currency: "INR",
     });
 
