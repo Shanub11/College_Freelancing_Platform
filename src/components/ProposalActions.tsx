@@ -88,22 +88,28 @@ export function ProposalActions({
   };
 
   return (
-    <div className="flex gap-3">
-      <button 
-        onClick={handleAccept} 
-        disabled={isLoading}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-      >
-        {isLoading ? "Processing..." : "Accept & Pay"}
-      </button>
-      
-      <button 
-        onClick={handleReject} 
-        disabled={isLoading}
-        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
-      >
-        Reject
-      </button>
+    <div className="flex flex-col gap-3 w-full max-w-md">
+      <div className="flex gap-3">
+        <button 
+          onClick={handleAccept} 
+          disabled={isLoading}
+          className="bg-green-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-green-700 disabled:opacity-50 transition-colors flex-1 shadow-sm"
+        >
+          {isLoading ? "Processing..." : "Accept & Pay"}
+        </button>
+        
+        <button 
+          onClick={handleReject} 
+          disabled={isLoading}
+          className="bg-red-50 text-red-600 border border-red-200 px-6 py-2.5 rounded-lg font-bold hover:bg-red-100 disabled:opacity-50 transition-colors flex-1"
+        >
+          Reject
+        </button>
+      </div>
+      <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg flex items-start gap-2 border border-blue-100">
+        <span className="text-base leading-none">🔒</span> 
+        <p className="font-medium">Your money is safe. Payment is held securely in escrow and released only after you approve the work.</p>
+      </div>
     </div>
   );
 }

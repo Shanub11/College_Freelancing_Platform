@@ -26,6 +26,22 @@ export const markAsRead = mutation({
   },
 });
 
+export const markAllAsRead = mutation({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
+
+    const unreadNotifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_read_status", (q) => q.eq("userId", userId).eq("isRead", false))
+      .collect();
+
+    for (const notification of unreadNotifications) {
+      await ctx.db.patch(notification._id, { isRead: true });
+    }
+  },
+});
+
 export const getProposalWithDetails = query({
   args: {
     proposalId: v.id("proposals"),

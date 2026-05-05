@@ -31,6 +31,13 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   const [showCreateGig, setShowCreateGig] = useState(false);
   const [editingGig, setEditingGig] = useState<any | null>(null);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  
+  // Notifications
+  const notifications = useQuery(api.proposals.getNotifications, {}) || [];
+  const markAsRead = useMutation(api.proposals.markAsRead);
+  const markAllAsRead = useMutation(api.proposals.markAllAsRead);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -127,6 +134,44 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
               </span>
             )}
           </button>
+          
+          <div className="relative">
+            <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors" onClick={() => {
+              if (!showNotifications && unreadCount > 0) {
+                markAllAsRead();
+              }
+              setShowNotifications(!showNotifications);
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-bold text-gray-800">Notifications</h3>
+                  <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No notifications</div>
+                  ) : (
+                    notifications.map((n: any) => (
+                      <div key={n._id} className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50/50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
+                        <p className="text-sm text-gray-800">{n.message}</p>
+                        <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {activeTab === "gigs" && profile.isVerified && (
             <button

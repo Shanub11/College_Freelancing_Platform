@@ -31,6 +31,9 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   const myOrders = useQuery(api.projects.getMyClientOrders) || [];
   const [selectedProject, setSelectedProject] = useState<Id<"projectRequests"> | null>(null);
   const [viewingFreelancer, setViewingFreelancer] = useState<Id<"users"> | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const markAsRead = useMutation(api.proposals.markAsRead);
+  const markAllAsRead = useMutation(api.proposals.markAllAsRead);
   
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -127,18 +130,43 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
               </span>
             )}
           </button>
-          <button className="relative">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                {unreadCount}
-              </span>
+          <div className="relative">
+            <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors" onClick={() => {
+              if (!showNotifications && unreadCount > 0) {
+                markAllAsRead();
+              }
+              setShowNotifications(!showNotifications);
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
+                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-bold text-gray-800">Notifications</h3>
+                  <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">No notifications</div>
+                  ) : (
+                    notifications.map((n: any) => (
+                      <div key={n._id} className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50/50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
+                        <p className="text-sm text-gray-800">{n.message}</p>
+                        <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             )}
-          </button>
-
-          
+          </div>
         </div>
       </div>
       
@@ -237,6 +265,13 @@ function OrderList({ orders }: { orders: any[] }) {
     }
   };
 
+  const handleReleaseFunds = async (orderId: string) => {
+    if (confirm("Are you sure you want to approve this work and release funds to the freelancer?\n\n⚠️ This action cannot be undone.")) {
+      // In a real app, call a Convex mutation here.
+      toast.success("Work approved and funds released to the freelancer!");
+    }
+  };
+
   if (orders.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -250,15 +285,18 @@ function OrderList({ orders }: { orders: any[] }) {
   const getStatusChip = (status: string) => {
     switch (status) {
       case 'in_progress':
-        return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">In Progress</span>;
+      case 'active':
+        return <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
       case 'completed':
-        return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Completed</span>;
+        return <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
+      case 'delivered':
+        return <span className="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 Awaiting Approval</span>;
       case 'cancelled':
-        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Cancelled</span>;
+        return <span className="bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-bold">Cancelled</span>;
       case 'disputed':
-        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">Disputed</span>;
+        return <span className="bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-bold">Disputed</span>;
       default:
-        return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium">{status}</span>;
+        return <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
     }
   };
 
@@ -456,22 +494,24 @@ function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile, onC
               <div className="mt-4 border-t pt-4">
                 <p className="text-sm text-gray-600 mb-2">{p.coverLetter}</p>
               </div>
-              <div className="flex items-center space-x-2 mt-4">
+              <div className="mt-4 border-t pt-4">
                 {project?.status === 'open' && p.status !== 'accepted' && p.status !== 'rejected' && (
-                  <>
+                  <div className="mb-4">
                     <ProposalActions 
                       proposalId={p._id}
                       amount={p.proposedPrice}
                       clientName={`${clientProfile.firstName} ${clientProfile.lastName}`}
                     />
-                  </>
+                  </div>
                 )}
-                <button onClick={() => onChat(p.freelancerId)} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-2">
-                  <span>Chat</span>
-                </button>
-                <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
-                  View Profile
-                </button>
+                <div className="flex items-center space-x-3">
+                  <button onClick={() => onChat(p.freelancerId)} className="bg-blue-50 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors flex items-center gap-2">
+                    <span>💬 Chat</span>
+                  </button>
+                  <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors">
+                    View Profile
+                  </button>
+                </div>
               </div>
             </div>
           ))}

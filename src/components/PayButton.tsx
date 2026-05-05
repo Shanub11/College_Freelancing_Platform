@@ -58,12 +58,18 @@ export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: 
   };
 
   return (
-    <button 
-      onClick={handlePayment} 
-      disabled={isLoading}
-      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-    >
-      {isLoading ? "Processing..." : `Pay ₹${amount} (Escrow)`}
-    </button>
+    <div className="flex flex-col gap-3 max-w-sm">
+      <button 
+        onClick={handlePayment} 
+        disabled={isLoading}
+        className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition-colors shadow-sm text-lg"
+      >
+        {isLoading ? "Processing..." : `Pay ₹${amount} (Escrow)`}
+      </button>
+      <div className="bg-blue-50 text-blue-800 text-sm p-3 rounded-lg flex items-start gap-2 border border-blue-100">
+        <span className="text-xl leading-none">🔒</span> 
+        <p className="font-medium">Your money is safe. Payment is held securely and released only after you approve the work.</p>
+      </div>
+    </div>
   );
 }
