@@ -20,6 +20,7 @@ export function ProposalActions({
   const acceptProposal = useMutation(api.proposals.acceptProposal);
   const rejectProposal = useMutation(api.proposals.rejectProposal);
   const createRazorpayOrder = useAction(api.paymentActions.createRazorpayOrder);
+  const markOrderPaid = useMutation(api.projects.markOrderPaid);
   
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,9 +51,10 @@ export function ProposalActions({
         name: "College Freelancing Platform",
         description: "Escrow Payment for Order",
         order_id: razorpayOrderId,
-        handler: function (response: any) {
-          // Success! Redirect to the Order page
-          navigate(`/orders/${orderId}`);
+        handler: async function (response: any) {
+          // Success! Update DB instantly for test mode (Bypassing missing local webhooks)
+          await markOrderPaid({ orderId });
+          toast.success("Payment Successful! Funds are now held in Escrow.");
         },
         prefill: {
           name: clientName,

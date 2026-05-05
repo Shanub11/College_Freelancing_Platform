@@ -21,6 +21,7 @@ import { ProposalActions } from "./ProposalActions";
 import { GigBrowser } from "./GigBrowser";
 import { compressImage } from "../../convex/image";
 import posthog from "posthog-js";
+import { Helmet } from "react-helmet-async";
 
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
@@ -593,6 +594,11 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      <Helmet>
+        <title>{profile.firstName} {profile.lastName} - {profile.tagline || "Student Freelancer"} | CollegeGig</title>
+        <meta name="description" content={`Hire ${profile.firstName} ${profile.lastName}, a verified student freelancer from ${profile.collegeName || 'India'}. ${profile.bio?.substring(0, 150) || 'Check out my portfolio and hire me for your next project.'}`} />
+        <meta name="keywords" content={`hire ${profile.firstName}, college students freelancing India, student web developer India`} />
+      </Helmet>
       <button onClick={onBack} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium mb-4">
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Back

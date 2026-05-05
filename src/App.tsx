@@ -5,6 +5,7 @@ import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
+import { Helmet } from "react-helmet-async";
 
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
 const ProfileSetup = lazy(() => import("./components/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
@@ -85,6 +86,11 @@ function UnauthenticatedApp() {
 
   return (
     <div className="min-h-screen">
+      <Helmet>
+        <title>Hire Student Web Developers & Freelancers in India | CollegeGig</title>
+        <meta name="description" content="Hire verified college students for web development, design, and more at affordable prices. The best cheap web developers for startups in India." />
+        <meta name="keywords" content="hire student web developer India, college students freelancing India, cheap web developer for startup India, freelancers for college projects" />
+      </Helmet>
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

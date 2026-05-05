@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate, Link } from "react-router-dom";
 import { Id } from "../../convex/_generated/dataModel";
+import { Helmet } from "react-helmet-async";
 
 interface GigBrowserProps {
   userType: "freelancer" | "client";
@@ -32,6 +33,16 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
 
   return (
     <div className="space-y-6">
+      <Helmet>
+        <title>
+          {userType === "freelancer" 
+            ? "Find Freelance Projects for College Students | CollegeGig" 
+            : "Hire Cheap Web Developers for Startup India | CollegeGig"}
+        </title>
+        <meta name="description" content={userType === "freelancer" 
+          ? "Browse freelance projects and internships for college students in India. Start earning today."
+          : "Discover and hire verified student freelancers for your startup. Affordable web developers, designers, and writers in India."} />
+      </Helmet>
       {!hideHeader && (
         <div>
           <h1 className="text-2xl font-bold text-gray-900">

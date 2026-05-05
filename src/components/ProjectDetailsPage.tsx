@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Id } from "../../convex/_generated/dataModel";
+import { Helmet } from "react-helmet-async";
 
 export function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: Id<"projectRequests"> }>();
@@ -28,6 +29,11 @@ export function ProjectDetailsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
+      <Helmet>
+        <title>{project.title} - Freelance Project for Students | CollegeGig</title>
+        <meta name="description" content={`Apply for: ${project.title}. ${project.description?.substring(0, 150)}... Perfect for college students freelancing in India.`} />
+        <meta name="keywords" content="freelancers for college projects, college students freelancing India" />
+      </Helmet>
       {/* Header with Back Button */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-10 px-4 py-4 flex items-center">
         <button

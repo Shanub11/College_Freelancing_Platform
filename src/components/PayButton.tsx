@@ -1,4 +1,4 @@
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { Id } from "../../convex/_generated/dataModel";
@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: number }) {
   const createOrder = useAction(api.paymentActions.createRazorpayOrder);
+  const markOrderPaid = useMutation(api.projects.markOrderPaid);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load Razorpay script
@@ -32,10 +33,9 @@ export function PayButton({ orderId, amount }: { orderId: Id<"orders">, amount: 
         name: "College Freelancing Platform",
         description: "Escrow Payment for Order",
         order_id: razorpayOrderId,
-        handler: function (response: any) {
-          // Success! The webhook will handle the database update.
+        handler: async function (response: any) {
+          await markOrderPaid({ orderId });
           toast.success("Payment Successful! Funds are now held in Escrow.");
-          // Ideally, redirect to the order status page here
         },
         prefill: {
           // You can prefill client details here if available

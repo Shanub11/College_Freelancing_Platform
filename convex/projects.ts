@@ -312,3 +312,34 @@ export const getFreelancerPublicProfile = query({
     return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap, gigs };
   },
 });
+
+export const markOrderPaid = mutation({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.orderId, { status: "in_progress" });
+  },
+});
+
+export const completeOrderAndReleaseFunds = mutation({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) throw new Error("Order not found");
+    
+    await ctx.db.patch(args.orderId, { 
+      status: "completed",
+      completedAt: Date.now()
+    });
+
+    if (order.projectId) {
+      await ctx.db.patch(order.projectId, { status: "completed" });
+    }
+
+    await ctx.db.insert("notifications", {
+      userId: order.freelancerId,
+      type: "funds_released",
+      message: `Client has approved your work for "${order.title}". Funds have been released!`,
+      isRead: false,
+    });
+  },
+});
