@@ -28,21 +28,26 @@ export const createRazorpayOrder = action({
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
     });
 
-    // 3. Create order on Razorpay
-    const razorpayOrder = await razorpay.orders.create({
-      amount: order.price * 100, // Amount in paise
-      currency: "INR",
-      receipt: args.orderId,
-    });
-
-    // 4. Save the payment record in DB
-    await ctx.runMutation(internal.payments.createPaymentRecord, {
-      orderId: args.orderId,
-      razorpayOrderId: razorpayOrder.id,
-      amount: order.price,
-    });
-
-    return razorpayOrder.id;
+    try {
+      // 3. Create order on Razorpay
+      const razorpayOrder = await razorpay.orders.create({
+        amount: Math.round(order.price * 100), // Amount in paise must be a strict integer
+        currency: "INR",
+        receipt: args.orderId,
+      });
+  
+      // 4. Save the payment record in DB
+      await ctx.runMutation(internal.payments.createPaymentRecord, {
+        orderId: args.orderId,
+        razorpayOrderId: razorpayOrder.id,
+        amount: order.price,
+      });
+  
+      return razorpayOrder.id;
+    } catch (error: any) {
+      console.error("Razorpay Error:", error);
+      throw new Error(`Razorpay failed: ${JSON.stringify(error)}`);
+    }
   },
 });
 

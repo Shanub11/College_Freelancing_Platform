@@ -44,7 +44,7 @@ export const markAsFunded = internalMutation({
         .withIndex("by_project_and_freelancer", (q) => 
           q.eq("projectId", order.projectId!).eq("freelancerId", order.freelancerId)
         )
-        .unique();
+        .first();
       
       if (winningProposal) {
         await ctx.db.patch(winningProposal._id, { status: "accepted" });

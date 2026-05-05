@@ -39,11 +39,23 @@ export const getMyProjects = query({
       return [];
     }
 
-    return ctx.db
+    const projects = await ctx.db
       .query("projectRequests")
       .withIndex("by_client", (q) => q.eq("clientId", clientId))
       .order("desc")
       .collect();
+
+    return Promise.all(projects.map(async (p) => {
+      if (p.status !== "open") {
+        const order = await ctx.db
+          .query("orders")
+          .withIndex("by_client", q => q.eq("clientId", clientId))
+          .filter(q => q.eq(q.field("projectId"), p._id))
+          .first();
+        return { ...p, orderId: order?._id, orderStatus: order?.status };
+      }
+      return p;
+    }));
   },
 });
 
@@ -149,42 +161,28 @@ export const getMyClientOrders = query({
       return [];
     }
 
-    const myProjects = await ctx.db
-      .query("projectRequests")
+    const orders = await ctx.db
+      .query("orders")
       .withIndex("by_client", (q) => q.eq("clientId", clientId))
-      .filter((q) => q.neq(q.field("status"), "open"))
       .order("desc")
       .collect();
 
     const ordersWithFreelancerDetails = await Promise.all(
-      myProjects.map(async (project) => {
-        const freelancerId = project.selectedFreelancer;
-        if (!freelancerId) {
-          return { ...project, freelancer: null }; // This early return is key
-        }
-
+      orders.map(async (order) => {
         const freelancerProfile = await ctx.db
           .query("profiles")
-          .withIndex("by_user", (q) => q.eq("userId", freelancerId))
-          .first();
-
-        const order = await ctx.db
-          .query("orders")
-          .withIndex("by_client", q => q.eq("clientId", clientId))
-          .filter(q => q.eq(q.field("projectId"), project._id))
+          .withIndex("by_user", (q) => q.eq("userId", order.freelancerId))
           .first();
 
         let hasReviewed = false;
-        if (order) {
-          const review = await ctx.db
-            .query("reviews")
-            .withIndex("by_order", q => q.eq("orderId", order._id))
-            .filter(q => q.eq(q.field("reviewerId"), clientId))
-            .first();
-          if (review) hasReviewed = true;
-        }
+        const review = await ctx.db
+          .query("reviews")
+          .withIndex("by_order", q => q.eq("orderId", order._id))
+          .filter(q => q.eq(q.field("reviewerId"), clientId))
+          .first();
+        if (review) hasReviewed = true;
 
-        return { ...project, freelancer: freelancerProfile, orderId: order?._id, hasReviewed };
+        return { ...order, freelancer: freelancerProfile, orderId: order._id, hasReviewed };
       })
     );
 
@@ -199,36 +197,28 @@ export const getMyFreelancerOrders = query({
       return [];
     }
 
-    const myProjects = await ctx.db
-      .query("projectRequests")
-      .filter((q) => q.eq(q.field("selectedFreelancer"), freelancerId))
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", freelancerId))
       .order("desc")
       .collect();
 
     const ordersWithClientDetails = await Promise.all(
-      myProjects.map(async (project) => {
+      orders.map(async (order) => {
         const clientProfile = await ctx.db
           .query("profiles")
-          .withIndex("by_user", (q) => q.eq("userId", project.clientId))
-          .first();
-
-        const order = await ctx.db
-          .query("orders")
-          .withIndex("by_freelancer", q => q.eq("freelancerId", freelancerId))
-          .filter(q => q.eq(q.field("projectId"), project._id))
+          .withIndex("by_user", (q) => q.eq("userId", order.clientId))
           .first();
 
         let hasReviewed = false;
-        if (order) {
-          const review = await ctx.db
-            .query("reviews")
-            .withIndex("by_order", q => q.eq("orderId", order._id))
-            .filter(q => q.eq(q.field("reviewerId"), freelancerId))
-            .first();
-          if (review) hasReviewed = true;
-        }
+        const review = await ctx.db
+          .query("reviews")
+          .withIndex("by_order", q => q.eq("orderId", order._id))
+          .filter(q => q.eq(q.field("reviewerId"), freelancerId))
+          .first();
+        if (review) hasReviewed = true;
 
-        return { ...project, client: clientProfile, orderId: order?._id, hasReviewed };
+        return { ...order, client: clientProfile, orderId: order._id, hasReviewed };
       })
     );
 
@@ -316,7 +306,38 @@ export const getFreelancerPublicProfile = query({
 export const markOrderPaid = mutation({
   args: { orderId: v.id("orders") },
   handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) throw new Error("Order not found");
+    
     await ctx.db.patch(args.orderId, { status: "in_progress" });
+
+    if (order.projectId) {
+      await ctx.db.patch(order.projectId, { 
+        status: "in_progress",
+        selectedFreelancer: order.freelancerId,
+      });
+
+      const winningProposal = await ctx.db
+        .query("proposals")
+        .withIndex("by_project_and_freelancer", (q) => 
+          q.eq("projectId", order.projectId!).eq("freelancerId", order.freelancerId)
+        )
+        .first();
+      
+      if (winningProposal) {
+        await ctx.db.patch(winningProposal._id, { status: "accepted" });
+      }
+
+      const otherProposals = await ctx.db
+        .query("proposals")
+        .withIndex("by_projectId", (q) => q.eq("projectId", order.projectId!))
+        .filter((q) => q.neq(q.field("freelancerId"), order.freelancerId))
+        .collect();
+
+      for (const proposal of otherProposals) {
+        await ctx.db.patch(proposal._id, { status: "rejected" });
+      }
+    }
   },
 });
 

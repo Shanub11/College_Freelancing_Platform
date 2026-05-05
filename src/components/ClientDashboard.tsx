@@ -35,6 +35,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
   const [showNotifications, setShowNotifications] = useState(false);
   const markAsRead = useMutation(api.proposals.markAsRead);
   const markAllAsRead = useMutation(api.proposals.markAllAsRead);
+  const completeOrder = useMutation(api.projects.completeOrderAndReleaseFunds);
   
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -71,6 +72,17 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
     } catch (error) {
       console.error(error);
       toast.error("Failed to upload image");
+    }
+  };
+
+  const handleReleaseFunds = async (orderId: Id<"orders">) => {
+    if (confirm("Are you sure you want to approve this work and release funds to the freelancer?\n\n⚠️ This action cannot be undone.")) {
+      try {
+        await completeOrder({ orderId });
+        toast.success("Work approved and funds released to the freelancer!");
+      } catch (error) {
+        toast.error("Failed to release funds.");
+      }
     }
   };
 
@@ -172,7 +184,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       </div>
       
       {activeTab === 'projects' && (
-        <ProjectList projects={myProjects} onSelectProject={handleSelectProject} />
+        <ProjectList projects={myProjects} onSelectProject={handleSelectProject} onReleaseFunds={handleReleaseFunds} />
       )}
 
       {activeTab === 'orders' && (
@@ -405,7 +417,7 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
 }
 
 // Component to display the list of projects
-function ProjectList({ projects, onSelectProject }: { projects: any[], onSelectProject: (id: Id<"projectRequests">) => void }) {
+function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: any[], onSelectProject: (id: Id<"projectRequests">) => void, onReleaseFunds: (orderId: Id<"orders">) => void }) {
   if (projects.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -435,24 +447,48 @@ function ProjectList({ projects, onSelectProject }: { projects: any[], onSelectP
                 ))}
               </div>
             </div>
-            <p className="font-medium">{project.proposalCount} proposals</p>
+            <div className="flex flex-col items-end gap-3">
+              <p className="font-medium">{project.proposalCount} proposals</p>
+              {project.status === 'in_progress' && project.orderId && project.orderStatus !== 'completed' ? (
+                <button
+                  onClick={() => onReleaseFunds(project.orderId)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
+                >
+                  ✓ Release Funds
+                </button>
+              ) : project.status === 'completed' ? (
+                <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">🎉 Completed</span>
+              ) : (
+                <button
+                  onClick={() => onSelectProject(project._id)}
+                  disabled={project.status !== 'open'}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {project.status === 'open' ? 'View Proposals' : `Project ${project.status.replace('_', ' ')}`}
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            onClick={() => onSelectProject(project._id)}
-            disabled={project.status !== 'open'}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {project.status === 'open' ? 'View Proposals' : `Project ${project.status}`}
-          </button>
         </div>
       ))}
     </div>
   );
 }
 
-// Component to display proposals for a selected project
-function ProjectProposals({ projectId, onBack, onViewProfile, clientProfile, onChat }: { projectId: Id<"projectRequests">, onBack: () => void, onViewProfile: (userId: Id<"users">) => void, clientProfile: any, onChat: (freelancerId: Id<"users">) => void }) {
-  const proposals = useQuery(api.projects.getProposalsForProject, { projectId }) || [];
+function ProjectProposals({
+  projectId,
+  onBack,
+  onViewProfile,
+  clientProfile,
+  onChat
+}: {
+  projectId: Id<"projectRequests">;
+  onBack: () => void;
+  onViewProfile: (userId: Id<"users">) => void;
+  clientProfile: any;
+  onChat: (userId: Id<"users">) => void;
+}) {
+  const proposals = useQuery(api.projectRequests.getProposalsForProject, { projectId }) || [];
   const project = useQuery(api.projects.getProjectById, { projectId });
   const recommendations = useQuery(api.recommendations.getRecommendedFreelancers, { projectId }) || [];
 
