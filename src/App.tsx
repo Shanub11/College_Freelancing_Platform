@@ -87,7 +87,7 @@ function UnauthenticatedApp() {
   return (
     <div className="min-h-screen">
       <Helmet>
-        <title>Hire Student Web Developers & Freelancers in India | CollegeGig</title>
+        <title>CollegeGig</title>
         <meta name="description" content="Hire verified college students for web development, design, and more at affordable prices. The best cheap web developers for startups in India." />
         <meta name="keywords" content="hire student web developer India, college students freelancing India, cheap web developer for startup India, freelancers for college projects" />
       </Helmet>

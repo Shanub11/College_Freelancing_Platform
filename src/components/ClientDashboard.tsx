@@ -326,7 +326,7 @@ function OrderList({ orders }: { orders: any[] }) {
             </div>
             <div className="text-right">
               {getStatusChip(order.status)}
-              <p className="text-sm text-gray-500 mt-1">Budget: ₹{order.budget.min} - ₹{order.budget.max}</p>
+              <p className="text-sm text-gray-500 mt-1 font-medium">Price: ₹{order.price}</p>
             </div>
           </div>
           {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && order.status !== 'open' && order.status !== 'pending_payment' && (
