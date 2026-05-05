@@ -303,6 +303,12 @@ export const getFreelancerPublicProfile = query({
       activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
     }
 
-    return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap };
+    const gigs = await ctx.db
+      .query("gigs")
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap, gigs };
   },
 });

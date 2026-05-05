@@ -762,7 +762,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
 
         {/* Completed Projects Catalog */}
         <div className="border-t pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio & Completed Projects</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Completed Projects</h3>
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (

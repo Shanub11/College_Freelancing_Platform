@@ -530,7 +530,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
     return <div>Loading profile...</div>;
   }
 
-  const { profile, completedProjects, reviews, activityMap = {} } = profileData as any;
+  const { profile, completedProjects, reviews, activityMap = {}, gigs = [] } = profileData as any;
   if (!profile) {
     return <div>Freelancer profile not found.</div>;
   }
@@ -724,9 +724,9 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         </div>
 
         {/* Portfolio Section */}
-        {profile.portfolioItems && profile.portfolioItems.length > 0 && (
-          <div className="border-t pt-8 mt-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio</h3>
+        <div className="border-t pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio</h3>
+          {profile.portfolioItems && profile.portfolioItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {profile.portfolioItems.map((item: any) => (
                 <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col hover:shadow-md transition-shadow">
@@ -750,12 +750,40 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed">
+              No portfolio items added yet.
+            </p>
+          )}
+        </div>
+
+        {/* Services Offered (Gigs) */}
+        {gigs && gigs.length > 0 && (
+          <div className="border-t pt-8 mt-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-6">Services Offered</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {gigs.map((gig: any) => (
+                <div key={gig._id} className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-gray-800 line-clamp-1">{gig.title}</h4>
+                    <span className="text-green-600 font-bold">₹{gig.basePrice}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{gig.description}</p>
+                  <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-gray-500">
+                    <span>⏱️ {gig.deliveryTime} days</span>
+                    <button onClick={() => toast.info("Direct hiring feature coming soon!")} className="bg-blue-50 text-blue-600 px-3 py-1 rounded font-medium hover:bg-blue-100 transition-colors">
+                      Hire Me
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Completed Projects Catalog */}
         <div className="border-t pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio & Completed Projects</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Completed Projects</h3>
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
