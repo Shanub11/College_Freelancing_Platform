@@ -261,6 +261,38 @@ export const getFreelancerPublicProfile = query({
       )
       .collect();
 
-    return { profile, completedProjects };
+    const publicReviews = await ctx.db
+      .query("reviews")
+      .withIndex("by_reviewee", (q) => q.eq("revieweeId", args.userId))
+      .filter((q) => q.eq(q.field("isPublic"), true))
+      .collect();
+      
+    const reviewsWithReviewer = await Promise.all(
+      publicReviews.map(async (r) => {
+        const reviewerProfile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", r.reviewerId))
+          .first();
+        return {
+          ...r,
+          reviewerName: reviewerProfile ? `${reviewerProfile.firstName} ${reviewerProfile.lastName}` : "Anonymous"
+        };
+      })
+    );
+
+    // Get activity logs to build the activity map
+    const activityLogs = await ctx.db
+      .query("activityLogs")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+      
+    const activityMap: Record<string, number> = {};
+    for (const log of activityLogs) {
+      if (!log.timestamp) continue;
+      const dateStr = new Date(log.timestamp).toISOString().split("T")[0];
+      activityMap[dateStr] = (activityMap[dateStr] || 0) + 1;
+    }
+
+    return { profile, completedProjects, reviews: reviewsWithReviewer, activityMap };
   },
 });
