@@ -6,8 +6,6 @@ import { VerificationUpload } from "./VerificationUpload";
 import { useNavigate } from "react-router-dom";
 import { compressImage } from "../../convex/image";
 
-const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
-
 function useStorage(fileRef: any): string | null {
   if (!fileRef) return null;
   if (typeof fileRef === "string") return fileRef;
@@ -31,19 +29,8 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   const [showCreateGig, setShowCreateGig] = useState(false);
   const [editingGig, setEditingGig] = useState<any | null>(null);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [viewOrder, setViewOrder] = useState<any | null>(null);
   
-  // Notifications
-  const notifications = useQuery(api.proposals.getNotifications, {});
-  const markAsRead = useMutation(api.proposals.markAsRead);
-  const markAllAsRead = useMutation(api.proposals.markAllAsRead);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const unreadCount = (notifications || []).filter((n: any) => !n.isRead).length;
-
-  // Chat state
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatInitData, setChatInitData] = useState<any>(null);
-  const { results: conversations } = usePaginatedQuery(api.chat.getConversations, {}, { initialNumItems: 20 });
-  const totalUnread = (conversations || []).reduce((acc, c) => acc + c.unreadCount, 0);
   const recommendedProjects = useQuery(api.recommendations.getRecommendedProjects);
   const categories = useQuery(api.categories.getCategories);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,13 +44,13 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   const openDispute = useMutation((api as any).disputes?.openDispute);
 
   const handleDispute = async (projectId: string) => {
-    const reason = window.prompt("Why are you disputing this project?");
+    const reason = window.prompt("Please describe the issue to generate a support ticket:");
     if (!reason) return;
     try {
       await openDispute({ projectId, reason });
-      toast.success("Dispute opened. An admin will review it soon.");
+      toast.success("Ticket generated successfully. An admin will review it soon.");
     } catch (e: any) {
-      toast.error(e.message || "Failed to open dispute");
+      toast.error(e.message || "Failed to generate ticket");
     }
   };
 
@@ -132,56 +119,6 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => { setChatInitData(null); setIsChatOpen(true); }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            {totalUnread > 0 && (
-              <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                {totalUnread}
-              </span>
-            )}
-          </button>
-          
-          <div className="relative">
-            <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors" onClick={() => {
-              if (!showNotifications && unreadCount > 0) {
-                markAllAsRead();
-              }
-              setShowNotifications(!showNotifications);
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
-                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                  <h3 className="font-bold text-gray-800">Notifications</h3>
-                  <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {!notifications ? (
-                    <div className="p-4 text-center text-gray-500 animate-pulse">Loading...</div>
-                  ) : notifications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">No notifications</div>
-                  ) : (
-                    notifications.map((n: any) => (
-                      <div key={n._id} className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50/50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
-                        <p className="text-sm text-gray-800">{n.message}</p>
-                        <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
 
           {activeTab === "gigs" && profile.isVerified && (
             <button
@@ -300,36 +237,38 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                     )}
                   </div>
                   <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' : order.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span>
+                    <span className={`px-2 py-1 border rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' : order.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span>
                     <p className="text-sm text-gray-500 mt-2">Price: ₹{order.price}</p>
                     <p className="text-sm font-semibold text-green-600 mt-1">Payout: ₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
                   </div>
                 </div>
-                {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <button onClick={() => handleDispute(order._id)} className="text-red-600 hover:text-red-800 text-sm font-medium">
-                      Open Dispute
+                <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                  <button 
+                    onClick={() => setViewOrder(order)}
+                    className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                  >
+                    View Details
+                  </button>
+                  {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && (
+                    <button onClick={() => handleDispute(order._id)} className="bg-red-50 text-red-600 hover:text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">
+                      Generate Ticket
                     </button>
-                  </div>
-                )}
-                {order.status === 'completed' && !order.hasReviewed && order.orderId && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                  )}
+                  {order.status === 'completed' && !order.hasReviewed && order.orderId && (
                     <button 
                       onClick={() => setReviewOrderId(order.orderId)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                     >
                       Leave Review
                     </button>
-                  </div>
-                )}
-                {order.status === 'completed' && order.hasReviewed && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
-                    <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+                  )}
+                  {order.status === 'completed' && order.hasReviewed && (
+                    <span className="text-green-600 text-sm font-medium flex items-center gap-1 bg-green-50 px-4 py-2 rounded-lg">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                       Review Submitted
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -395,7 +334,6 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                           {Math.round(project.score)}% Match
                         </span>
                         <span>• Posted {new Date(project._creationTime).toLocaleDateString()}</span>
-                        <span>• Budget: ₹{project.budget.min} - ₹{project.budget.max}</span>
                       </div>
                     </div>
                     <button 
@@ -442,17 +380,35 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
               <p className="text-gray-600">Complete orders to start earning money</p>
             </div>
           )}
+
+          {totalEarnings > 0 && (
+            <div className="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">Transaction History</h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {completedOrders.map((order: any) => (
+                  <div key={order._id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-1">{order.title}</h4>
+                      <div className="flex items-center text-sm text-gray-500 gap-4">
+                        <span>{new Date(order.completedAt || order._creationTime).toLocaleDateString()}</span>
+                        {order.client && (
+                          <span>Client: {order.client.firstName} {order.client.lastName}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-green-600">+₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
+                      <p className="text-xs text-gray-500">Order: ₹{order.price}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
-
-      <Suspense fallback={null}>
-        <ChatInterface 
-          isOpen={isChatOpen} 
-          onClose={() => setIsChatOpen(false)} 
-          initialConversation={chatInitData}
-          currentUserId={profile.userId}
-        />
-      </Suspense>
 
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
@@ -495,6 +451,55 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
 
       {reviewOrderId && (
         <ReviewModal orderId={reviewOrderId} onClose={() => setReviewOrderId(null)} />
+      )}
+
+      {viewOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Order Details</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Title</h3>
+                <p className="text-gray-900 font-semibold">{viewOrder.title}</p>
+              </div>
+              {viewOrder.client && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Client</h3>
+                  <p className="text-gray-900">{viewOrder.client.firstName} {viewOrder.client.lastName}</p>
+                </div>
+              )}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                <p className="text-gray-700 whitespace-pre-wrap">{viewOrder.description}</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Total Price</h3>
+                  <p className="text-gray-900 font-semibold">₹{viewOrder.price}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Platform Fee (10%)</h3>
+                  <p className="text-red-600 font-semibold">-₹{viewOrder.platformFee || Math.round(viewOrder.price * 0.1)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Your Payout</h3>
+                  <p className="text-green-600 font-semibold">₹{viewOrder.freelancerPayout || Math.round(viewOrder.price * 0.9)}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Delivery Time</h3>
+                  <p className="text-gray-900 font-semibold">{viewOrder.deliveryTime} days</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                <div className="mt-1">
+                  <span className={`px-2 py-1 border rounded-full text-xs font-medium ${viewOrder.status === 'completed' ? 'bg-green-100 text-green-800' : viewOrder.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{viewOrder.status}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

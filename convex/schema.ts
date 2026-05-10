@@ -82,10 +82,7 @@ const applicationTables = {
     title: v.string(),
     description: v.string(),
     category: v.string(),
-    budget: v.object({
-      min: v.number(),
-      max: v.number()
-    }),
+    budget: v.optional(v.any()), // Temporarily relaxed to fix TS error during migration
     deadline: v.number(), // timestamp
     skills: v.array(v.string()),
     attachments: v.optional(v.array(v.id("_storage"))),

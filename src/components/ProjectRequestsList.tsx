@@ -15,12 +15,12 @@ export function ProjectRequestsList() {
   }
 
   return (
-    <div className="bg-white shadow-sm rounded-lg p-6">
+    <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">
         Available Project Requests
       </h2>
       {!projectRequests || projectRequests.length === 0 ? (
-        <p className="text-gray-600">
+        <p className="text-gray-500">
           There are no open project requests at the moment. Check back later!
         </p>
       ) : (
@@ -30,14 +30,13 @@ export function ProjectRequestsList() {
             <li key={req._id} className="py-4">
               <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-blue-600 hover:underline">
+                  <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                     <Link to={`/projects/${req._id}`}>{req.title}</Link>
                   </h3>
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                     {req.description}
                   </p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
-                    <span>Budget: ₹{req.budget.min} - ₹{req.budget.max}</span>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 mt-3">
                     <span>By: {req.clientName}</span>
                   </div>
                 </div>
@@ -45,11 +44,11 @@ export function ProjectRequestsList() {
                   <Link
                     to={`/projects/${req._id}`}
                     onClick={() => posthog.capture("clicked_submit_proposal_start", { projectId: req._id })}
-                    className="bg-blue-600 text-white text-center px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="bg-blue-600 text-white text-center px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 shadow-sm transition-colors"
                   >
                     Submit Proposal
                   </Link>
-                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                  <button className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
                     Chat with Client
                   </button>
                 </div>
@@ -61,7 +60,7 @@ export function ProjectRequestsList() {
             <div className="mt-4 flex justify-center">
               <button
                 onClick={() => loadMore(20)}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
                 Load More
               </button>

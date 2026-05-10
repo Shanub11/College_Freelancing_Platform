@@ -11,17 +11,26 @@ interface GigBrowserProps {
   hideHeader?: boolean;
 }
 
-export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserProps) {
+export function GigBrowser({
+  userType,
+  onViewProfile,
+  hideHeader,
+}: GigBrowserProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+
   const activeView = userType === "freelancer" ? "projects" : "gigs";
 
   const categories = useQuery(api.categories.getCategories) || [];
 
   const results = useQuery(
     searchTerm
-      ? (activeView === "gigs" ? api.gigs.searchGigs : api.projects.searchProjects)
-      : (activeView === "gigs" ? api.gigs.getGigs : api.projects.getProjects),
+      ? activeView === "gigs"
+        ? api.gigs.searchGigs
+        : api.projects.searchProjects
+      : activeView === "gigs"
+      ? api.gigs.getGigs
+      : api.projects.getProjects,
     {
       ...(searchTerm ? { searchTerm } : { limit: 20 }),
       category: selectedCategory || undefined,
@@ -30,52 +39,67 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
 
   const searchResults = results || [];
 
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Helmet>
         <title>
-          {userType === "freelancer" 
-            ? "Find Freelance Projects for College Students | CollegeGig" 
+          {userType === "freelancer"
+            ? "Find Freelance Projects for College Students | CollegeGig"
             : "Hire Cheap Web Developers for Startup India | CollegeGig"}
         </title>
-        <meta name="description" content={userType === "freelancer" 
-          ? "Browse freelance projects and internships for college students in India. Start earning today."
-          : "Discover and hire verified student freelancers for your startup. Affordable web developers, designers, and writers in India."} />
+
+        <meta
+          name="description"
+          content={
+            userType === "freelancer"
+              ? "Browse freelance projects and internships for college students in India. Start earning today."
+              : "Discover and hire verified student freelancers for your startup. Affordable web developers, designers, and writers in India."
+          }
+        />
       </Helmet>
+
+      {/* Header */}
       {!hideHeader && (
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {userType === "freelancer" ? "Browse Projects" : "Browse Services"}
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            {userType === "freelancer"
+              ? "Browse Projects"
+              : "Browse Services"}
           </h1>
-          <p className="text-gray-600">
-            {userType === "freelancer" 
-              ? "Find exciting projects to work on" 
-              : "Discover talented student freelancers"
-            }
+
+          <p className="text-gray-500 text-base">
+            {userType === "freelancer"
+              ? "Find exciting projects that match your skills"
+              : "Discover talented verified student freelancers"}
           </p>
         </div>
       )}
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
+      {/* Search + Filters */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
+          {/* Search */}
+          <div className="flex-1 relative">
             <input
               type="text"
-              placeholder={`Search ${activeView === "gigs" ? "services" : "projects"}...`}
+              placeholder={`Search ${
+                activeView === "gigs" ? "services" : "projects"
+              }...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition-all"
             />
           </div>
-          <div className="md:w-48">
+
+          {/* Category */}
+          <div className="md:w-56">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition-all"
             >
               <option value="">All Categories</option>
+
               {categories.map((category) => (
                 <option key={category._id} value={category.name}>
                   {category.name}
@@ -87,27 +111,36 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
       </div>
 
       {/* Results */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
         {searchResults.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">
+          <div className="col-span-full py-20 text-center">
+            <div className="text-6xl mb-4">
               {activeView === "gigs" ? "💼" : "📋"}
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
               No {activeView === "gigs" ? "services" : "projects"} found
             </h3>
-            <p className="text-gray-600">
+
+            <p className="text-gray-500">
               {searchTerm || selectedCategory
-                ? "Try adjusting your search criteria"
-                : `No ${activeView === "gigs" ? "services" : "projects"} available yet`
-              }
+                ? "Try adjusting your search or filters"
+                : `No ${
+                    activeView === "gigs" ? "services" : "projects"
+                  } available yet`}
             </p>
           </div>
         ) : (
           searchResults.map((item: any) => (
-            <div key={item._id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow flex flex-col h-full">
+            <div
+              key={item._id}
+              className="group bg-white border border-gray-100 rounded-2xl p-6 hover:border-emerald-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+            >
               {activeView === "gigs" ? (
-                <GigCard gig={item} onViewProfile={onViewProfile} />
+                <GigCard
+                  gig={item}
+                  onViewProfile={onViewProfile}
+                />
               ) : (
                 <ProjectCard project={item} />
               )}
@@ -119,90 +152,187 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
   );
 }
 
-function GigCard({ gig, onViewProfile }: { gig: any, onViewProfile?: (userId: Id<"users">) => void }) {
+/* -------------------------------------------------------------------------- */
+/*                                   GIG CARD                                 */
+/* -------------------------------------------------------------------------- */
+
+function GigCard({
+  gig,
+  onViewProfile,
+}: {
+  gig: any;
+  onViewProfile?: (userId: Id<"users">) => void;
+}) {
   const navigate = useNavigate();
 
   return (
     <>
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="font-semibold text-gray-900 line-clamp-2">{gig.title}</h3>
-        <span className="text-lg font-bold text-green-600">₹{gig.basePrice}</span>
+      {/* Top */}
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 leading-snug">
+          {gig.title}
+        </h3>
+
+        <span className="text-emerald-600 font-bold text-lg ml-3 whitespace-nowrap">
+          ₹{gig.basePrice}
+        </span>
       </div>
 
-      <p className="text-gray-600 text-sm mb-4 line-clamp-3">{gig.description}</p>
+      {/* Description */}
+      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-5">
+        {gig.description}
+      </p>
 
-      <div className="flex flex-wrap gap-1 mb-4">
-        {gig.tags.slice(0, 3).map((tag: string) => (
+      {/* Tags */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {gig.tags?.slice(0, 3).map((tag: string) => (
           <span
             key={tag}
-            className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+            className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium"
           >
             {tag}
           </span>
         ))}
-        {gig.tags.length > 3 && (
-          <span className="text-gray-500 text-xs">+{gig.tags.length - 3} more</span>
+
+        {gig.tags?.length > 3 && (
+          <span className="text-xs text-gray-500 self-center">
+            +{gig.tags.length - 3} more
+          </span>
         )}
       </div>
 
-      <div className="mt-auto flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>⭐ {gig.averageRating ? gig.averageRating.toFixed(1) : "New"}</span>
-        <span>🚚 {gig.deliveryTime} days</span>
-        <span>📦 {gig.totalOrders} orders</span>
-      </div>
+      {/* Bottom */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-5">
+          <div className="flex items-center gap-1">
+            <span>⭐</span>
+            <span>
+              {gig.averageRating
+                ? gig.averageRating.toFixed(1)
+                : "New Freelancer"}
+            </span>
+          </div>
 
-      <button 
-        onClick={() => {
-          if (onViewProfile) {
-            onViewProfile(gig.freelancerId);
-          } else {
-            navigate(`/profile/${gig.freelancerId}`);
-          }
-        }}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-      >
-        View Details
-      </button>
+          <div className="flex items-center gap-1">
+            <span>🚚</span>
+            <span>{gig.deliveryTime} days</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span>🔥</span>
+            <span>Quick Delivery</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            if (onViewProfile) {
+              onViewProfile(gig.freelancerId);
+            } else {
+              navigate(`/profile/${gig.freelancerId}`);
+            }
+          }}
+          className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
+        >
+          View Details
+        </button>
+      </div>
     </>
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                PROJECT CARD                                */
+/* -------------------------------------------------------------------------- */
+
 function ProjectCard({ project }: { project: any }) {
+  const postedDate = project._creationTime
+    ? new Date(project._creationTime)
+    : new Date();
+
+  const hoursAgo = Math.floor(
+    (Date.now() - postedDate.getTime()) / (1000 * 60 * 60)
+  );
+
+  const daysAgo = Math.floor(hoursAgo / 24);
+
   return (
     <>
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="font-semibold text-gray-900 line-clamp-2">{project.title}</h3>
-        <span className="text-sm font-medium text-green-600">
-          ₹{project.budget.min} - ₹{project.budget.max}
-        </span>
+      {/* Top */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 leading-snug line-clamp-2">
+            {project.title}
+          </h3>
+        </div>
+
+        {hoursAgo <= 24 && (
+          <span className="ml-3 bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-1 rounded-full whitespace-nowrap">
+            NEW
+          </span>
+        )}
       </div>
 
-      <p className="text-gray-600 text-sm mb-4 line-clamp-3">{project.description}</p>
+      {/* Description */}
+      <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-5">
+        {project.description}
+      </p>
 
-      <div className="flex flex-wrap gap-1 mb-4">
-        {project.skills.slice(0, 3).map((skill: string) => (
+      {/* Skills */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {project.skills?.slice(0, 3).map((skill: string) => (
           <span
             key={skill}
-            className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs"
+            className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-medium"
           >
             {skill}
           </span>
         ))}
-        {project.skills.length > 3 && (
-          <span className="text-gray-500 text-xs">+{project.skills.length - 3} more</span>
+
+        {project.skills?.length > 3 && (
+          <span className="text-xs text-gray-500 self-center">
+            +{project.skills.length - 3} more
+          </span>
         )}
       </div>
 
-      <div className="mt-auto flex justify-between items-center text-sm text-gray-600 mb-4">
-        <span>📅 {new Date(project.deadline).toLocaleDateString()}</span>
-        <span>💼 {project.proposalCount} proposals</span>
-        <span>👤 {project.client?.firstName || "Client"}</span>
-      </div>
+      {/* Bottom */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-5">
+          {/* Posted */}
+          <div className="flex items-center gap-1">
+            <span>📅</span>
 
-      {/* This should be a <Link> component from your routing library, e.g., react-router-dom */}
-      <Link to={`/projects/${project._id}`} className="block text-center w-full bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
-        Submit Proposal
-      </Link>
+            <span>
+              {hoursAgo <= 1
+                ? "Posted recently"
+                : hoursAgo < 24
+                ? `Posted ${hoursAgo}h ago`
+                : `Posted ${daysAgo}d ago`}
+            </span>
+          </div>
+
+          {/* Verified */}
+          <div className="flex items-center gap-1">
+            <span>⭐</span>
+            <span>Verified Client</span>
+          </div>
+
+          {/* Hiring */}
+          <div className="flex items-center gap-1">
+            <span>⚡</span>
+            <span>Quick Hiring</span>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <Link
+          to={`/projects/${project._id}`}
+          className="block w-full text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
+        >
+          Apply Now
+        </Link>
+      </div>
     </>
   );
 }

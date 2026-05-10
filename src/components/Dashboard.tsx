@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Suspense, lazy } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ const FreelancerDashboard = lazy(() => import("./FreelancerDashboard").then(m =>
 const ClientDashboard = lazy(() => import("./ClientDashboard").then(m => ({ default: m.ClientDashboard })));
 const AdminDashboard = lazy(() => import("./AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const VerificationUpload = lazy(() => import("./VerificationUpload").then(m => ({ default: m.VerificationUpload })));
+const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
 interface DashboardProps {
   profile: any;
@@ -22,6 +23,7 @@ export function Dashboard({ profile }: DashboardProps) {
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
@@ -29,6 +31,19 @@ export function Dashboard({ profile }: DashboardProps) {
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
   const logActivity = useMutation((api as any).logs.logActivity);
+
+  // Notifications
+  const notifications = useQuery(api.proposals.getNotifications, {});
+  const markAsRead = useMutation(api.proposals.markAsRead);
+  const markAllAsRead = useMutation(api.proposals.markAllAsRead);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const unreadCount = (notifications || []).filter((n: any) => !n.isRead).length;
+
+  // Chat state
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInitData, setChatInitData] = useState<any>(null);
+  const { results: conversations } = usePaginatedQuery(api.chat.getConversations, {}, { initialNumItems: 20 });
+  const totalUnread = (conversations || []).reduce((acc, c) => acc + c.unreadCount, 0);
 
   // Log User Login
   useEffect(() => {
@@ -144,23 +159,115 @@ export function Dashboard({ profile }: DashboardProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div 
-                className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => setActiveTab("profile")}
-                title="View Profile"
-              >
-                {profile.profilePictureUrl ? (
-                  <img src={profile.profilePictureUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
-                ) : (
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium">
-                      {profile.firstName?.[0]}{profile.lastName?.[0]}
+              <div className="relative flex gap-4 mr-2">
+                <button onClick={() => { setChatInitData(null); setIsChatOpen(true); }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  {totalUnread > 0 && (
+                    <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                      {totalUnread}
                     </span>
+                  )}
+                </button>
+                <div className="relative">
+                  <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors" onClick={() => {
+                    if (!showNotifications && unreadCount > 0) {
+                      markAllAsRead();
+                    }
+                    setShowNotifications(!showNotifications);
+                  }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  {showNotifications && (
+                    <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
+                      <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800">Notifications</h3>
+                        <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        {!notifications ? (
+                          <div className="p-4 text-center text-gray-500 animate-pulse">Loading...</div>
+                        ) : notifications.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">No notifications</div>
+                        ) : (
+                          notifications.map((n: any) => (
+                            <div key={n._id} className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50/50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
+                              <p className="text-sm text-gray-800">{n.message}</p>
+                              <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="relative">
+                <div 
+                  className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  title="Profile Menu"
+                >
+                  {profile.profilePictureUrl ? (
+                    <img src={profile.profilePictureUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium">
+                        {profile.firstName?.[0]}{profile.lastName?.[0]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {showProfileMenu && (
+                  <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
+                    <div className="p-4 border-b bg-gray-50">
+                      <p className="font-bold text-gray-800 truncate">{profile.firstName} {profile.lastName}</p>
+                      <p className="text-xs font-medium mt-1 text-gray-500 capitalize">
+                        {profile.userType}
+                        {profile.userType === "freelancer" && (
+                          <span className={profile.isVerified ? "text-green-600" : "text-yellow-600"}>
+                            {profile.isVerified ? " • Verified" : " • Unverified"}
+                          </span>
+                        )}
+                        {profile.userType === "admin" && <span className="text-purple-600"> • Admin</span>}
+                      </p>
+                    </div>
+                    <div className="py-2">
+                      <button 
+                        onClick={() => {
+                          setActiveTab("profile");
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        View Profile
+                      </button>
+                      <div 
+                        onClickCapture={() => {
+                          logActivity({
+                            action: "User Logout",
+                            details: `User ${profile.firstName} ${profile.lastName} logged out`,
+                          });
+                          sessionStorage.removeItem("hasLoggedLogin");
+                          posthog.reset(); // Clear PostHog session on logout
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
+                        <SignOutButton />
+                      </div>
+                    </div>
                   </div>
                 )}
-                <span className="text-sm font-medium text-gray-700">
-                  {profile.firstName} {profile.lastName}
-                </span>
+                
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -168,16 +275,6 @@ export function Dashboard({ profile }: DashboardProps) {
                   accept="image/*"
                   onChange={handleImageUpload}
                 />
-              </div>
-              <div onClickCapture={() => {
-                logActivity({
-                  action: "User Logout",
-                  details: `User ${profile.firstName} ${profile.lastName} logged out`,
-                });
-                sessionStorage.removeItem("hasLoggedLogin");
-                posthog.reset(); // Clear PostHog session on logout
-              }}>
-                <SignOutButton />
               </div>
             </div>
           </div>
@@ -206,31 +303,6 @@ export function Dashboard({ profile }: DashboardProps) {
                 ))}
               </div>
             </nav>
-
-            {/* Profile Summary */}
-            <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Profile</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Type:</span>
-                  <span className="capitalize font-medium">{profile.userType}</span>
-                </div>
-                {profile.userType === "freelancer" && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">College:</span>
-                      <span className="font-medium">{profile.collegeName || "Not set"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Rating:</span>
-                      <span className="font-medium">
-                        {profile.averageRating ? `${profile.averageRating.toFixed(1)} ⭐` : "No ratings yet"}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Main Content */}
@@ -255,7 +327,7 @@ export function Dashboard({ profile }: DashboardProps) {
             {profile.userType === "client" && (
               <>
                 {activeTab === "browse" && <ClientDashboard profile={profile} activeTab="browse-services" />}
-                {activeTab === "projects" && <ClientDashboard profile={profile} activeTab="projects" />}
+                {activeTab === "projects" && <ClientDashboard profile={profile} activeTab="projects" onOpenChat={(data) => { setChatInitData(data); setIsChatOpen(true); }} />}
                 {activeTab === "orders" && <ClientDashboard profile={profile} activeTab="orders" />}
                 {activeTab === "post-project" && <ClientDashboard profile={profile} activeTab="post-project" />}
               </>
@@ -265,6 +337,15 @@ export function Dashboard({ profile }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      <Suspense fallback={null}>
+        <ChatInterface 
+          isOpen={isChatOpen} 
+          onClose={() => setIsChatOpen(false)} 
+          initialConversation={chatInitData}
+          currentUserId={profile.userId}
+        />
+      </Suspense>
 
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
@@ -772,8 +853,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                     <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold">Completed</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description}</p>
-                  <div className="mt-4 flex items-center justify-between border-t pt-3">
-                    <span className="text-sm text-gray-500 font-medium">Budget: ₹{project.budget.min} - ₹{project.budget.max}</span>
+                  <div className="mt-4 flex justify-end border-t pt-3">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{project.category}</span>
                   </div>
                 </div>

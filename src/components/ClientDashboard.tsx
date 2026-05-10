@@ -1,5 +1,5 @@
 import { useState, useRef, Suspense, lazy } from "react";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery, useAction } from "convex/react";
 // Optional file storage hook: convex/react-file-storage may not be available in all environments.
 // Provide a local fallback that returns a string URL when the stored reference is already a URL,
 // or null otherwise. Replace this with the real useStorage from 'convex/react-file-storage' if available.
@@ -21,12 +21,13 @@ import { ProposalActions } from "./ProposalActions";
 import { GigBrowser } from "./GigBrowser";
 import { compressImage } from "../../convex/image";
 import posthog from "posthog-js";
+import { PayButton } from "./PayButton";
 import { Helmet } from "react-helmet-async";
 
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
 // Main component for the client dashboard
-export function ClientDashboard({ profile, activeTab }: { profile: any, activeTab: string }) {
+export function ClientDashboard({ profile, activeTab, onOpenChat }: { profile: any, activeTab: string, onOpenChat?: (data?: any) => void }) {
   const myProjects = useQuery(api.projects.getMyProjects, {}) || [];
   const notifications = useQuery(api.proposals.getNotifications, {}) || [];
   const myOrders = useQuery(api.projects.getMyClientOrders) || [];
@@ -101,8 +102,12 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
           onViewProfile={setViewingFreelancer}
           clientProfile={profile}
           onChat={(freelancerId) => {
-            setChatInitData({ projectId: selectedProject, clientId: profile.userId, freelancerId });
-            setIsChatOpen(true);
+            if (onOpenChat) {
+              onOpenChat({ projectId: selectedProject, clientId: profile.userId, freelancerId });
+            } else {
+              setChatInitData({ projectId: selectedProject, clientId: profile.userId, freelancerId });
+              setIsChatOpen(true);
+            }
           }}
         />
         <Suspense fallback={null}>
@@ -133,7 +138,13 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
           </p>
         </div>
         <div className="relative flex gap-4">
-          <button onClick={() => { setChatInitData(null); setIsChatOpen(true); }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
+          <button onClick={() => { 
+            if (onOpenChat) {
+              onOpenChat(null);
+            } else {
+              setChatInitData(null); setIsChatOpen(true); 
+            }
+          }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
@@ -160,8 +171,8 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
               )}
             </button>
             {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border z-50 overflow-hidden">
-                <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
+              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
+                <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                   <h3 className="font-bold text-gray-800">Notifications</h3>
                   <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
                 </div>
@@ -170,7 +181,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
                     <div className="p-4 text-center text-gray-500">No notifications</div>
                   ) : (
                     notifications.map((n: any) => (
-                      <div key={n._id} className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50/50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
+                      <div key={n._id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
                         <p className="text-sm text-gray-800">{n.message}</p>
                         <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
                       </div>
@@ -211,19 +222,19 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setShowProfilePhotoModal(false)}
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
             >
               ✕
             </button>
-            <h3 className="text-lg font-semibold mb-4">Profile Photo</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Photo</h3>
             <div className="mb-6 flex justify-center">
               <img 
                 src={profile.profilePictureUrl || useStorage(profile.profilePicture) || '/default-avatar.png'} 
                 alt="Profile" 
-                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100 shadow-sm"
               />
             </div>
             <div className="flex gap-3 justify-center">
@@ -238,7 +249,7 @@ export function ClientDashboard({ profile, activeTab }: { profile: any, activeTa
               </button>
               <button
                 onClick={() => setShowProfilePhotoModal(false)}
-                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>
@@ -266,15 +277,16 @@ function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
 function OrderList({ orders }: { orders: any[] }) {
   const openDispute = useMutation((api as any).disputes?.openDispute);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [viewOrder, setViewOrder] = useState<any | null>(null);
 
   const handleDispute = async (projectId: string) => {
-    const reason = window.prompt("Why are you disputing this project?");
+    const reason = window.prompt("Please describe the issue to generate a support ticket:");
     if (!reason) return;
     try {
       await openDispute({ projectId, reason });
-      toast.success("Dispute opened. An admin will review it soon.");
+      toast.success("Ticket generated successfully. An admin will review it soon.");
     } catch (e: any) {
-      toast.error(e.message || "Failed to open dispute");
+      toast.error(e.message || "Failed to generate ticket");
     }
   };
 
@@ -299,24 +311,24 @@ function OrderList({ orders }: { orders: any[] }) {
     switch (status) {
       case 'in_progress':
       case 'active':
-        return <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
+        return <span className="bg-blue-100 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
       case 'completed':
-        return <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
+        return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
       case 'delivered':
-        return <span className="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 Awaiting Approval</span>;
+        return <span className="bg-yellow-100 text-yellow-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 Awaiting Approval</span>;
       case 'cancelled':
-        return <span className="bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-bold">Cancelled</span>;
+        return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold">Cancelled</span>;
       case 'disputed':
-        return <span className="bg-red-100 text-red-800 px-3 py-1.5 rounded-full text-sm font-bold">Disputed</span>;
+        return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold">Disputed</span>;
       default:
-        return <span className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
+        return <span className="bg-gray-100 text-gray-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
     }
   };
 
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <div key={order._id} className="bg-white rounded-lg shadow-sm p-6">
+        <div key={order._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{order.title}</h3>
@@ -329,38 +341,77 @@ function OrderList({ orders }: { orders: any[] }) {
               <p className="text-sm text-gray-500 mt-1 font-medium">Price: ₹{order.price}</p>
             </div>
           </div>
-          {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && order.status !== 'open' && order.status !== 'pending_payment' && (
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+            {order.status === 'pending_payment' && (
+              <div className="mr-auto">
+                <PayButton orderId={order._id} amount={order.price} />
+              </div>
+            )}
+            <button 
+              onClick={() => setViewOrder(order)}
+              className="bg-blue-50 text-blue-700 border-transparent px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+            >
+              View Details
+            </button>
+            {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && order.status !== 'open' && order.status !== 'pending_payment' && (
               <button 
                 onClick={() => handleDispute(order._id)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                className="bg-red-50 text-red-700 border-transparent px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
               >
-                Open Dispute
+                Generate Ticket
               </button>
-            </div>
-          )}
-          {order.status === 'completed' && !order.hasReviewed && order.orderId && (
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+            )}
+            {order.status === 'completed' && !order.hasReviewed && order.orderId && (
               <button 
                 onClick={() => setReviewOrderId(order.orderId)}
-                className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm transition-colors"
               >
                 Leave Review
               </button>
-            </div>
-          )}
-          {order.status === 'completed' && order.hasReviewed && (
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
-              <span className="text-green-600 text-sm font-medium flex items-center gap-1">
+            )}
+            {order.status === 'completed' && order.hasReviewed && (
+              <span className="text-green-800 text-sm font-medium flex items-center gap-1 bg-green-100 border-transparent px-4 py-2 rounded-lg">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                 Review Submitted
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ))}
       {reviewOrderId && (
         <ReviewModal orderId={reviewOrderId} onClose={() => setReviewOrderId(null)} />
+      )}
+      {viewOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Order Details</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Title</h3>
+                <p className="text-gray-900 font-semibold">{viewOrder.title}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Description</h3>
+                <p className="text-gray-700 whitespace-pre-wrap">{viewOrder.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Price</h3>
+                  <p className="text-gray-900 font-semibold">₹{viewOrder.price}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Delivery Time</h3>
+                  <p className="text-gray-900 font-semibold">{viewOrder.deliveryTime} days</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <div className="mt-1">{getStatusChip(viewOrder.status)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -389,9 +440,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Leave a Review</h2>
-        <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-6">
+        <div className="bg-blue-50 border border-blue-100 text-blue-800 p-3 rounded-lg text-sm mb-6">
           <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -405,9 +456,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Feedback</label>
-            <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
+            <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
           </div>
-          <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 transition-colors">
             {isSubmitting ? "Submitting..." : "Submit Review"}
           </button>
         </form>
@@ -420,7 +471,7 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
 function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: any[], onSelectProject: (id: Id<"projectRequests">) => void, onReleaseFunds: (orderId: Id<"orders">) => void }) {
   if (projects.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+      <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8 text-center">
         <div className="text-gray-400 text-6xl mb-4">📋</div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
         <p className="text-gray-600">Post your first project to start receiving proposals</p>
@@ -431,7 +482,7 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
   return (
     <div className="space-y-4">
       {projects.map((project) => (
-        <div key={project._id} className="bg-white rounded-lg shadow-sm p-6">
+        <div key={project._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
@@ -440,7 +491,7 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
                 {project.skills.map((skill: string) => (
                   <span
                     key={skill}
-                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                    className="bg-blue-50 border border-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs"
                   >
                     {skill}
                   </span>
@@ -448,21 +499,21 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
               </div>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <p className="font-medium">{project.proposalCount} proposals</p>
+              <p className="font-medium text-gray-600">{project.proposalCount} proposals</p>
               {project.status === 'in_progress' && project.orderId && project.orderStatus !== 'completed' ? (
                 <button
                   onClick={() => onReleaseFunds(project.orderId)}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-colors whitespace-nowrap"
                 >
                   ✓ Release Funds
                 </button>
               ) : project.status === 'completed' ? (
-                <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">🎉 Completed</span>
+                <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">🎉 Completed</span>
               ) : (
                 <button
                   onClick={() => onSelectProject(project._id)}
                   disabled={project.status !== 'open'}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {project.status === 'open' ? 'View Proposals' : `Project ${project.status.replace('_', ' ')}`}
                 </button>
@@ -504,7 +555,7 @@ function ProjectProposals({
         <p className="text-gray-600">Review proposals from freelancers for your project.</p>
       </div>
       {proposals.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+        <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8 text-center">
           <div className="text-gray-400 text-6xl mb-4">📬</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No proposals yet</h3>
           <p className="text-gray-600">You will be notified when freelancers submit proposals for this project.</p>
@@ -512,26 +563,26 @@ function ProjectProposals({
       ) : (
         <div className="space-y-4">
           {proposals.map((p) => (
-            <div key={p._id} className="bg-white rounded-lg shadow-sm p-6">
+            <div key={p._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-semibold text-lg text-gray-900">{p.freelancerName}</p>
-                  <p className="text-gray-600">Proposed Price: <span className="font-medium text-gray-800">₹{p.proposedPrice}</span></p>
+                  <p className="text-gray-600">Proposed Price: <span className="font-medium text-blue-600">₹{p.proposedPrice}</span></p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-semibold px-2 py-1 rounded-full ${
-                    p.status === 'accepted' ? 'bg-green-100 text-green-800' : 
-                    p.status === 'payment_pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
+                  <p className={`text-sm font-semibold px-2 py-1 border rounded-full ${
+                    p.status === 'accepted' ? 'bg-green-100 text-green-800 border-transparent' : 
+                    p.status === 'payment_pending' ? 'bg-yellow-100 text-yellow-800 border-transparent' :
+                    'bg-gray-100 text-gray-800 border-transparent'
                   }`}>
                     {p.status === 'payment_pending' ? 'Payment Pending' : p.status}
                   </p>
                 </div>
               </div>
-              <div className="mt-4 border-t pt-4">
-                <p className="text-sm text-gray-600 mb-2">{p.coverLetter}</p>
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <p className="text-sm text-gray-700 mb-2">{p.coverLetter}</p>
               </div>
-              <div className="mt-4 border-t pt-4">
+              <div className="mt-4 border-t border-gray-100 pt-4">
                 {project?.status === 'open' && p.status !== 'accepted' && p.status !== 'rejected' && (
                   <div className="mb-4">
                     <ProposalActions 
@@ -542,10 +593,10 @@ function ProjectProposals({
                   </div>
                 )}
                 <div className="flex items-center space-x-3">
-                  <button onClick={() => onChat(p.freelancerId)} className="bg-blue-50 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors flex items-center gap-2">
+                  <button onClick={() => onChat(p.freelancerId)} className="bg-blue-50 border border-blue-100 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors flex items-center gap-2">
                     <span>💬 Chat</span>
                   </button>
-                  <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors">
+                  <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-50 border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors">
                     View Profile
                   </button>
                 </div>
@@ -557,7 +608,7 @@ function ProjectProposals({
 
       {/* AI Recommendations Section */}
       {project?.status === 'open' && (
-        <div className="mt-12 border-t pt-8">
+        <div className="mt-12 border-t border-gray-200 pt-8">
           <div className="flex items-center gap-2 mb-6">
             <span className="text-2xl">✨</span>
             <div>
@@ -568,7 +619,7 @@ function ProjectProposals({
           
           <div className="grid md:grid-cols-2 gap-6">
             {recommendations.map((freelancer) => (
-              <div key={freelancer._id} className="bg-gradient-to-br from-blue-50 to-white border border-blue-100 rounded-lg p-6 shadow-sm">
+              <div key={freelancer._id} className="bg-white border border-gray-100 rounded-lg p-6 shadow-sm hover:shadow-md transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <img src={useStorage(freelancer.profilePicture) || '/default-avatar.png'} className="w-12 h-12 rounded-full object-cover" />
@@ -577,14 +628,14 @@ function ProjectProposals({
                       <p className="text-xs text-blue-600 font-medium">{Math.round(freelancer.score)}% Match Score</p>
                     </div>
                   </div>
-                  <button onClick={() => onViewProfile(freelancer.userId)} className="text-sm text-gray-600 hover:text-blue-600">View Profile</button>
+                  <button onClick={() => onViewProfile(freelancer.userId)} className="text-sm text-gray-600 hover:text-blue-600 transition-colors">View Profile</button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {freelancer.skills?.slice(0, 3).map((s: string) => (
-                    <span key={s} className="text-xs bg-white border px-2 py-0.5 rounded text-gray-600">{s}</span>
+                    <span key={s} className="text-xs bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md">{s}</span>
                   ))}
                 </div>
-                <button onClick={() => onChat(freelancer.userId)} className="w-full mt-4 bg-white border border-blue-200 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors">
+                <button onClick={() => onChat(freelancer.userId)} className="w-full mt-4 bg-blue-50 border border-blue-100 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
                   Message Freelancer
                 </button>
               </div>
@@ -602,6 +653,7 @@ function ProjectProposals({
 // Component to display a freelancer's public profile
 function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: () => void }) {
   const profileData = useQuery(api.projects.getFreelancerPublicProfile, { userId });
+  const [hireGig, setHireGig] = useState<any | null>(null);
 
   if (!profileData) {
     return <div>Loading profile...</div>;
@@ -640,7 +692,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         Back
       </button>
       
-      <div className="bg-white rounded-lg shadow-sm p-8">
+      <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column: Basic Info & Avatar */}
           <div className="md:w-1/3 flex flex-col items-center text-center">
@@ -658,12 +710,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
             </div>
 
             {profile.isVerified && (
-              <div className="mt-4 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              <div className="mt-4 bg-green-100 border border-transparent text-green-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                 <span>✓</span> Verified Student
               </div>
             )}
             
-            <div className="mt-4 bg-blue-50 text-blue-800 px-4 py-2 rounded-lg w-full">
+            <div className="mt-4 bg-blue-50 border border-blue-100 text-blue-800 px-4 py-2 rounded-lg w-full">
               <p className="text-sm font-semibold mb-1">Freelancer Tier</p>
               <p className="text-lg font-bold">{level}</p>
             </div>
@@ -672,12 +724,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
           {/* Right Column: Stats & LeetCode Style Progress */}
           <div className="md:w-2/3 space-y-6">
             {/* Gamification & Progress */}
-            <div className="bg-gray-50 p-4 rounded-lg border">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-gray-700">Profile Completeness</span>
                 <span className="text-sm font-bold text-blue-600">{completeness}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-gray-200 border border-transparent rounded-full h-2.5 overflow-hidden">
                 <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${completeness}%` }}></div>
               </div>
               {completeness < 100 && (
@@ -687,21 +739,21 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
             {/* Core Metrics */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white border rounded-lg p-4 text-center shadow-sm">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Rating</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
                   <span className="text-yellow-400 text-lg">★</span>
                 </div>
               </div>
-              <div className="bg-white border rounded-lg p-4 text-center shadow-sm">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Completed</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{completedProjects.length}</span>
                   <span className="text-gray-400 text-lg">💼</span>
                 </div>
               </div>
-              <div className="bg-white border rounded-lg p-4 text-center shadow-sm">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{completedProjects.length > 0 ? successRate + '%' : 'N/A'}</span>
@@ -713,7 +765,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
             {/* About Me */}
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">About Me</h3>
-              <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white border p-4 rounded-lg shadow-sm">
+              <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
                 {profile.bio || "No bio provided."}
               </p>
             </div>
@@ -733,14 +785,46 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         </div>
 
         {/* LeetCode Style Activity Graph (Mocked for visual representation) */}
-        <div className="border-t pt-8 mt-8">
+        <div className="border-t border-gray-200 pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Activity Map</h3>
-          <div className="bg-gray-50 p-6 rounded-lg border overflow-x-auto">
-            <div className="flex gap-1">
-              {Array.from({ length: 52 }).map((_, col) => (
-                <div key={col} className="flex flex-col gap-1">
-                  {Array.from({ length: 7 }).map((_, row) => {
-                    const daysAgo = (51 - col) * 7 + (6 - row);
+          <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg overflow-x-auto">
+            <div className="flex gap-1 ml-10 mb-2">
+              {Array.from({ length: 52 }).map((_, col) => {
+                const daysAgo = (51 - col) * 7 + 6;
+                const d = new Date();
+                d.setDate(d.getDate() - daysAgo);
+                
+                const prevDaysAgo = (51 - col + 1) * 7 + 6;
+                const prevD = new Date();
+                prevD.setDate(prevD.getDate() - prevDaysAgo);
+                
+                const isNewMonth = col === 0 || d.getMonth() !== prevD.getMonth();
+                
+                return (
+                  <div key={col} className="w-3 relative text-xs text-gray-500">
+                    {isNewMonth && <span className="absolute overflow-visible whitespace-nowrap">{d.toLocaleString('default', { month: 'short' })}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex">
+              <div className="flex flex-col gap-1 text-xs text-gray-500 mr-2 w-8 text-right">
+                {Array.from({ length: 7 }).map((_, row) => {
+                  const daysAgo = 6 - row;
+                  const d = new Date();
+                  d.setDate(d.getDate() - daysAgo);
+                  return (
+                    <div key={row} className="h-3 leading-3">
+                      {row % 2 !== 0 ? d.toLocaleString('default', { weekday: 'short' }) : ''}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: 52 }).map((_, col) => (
+                  <div key={col} className="flex flex-col gap-1">
+                    {Array.from({ length: 7 }).map((_, row) => {
+                      const daysAgo = (51 - col) * 7 + (6 - row);
                     const date = new Date();
                     date.setDate(date.getDate() - daysAgo);
                     const dateStr = date.toISOString().split("T")[0];
@@ -760,6 +844,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                 </div>
               ))}
             </div>
+            </div>
             <div className="flex justify-between text-xs text-gray-500 mt-2">
               <span>Less</span>
               <div className="flex gap-1">
@@ -775,15 +860,15 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         </div>
 
         {/* Client Reviews */}
-        <div className="border-t pt-8 mt-8">
+        <div className="border-t border-gray-200 pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Client Reviews ({reviews?.length || 0})</h3>
           {reviews && reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review: any) => (
-                <div key={review._id} className="bg-white border rounded-lg p-5 shadow-sm">
+                <div key={review._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
+                      <div className="w-8 h-8 bg-blue-100 text-blue-700 border border-transparent rounded-full flex items-center justify-center font-bold text-sm">
                         {review.reviewerName.charAt(0)}
                       </div>
                       <span className="font-bold text-gray-900">{review.reviewerName}</span>
@@ -799,23 +884,23 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed">
+            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
               No reviews yet. Be the first to hire and review!
             </p>
           )}
         </div>
 
         {/* Portfolio Section */}
-        <div className="border-t pt-8 mt-8">
+        <div className="border-t border-gray-200 pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio</h3>
           {profile.portfolioItems && profile.portfolioItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {profile.portfolioItems.map((item: any) => (
-                <div key={item.id} className="border rounded-lg overflow-hidden bg-white shadow-sm flex flex-col hover:shadow-md transition-shadow">
+                <div key={item.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow group">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.title} className="w-full h-40 object-cover" />
                   ) : (
-                    <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
+                    <div className="w-full h-40 bg-gray-100 border-b border-gray-200 flex items-center justify-center">
                       <span className="text-4xl text-gray-300">🖼️</span>
                     </div>
                   )}
@@ -823,7 +908,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                     <h4 className="font-bold text-gray-900">{item.title}</h4>
                     <p className="text-sm text-gray-600 mt-2 line-clamp-3 flex-1">{item.description}</p>
                     {item.link && (
-                      <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline mt-4 flex items-center gap-1 font-medium">
+                      <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline transition-colors mt-4 flex items-center gap-1 font-medium">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         View Project
                       </a>
@@ -833,7 +918,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed">
+            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
               No portfolio items added yet.
             </p>
           )}
@@ -841,11 +926,11 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
         {/* Services Offered (Gigs) */}
         {gigs && gigs.length > 0 && (
-          <div className="border-t pt-8 mt-8">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">Services Offered</h3>
+          <div className="border-t border-gray-200 pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">Services Offered</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {gigs.map((gig: any) => (
-                <div key={gig._id} className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <div key={gig._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold text-gray-800 line-clamp-1">{gig.title}</h4>
                     <span className="text-green-600 font-bold">₹{gig.basePrice}</span>
@@ -853,7 +938,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{gig.description}</p>
                   <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-gray-500">
                     <span>⏱️ {gig.deliveryTime} days</span>
-                    <button onClick={() => toast.info("Direct hiring feature coming soon!")} className="bg-blue-50 text-blue-600 px-3 py-1 rounded font-medium hover:bg-blue-100 transition-colors">
+                    <button onClick={() => setHireGig(gig)} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">
                       Hire Me
                     </button>
                   </div>
@@ -864,31 +949,126 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         )}
 
         {/* Completed Projects Catalog */}
-        <div className="border-t pt-8 mt-8">
+        <div className="border-t border-gray-200 pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Completed Projects</h3>
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
-                <div key={project._id} className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <div key={project._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold text-gray-800 line-clamp-1">{project.title}</h4>
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold">Completed</span>
+                    <span className="bg-green-100 border border-transparent text-green-800 text-xs px-2 py-1 rounded-full font-semibold">Completed</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description}</p>
-                  <div className="mt-4 flex items-center justify-between border-t pt-3">
-                    <span className="text-sm text-gray-500 font-medium">Budget: ₹{project.budget.min} - ₹{project.budget.max}</span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{project.category}</span>
+                <div className="mt-4 flex justify-end border-t border-gray-200 pt-3">
+                  <span className="text-xs bg-gray-100 border border-transparent text-gray-600 px-2 py-1 rounded-lg">{project.category}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed">
+            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
               This freelancer hasn't completed any platform projects yet.
             </p>
           )}
         </div>
 
+      </div>
+      {hireGig && <DirectHireModal gig={hireGig} onClose={() => setHireGig(null)} />}
+    </div>
+  );
+}
+
+function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
+  const createDirectOrder = useMutation(api.projects.createDirectOrder);
+  const createRazorpayOrder = useAction(api.paymentActions.createRazorpayOrder);
+  const markOrderPaid = useMutation(api.projects.markOrderPaid);
+
+  const [formData, setFormData] = useState({
+    title: `Direct Order: ${gig.title}`,
+    description: `I would like to hire you for your service "${gig.title}". Here are my specific requirements:\n\n`,
+    price: gig.basePrice,
+    deliveryTime: gig.deliveryTime,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.price < 5) return toast.error("Minimum order price is ₹5");
+
+    setIsLoading(true);
+    try {
+      const orderId = await createDirectOrder({
+        freelancerId: gig.freelancerId,
+        gigId: gig._id,
+        title: formData.title,
+        description: formData.description,
+        price: formData.price,
+        deliveryTime: formData.deliveryTime,
+      });
+
+      const razorpayOrderId = await createRazorpayOrder({ orderId });
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
+        amount: Math.round(formData.price * 100),
+        currency: "INR",
+        name: "College Freelancing Platform",
+        description: "Escrow Payment for Direct Order",
+        order_id: razorpayOrderId,
+        handler: async function () {
+          await markOrderPaid({ orderId });
+          toast.success("Payment Successful! Order has started.");
+          onClose();
+        },
+        theme: { color: "#3399cc" },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate direct hire");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-transparent rounded-lg shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Hire for: {gig.title}</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Order Title</label>
+            <input required type="text" value={formData.title} onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Requirements & Instructions</label>
+            <textarea required rows={4} value={formData.description} onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
+              <input required type="number" min="5" value={formData.price} onChange={(e) => setFormData(prev => ({...prev, price: parseInt(e.target.value) || 0}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery (Days)</label>
+              <input required type="number" min="1" value={formData.deliveryTime} onChange={(e) => setFormData(prev => ({...prev, deliveryTime: parseInt(e.target.value) || 1}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+            </div>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-sm flex gap-3">
+            <span className="text-xl">🔒</span>
+            <div>
+              <p className="font-semibold text-blue-900 mb-1">Secure Escrow Payment</p>
+              <p className="text-blue-800">Your ₹{formData.price} payment will be held securely in escrow and released to the freelancer only after you approve the delivered work.</p>
+            </div>
+          </div>
+          <button type="submit" disabled={isLoading} className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
+            {isLoading ? "Processing..." : `Pay ₹${formData.price} & Start Order`}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -900,8 +1080,6 @@ function PostProjectForm() {
     description: "",
     category: "",
     skills: [] as string[],
-    budgetMin: 50,
-    budgetMax: 500,
     deadline: "",
   });
 
@@ -922,10 +1100,6 @@ function PostProjectForm() {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        budget: {
-          min: formData.budgetMin,
-          max: formData.budgetMax,
-        },
         deadline: new Date(formData.deadline).getTime(),
         skills: formData.skills,
       });
@@ -937,7 +1111,7 @@ function PostProjectForm() {
       });
 
       toast.success("Project posted successfully!");
-      posthog.capture("project_posted", { category: formData.category, budgetMin: formData.budgetMin, budgetMax: formData.budgetMax });
+      posthog.capture("project_posted", { category: formData.category });
       
       // Reset form
       setFormData({
@@ -945,8 +1119,6 @@ function PostProjectForm() {
         description: "",
         category: "",
         skills: [],
-        budgetMin: 50,
-        budgetMax: 500,
         deadline: "",
       });
     } catch (error) {
@@ -975,7 +1147,7 @@ function PostProjectForm() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-transparent rounded-lg shadow-sm p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -987,7 +1159,7 @@ function PostProjectForm() {
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g., Build a responsive website for my startup"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
@@ -999,7 +1171,7 @@ function PostProjectForm() {
               required
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
@@ -1020,38 +1192,8 @@ function PostProjectForm() {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={6}
               placeholder="Describe your project in detail. Include requirements, deliverables, and any specific preferences..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Budget (₹) *
-              </label>
-              <input
-                type="number"
-                required
-                min="5"
-                value={formData.budgetMin}
-                onChange={(e) => setFormData(prev => ({ ...prev, budgetMin: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Budget (₹) *
-              </label>
-              <input
-                type="number"
-                required
-                min={formData.budgetMin}
-                value={formData.budgetMax}
-                onChange={(e) => setFormData(prev => ({ ...prev, budgetMax: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
           </div>
 
           <div>
@@ -1064,7 +1206,7 @@ function PostProjectForm() {
               min={today}
               value={formData.deadline}
               onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
@@ -1076,7 +1218,7 @@ function PostProjectForm() {
               {formData.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
+                  className="bg-blue-100 border border-transparent text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
                 >
                   <span>{skill}</span>
                   <button
@@ -1099,11 +1241,11 @@ function PostProjectForm() {
                   e.currentTarget.value = "";
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="bg-blue-50 border border-transparent p-4 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Tips for a successful project:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Be specific about your requirements and deliverables</li>
@@ -1115,7 +1257,7 @@ function PostProjectForm() {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
           >
             Post Project
           </button>

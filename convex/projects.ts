@@ -8,10 +8,6 @@ export const createProject = mutation({
     title: v.string(),
     description: v.string(),
     category: v.string(),
-    budget: v.object({
-      min: v.number(),
-      max: v.number(),
-    }),
     deadline: v.number(),
     skills: v.array(v.string()),
   },
@@ -362,5 +358,48 @@ export const completeOrderAndReleaseFunds = mutation({
       message: `Client has approved your work for "${order.title}". Funds have been released!`,
       isRead: false,
     });
+  },
+});
+
+export const createDirectOrder = mutation({
+  args: {
+    freelancerId: v.id("users"),
+    gigId: v.id("gigs"),
+    title: v.string(),
+    description: v.string(),
+    price: v.number(),
+    deliveryTime: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const clientId = await getAuthUserId(ctx);
+    if (!clientId) {
+      throw new Error("You must be logged in to hire a freelancer.");
+    }
+
+    const platformFee = Math.round(args.price * 0.10);
+    const freelancerPayout = args.price - platformFee;
+
+    const orderId = await ctx.db.insert("orders", {
+      clientId,
+      freelancerId: args.freelancerId,
+      gigId: args.gigId,
+      title: args.title,
+      description: args.description,
+      price: args.price,
+      platformFee,
+      freelancerPayout,
+      deliveryTime: args.deliveryTime,
+      status: "pending_payment",
+    });
+
+    await ctx.db.insert("activityLogs", {
+      action: "Direct Order Created",
+      details: `Direct order created for gig. Price: ₹${args.price}`,
+      userId: clientId,
+      timestamp: Date.now(),
+      relatedId: orderId,
+    });
+
+    return orderId;
   },
 });

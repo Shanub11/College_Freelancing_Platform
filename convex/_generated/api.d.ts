@@ -16,6 +16,7 @@ import type * as gigs from "../gigs.js";
 import type * as http from "../http.js";
 import type * as image from "../image.js";
 import type * as logs from "../logs.js";
+import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
 import type * as paymentActions from "../paymentActions.js";
 import type * as payments from "../payments.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   image: typeof image;
   logs: typeof logs;
+  migrations: typeof migrations;
   moderation: typeof moderation;
   paymentActions: typeof paymentActions;
   payments: typeof payments;

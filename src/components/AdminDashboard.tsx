@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { SignOutButton } from "../SignOutButton";
 
-export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "disputes">("verifications");
+export function AdminDashboard({ adminId, onOpenChat }: { adminId?: string, onOpenChat?: (data?: any) => void }) {
+  const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "tickets">("verifications");
   const [expandedRequestId, setExpandedRequestId] = useState<Id<"verificationRequests"> | null>(null);
   const pendingVerifications = useQuery(api.profiles.getPendingVerifications) || [];
   const approve = useMutation(api.profiles.approveVerification);
@@ -56,14 +56,14 @@ export function AdminDashboard() {
                 Verifications
               </button>
               <button
-                onClick={() => setActiveTab("disputes")}
+                onClick={() => setActiveTab("tickets")}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === "disputes"
+                  activeTab === "tickets"
                     ? "bg-blue-100 text-blue-700"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Disputes
+                Support Tickets
               </button>
               <button
                 onClick={() => setActiveTab("logs")}
@@ -166,8 +166,8 @@ export function AdminDashboard() {
               </div>
             </div>
             </div>
-          ) : activeTab === "disputes" ? (
-            <DisputesList />
+          ) : activeTab === "tickets" ? (
+            <TicketsList adminId={adminId} onOpenChat={onOpenChat} />
           ) : (
             <ActivityLogList />
           )}
@@ -177,7 +177,7 @@ export function AdminDashboard() {
   );
 }
 
-function DisputesList() {
+function TicketsList({ adminId, onOpenChat }: { adminId?: string, onOpenChat?: (data?: any) => void }) {
   const disputes = useQuery((api as any).disputes?.getOpenDisputes) || [];
   const resolveDispute = useMutation((api as any).disputes?.resolveDispute);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -191,28 +191,28 @@ function DisputesList() {
 
     try {
       await resolveDispute({ disputeId, resolution, notes: resolutionNotes });
-      toast.success("Dispute resolved successfully!");
+      toast.success("Ticket resolved successfully!");
       setResolvingId(null);
       setResolutionNotes("");
     } catch (err: any) {
-      toast.error(err.message || "Failed to resolve dispute");
+      toast.error(err.message || "Failed to resolve ticket");
     }
   };
 
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-        Open Disputes ({disputes.length})
+        Open Support Tickets ({disputes.length})
       </h3>
       {disputes.length === 0 ? (
-        <p className="text-gray-500">No open disputes requiring your attention.</p>
+        <p className="text-gray-500">No open tickets requiring your attention.</p>
       ) : (
         <div className="space-y-6">
           {disputes.map((dispute: any) => (
             <div key={dispute._id} className="border border-red-200 rounded-lg p-4 bg-red-50">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h4 className="font-bold text-red-900">Dispute for Project: {dispute.project?.title}</h4>
+                  <h4 className="font-bold text-red-900">Ticket for Project: {dispute.project?.title}</h4>
                   <p className="text-sm text-red-800 font-medium">Opened by: {dispute.creatorName}</p>
                 </div>
                 <span className="text-xs bg-red-200 text-red-900 px-2 py-1 rounded-full font-bold">Needs Resolution</span>
@@ -240,8 +240,8 @@ function DisputesList() {
                   </div>
                 ) : (
                   <div className="flex justify-end gap-3">
-                    <button className="text-sm text-blue-700 underline" onClick={() => toast.info("Contract & Chat History feature coming soon!")}>View Chat History</button>
-                    <button onClick={() => setResolvingId(dispute._id)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">Resolve Dispute</button>
+                    <button className="text-sm text-blue-700 underline hover:text-blue-900" onClick={() => onOpenChat && onOpenChat({ projectId: dispute.project?._id || dispute.projectId, clientId: adminId, freelancerId: dispute.creatorId })}>Chat with User</button>
+                    <button onClick={() => setResolvingId(dispute._id)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">Resolve Ticket</button>
                   </div>
                 )}
               </div>

@@ -63,19 +63,19 @@ export function ProfileSetup() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 relative">
+      <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg shadow-lg p-8 relative">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
             <span className="text-white font-bold text-xl">CS</span>
           </div>
           
           <h1 className="text-2xl font-bold text-gray-900">Welcome to CollegeSkills</h1>
-          <p className="text-gray-600 mt-2">Let's set up your profile</p>
+          <p className="text-gray-500 mt-2">Let's set up your profile</p>
         </div>
 
         {step === 1 && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-center">I want to...</h2>
+            <h2 className="text-xl font-semibold text-center text-gray-900">I want to...</h2>
             
             <div className="space-y-4">
               <button
@@ -83,15 +83,15 @@ export function ProfileSetup() {
                   setUserType("freelancer");
                   setStep(2);
                 }}
-                className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left group"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-100 border border-blue-200 rounded-lg flex items-center justify-center">
                     <span className="text-2xl">🎓</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Offer my services</h3>
-                    <p className="text-gray-600 text-sm">I'm a college student looking to freelance</p>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Offer my services</h3>
+                    <p className="text-gray-500 text-sm">I'm a college student looking to freelance</p>
                   </div>
                 </div>
               </button>
@@ -101,15 +101,15 @@ export function ProfileSetup() {
                   setUserType("client");
                   setStep(2);
                 }}
-                className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-left group"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-green-100 border border-green-200 rounded-lg flex items-center justify-center">
                     <span className="text-2xl">💼</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Hire students</h3>
-                    <p className="text-gray-600 text-sm">I want to find talented student freelancers</p>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Hire students</h3>
+                    <p className="text-gray-500 text-sm">I want to find talented student freelancers</p>
                   </div>
                 </div>
               </button>
@@ -123,11 +123,11 @@ export function ProfileSetup() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-blue-600 hover:text-blue-700"
+                className="text-blue-600 hover:text-blue-700 transition-colors"
               >
                 ← Back
               </button>
-              <h2 className="text-xl font-semibold flex-1 text-center">
+              <h2 className="text-xl font-semibold flex-1 text-center text-gray-900">
                 {userType === "freelancer" ? "Student Profile" : "Client Profile"}
               </h2>
             </div>
@@ -142,7 +142,7 @@ export function ProfileSetup() {
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 />
               </div>
               <div>
@@ -154,7 +154,7 @@ export function ProfileSetup() {
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 />
               </div>
             </div>
@@ -167,7 +167,7 @@ export function ProfileSetup() {
                 value={formData.bio}
                 onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 placeholder={userType === "freelancer" ? "Tell clients about yourself and your skills..." : "Tell freelancers about your business..."}
               />
             </div>
@@ -186,7 +186,7 @@ export function ProfileSetup() {
                   type="text"
                   value={formData.company}
                   onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   placeholder="Your company name"
                 />
               </div>
@@ -194,7 +194,7 @@ export function ProfileSetup() {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm"
             >
               Create Profile
             </button>
