@@ -6,7 +6,7 @@ import { enforceModeration } from "./moderation";
 
 export const getOrCreateConversation = mutation({
   args: {
-    projectId: v.id("projectRequests"),
+    projectId: v.optional(v.id("projectRequests")),
     clientId: v.id("users"),
     freelancerId: v.id("users"),
   },

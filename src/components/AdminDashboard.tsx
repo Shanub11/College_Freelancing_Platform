@@ -240,7 +240,20 @@ function TicketsList({ adminId, onOpenChat }: { adminId?: string, onOpenChat?: (
                   </div>
                 ) : (
                   <div className="flex justify-end gap-3">
-                    <button className="text-sm text-blue-700 underline hover:text-blue-900" onClick={() => onOpenChat && onOpenChat({ projectId: dispute.project?._id || dispute.projectId, clientId: adminId, freelancerId: dispute.creatorId })}>Chat with User</button>
+                    <button 
+                      className="text-sm text-blue-700 underline hover:text-blue-900" 
+                      onClick={() => {
+                        if (onOpenChat && adminId) {
+                          onOpenChat({ 
+                            projectId: dispute.projectId || dispute.project?._id || undefined, 
+                            clientId: adminId, 
+                            freelancerId: dispute.creatorId 
+                          });
+                        }
+                      }}
+                    >
+                      Chat with User
+                    </button>
                     <button onClick={() => setResolvingId(dispute._id)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">Resolve Ticket</button>
                   </div>
                 )}

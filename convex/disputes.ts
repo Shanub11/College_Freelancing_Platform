@@ -4,55 +4,114 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const openDispute = mutation({
   args: {
-    projectId: v.id("projectRequests"),
+    projectId: v.optional(v.id("projectRequests")),
+    orderId: v.optional(v.id("orders")),
     reason: v.string(),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
-    const project = await ctx.db.get(args.projectId);
-    if (!project) throw new Error("Project not found");
+    if (args.orderId) {
+      const order = await ctx.db.get(args.orderId);
+      if (!order) throw new Error("Order not found");
+      if (order.clientId !== userId && order.freelancerId !== userId) {
+        throw new Error("You are not part of this order");
+      }
+      
+      const existingDispute = await ctx.db
+        .query("disputes")
+        .withIndex("by_status", (q) => q.eq("status", "open"))
+        .filter((q) => q.eq(q.field("orderId"), args.orderId))
+        .first();
 
-    if (project.clientId !== userId && project.selectedFreelancer !== userId) {
-      throw new Error("You are not part of this project");
+      if (existingDispute) throw new Error("A dispute is already open for this order");
+      
+      const disputeId = await ctx.db.insert("disputes", {
+        projectId: args.projectId || order.projectId,
+        orderId: args.orderId,
+        creatorId: userId,
+        reason: args.reason,
+        description: args.reason,
+        status: "open",
+      });
+
+      await ctx.db.patch(args.orderId, { status: "disputed" });
+      if (order.projectId) {
+         await ctx.db.patch(order.projectId, { status: "disputed" as any });
+      }
+
+      await ctx.db.insert("activityLogs", {
+        action: "Dispute Opened",
+        details: `Dispute opened for order ${args.orderId} by user ${userId}. Reason: ${args.reason}`,
+        userId,
+        timestamp: Date.now(),
+        relatedId: args.orderId,
+      });
+
+      return disputeId;
+    } else if (args.projectId) {
+      const project = await ctx.db.get(args.projectId);
+      if (!project) throw new Error("Project not found");
+
+      if (project.clientId !== userId && project.selectedFreelancer !== userId) {
+        throw new Error("You are not part of this project");
+      }
+
+      if (project.status === "completed" || project.status === "cancelled" || project.status === "open") {
+        throw new Error("Cannot dispute a project in this status");
+      }
+
+      const existingDispute = await ctx.db
+        .query("disputes")
+        .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId!))
+        .filter((q) => q.eq(q.field("status"), "open"))
+        .first();
+
+      if (existingDispute) {
+        throw new Error("A dispute is already open for this project");
+      }
+
+      const disputeId = await ctx.db.insert("disputes", {
+        projectId: args.projectId,
+        creatorId: userId,
+        reason: args.reason,
+        description: args.reason,
+        status: "open",
+      });
+
+      await ctx.db.patch(args.projectId, {
+        status: "disputed" as any,
+      });
+
+      await ctx.db.insert("activityLogs", {
+        action: "Dispute Opened",
+        details: `Dispute opened for project ${args.projectId} by user ${userId}. Reason: ${args.reason}`,
+        userId,
+        timestamp: Date.now(),
+        relatedId: args.projectId,
+      });
+
+      return disputeId;
+    } else {
+      // General support ticket
+      const disputeId = await ctx.db.insert("disputes", {
+        creatorId: userId,
+        reason: args.reason,
+        description: args.reason,
+        status: "open",
+      });
+
+      await ctx.db.insert("activityLogs", {
+        action: "Support Ticket Opened",
+        details: `Support ticket opened by user ${userId}. Reason: ${args.reason}`,
+        userId,
+        timestamp: Date.now(),
+        relatedId: disputeId,
+      });
+
+      return disputeId;
     }
-
-    if (project.status === "completed" || project.status === "cancelled" || project.status === "open") {
-      throw new Error("Cannot dispute a project in this status");
-    }
-
-    const existingDispute = await ctx.db
-      .query("disputes")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .filter((q) => q.eq(q.field("status"), "open"))
-      .first();
-
-    if (existingDispute) {
-      throw new Error("A dispute is already open for this project");
-    }
-
-    const disputeId = await ctx.db.insert("disputes", {
-      projectId: args.projectId,
-      creatorId: userId,
-      reason: args.reason,
-      description: args.reason,
-      status: "open",
-    });
-
-    await ctx.db.patch(args.projectId, {
-      status: "disputed" as any,
-    });
-
-    await ctx.db.insert("activityLogs", {
-      action: "Dispute Opened",
-      details: `Dispute opened for project ${args.projectId} by user ${userId}. Reason: ${args.reason}`,
-      userId,
-      timestamp: Date.now(),
-      relatedId: args.projectId,
-    });
-
-    return disputeId;
   },
 });
 
@@ -73,7 +132,14 @@ export const getOpenDisputes = query({
       .collect();
 
     return Promise.all(disputes.map(async (d) => {
-      const project = await ctx.db.get(d.projectId);
+      let project = null;
+      let order = null;
+      if (d.projectId) {
+        project = await ctx.db.get(d.projectId);
+      }
+      if (d.orderId) {
+        order = await ctx.db.get(d.orderId);
+      }
       const creatorProfile = await ctx.db
         .query("profiles")
         .withIndex("by_user", (q) => q.eq("userId", d.creatorId))
@@ -81,6 +147,7 @@ export const getOpenDisputes = query({
       return { 
         ...d, 
         project, 
+        order,
         creatorName: creatorProfile ? `${creatorProfile.firstName} ${creatorProfile.lastName}` : "Unknown"
       };
     }));
@@ -90,7 +157,7 @@ export const getOpenDisputes = query({
 export const resolveDispute = mutation({
   args: {
     disputeId: v.id("disputes"),
-    resolution: v.union(v.literal("resolved_refund"), v.literal("resolved_release")),
+    resolution: v.union(v.literal("resolved_refund"), v.literal("resolved_release"), v.literal("resolved_general")),
     notes: v.string(),
   },
   handler: async (ctx, args) => {
@@ -115,15 +182,23 @@ export const resolveDispute = mutation({
       resolvedAt: Date.now(),
     });
 
-    const projectStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
-    await ctx.db.patch(dispute.projectId, { status: projectStatus as any });
+    if (args.resolution !== "resolved_general") {
+      if (dispute.projectId) {
+        const projectStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
+        await ctx.db.patch(dispute.projectId, { status: projectStatus as any });
+      }
+      if (dispute.orderId) {
+        const orderStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
+        await ctx.db.patch(dispute.orderId, { status: orderStatus as any });
+      }
+    }
 
     await ctx.db.insert("activityLogs", {
       action: "Dispute Resolved",
       details: `Dispute ${args.disputeId} resolved as ${args.resolution}. Notes: ${args.notes}`,
       userId: adminId,
       timestamp: Date.now(),
-      relatedId: dispute.projectId,
+      relatedId: dispute.projectId || args.disputeId,
     });
 
     return args.disputeId;

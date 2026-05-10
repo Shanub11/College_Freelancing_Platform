@@ -30,6 +30,14 @@ const applicationTables = {
     paypalMerchantId: v.optional(v.string()), // To store the freelancer's PayPal Merchant ID
     razorpayAccountId: v.optional(v.string()), // Linked Razorpay Account ID (acc_...)
     company: v.optional(v.string()),
+    identity: v.optional(v.string()), // Startup Founder, Student Founder, etc.
+    hiringPreferences: v.optional(v.array(v.string())),
+    preferredCommunication: v.optional(v.string()),
+    website: v.optional(v.string()),
+    linkedin: v.optional(v.string()),
+    industry: v.optional(v.string()),
+    teamSize: v.optional(v.string()),
+    paymentVerified: v.optional(v.boolean()),
     // Admin flag
     isAdmin: v.optional(v.boolean()),
     // Ratings
@@ -150,16 +158,25 @@ const applicationTables = {
     status: v.union(
       v.literal("pending_payment"),
       v.literal("active"),
-      v.literal("in_progress"),
+      v.literal("in_progress"), // Legacy
+      v.literal("submitted"),
       v.literal("delivered"),
+      v.literal("revision_requested"),
       v.literal("completed"),
       v.literal("cancelled"),
-      v.literal("disputed")
+      v.literal("disputed"),
+      v.literal("late")
     ),
+    deadline: v.optional(v.number()),
     deliverables: v.optional(v.array(v.id("_storage"))),
     deliveryMessage: v.optional(v.string()),
+    deliveryLink: v.optional(v.string()),
     deliveredAt: v.optional(v.number()),
+    submittedAt: v.optional(v.number()),
     completedAt: v.optional(v.number()),
+    revisionCount: v.optional(v.number()),
+    revisionNotes: v.optional(v.string()),
+    autoCompleteJobId: v.optional(v.id("_scheduled_functions")),
   })
     .index("by_client", ["clientId"])
     .index("by_freelancer", ["freelancerId"])
@@ -243,14 +260,16 @@ const applicationTables = {
 
   // Disputes for orders
   disputes: defineTable({
-    projectId: v.id("projectRequests"),
+    projectId: v.optional(v.id("projectRequests")),
+    orderId: v.optional(v.id("orders")),
     creatorId: v.id("users"),
     reason: v.string(),
     description: v.string(),
     status: v.union(
       v.literal("open"),
       v.literal("resolved_refund"),
-      v.literal("resolved_release")
+      v.literal("resolved_release"),
+      v.literal("resolved_general")
     ),
     resolutionNotes: v.optional(v.string()),
     resolvedBy: v.optional(v.id("users")),

@@ -8,7 +8,7 @@ interface ChatInterfaceProps {
   isOpen: boolean;
   onClose: () => void;
   initialConversation?: {
-    projectId: Id<"projectRequests">;
+    projectId?: Id<"projectRequests">;
     clientId: Id<"users">;
     freelancerId: Id<"users">;
   } | null;
@@ -30,8 +30,19 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
   useEffect(() => {
     const setupInitial = async () => {
       if (initialConversation && isOpen) {
-        const id = await getOrCreate(initialConversation);
-        setSelectedConversationId(id);
+        try {
+          const payload: any = {
+            clientId: initialConversation.clientId,
+            freelancerId: initialConversation.freelancerId,
+          };
+          if (initialConversation.projectId) {
+            payload.projectId = initialConversation.projectId;
+          }
+          const id = await getOrCreate(payload);
+          setSelectedConversationId(id);
+        } catch (err) {
+          console.error("Failed to setup initial conversation:", err);
+        }
       }
     };
     setupInitial();

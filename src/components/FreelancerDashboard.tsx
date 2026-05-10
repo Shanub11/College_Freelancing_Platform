@@ -20,9 +20,10 @@ function useStorage(fileRef: any): string | null {
 interface FreelancerDashboardProps {
   profile: any;
   activeTab: string;
+  onOpenSupport?: (orderId?: string, projectId?: string) => void;
 }
 
-export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardProps) {
+export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: FreelancerDashboardProps) {
   const navigate = useNavigate();
   const myGigs = useQuery(api.gigs.getMyGigs);
   const myOrders = useQuery((api as any).projects?.getMyFreelancerOrders);
@@ -41,16 +42,10 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const openDispute = useMutation((api as any).disputes?.openDispute);
 
-  const handleDispute = async (projectId: string) => {
-    const reason = window.prompt("Please describe the issue to generate a support ticket:");
-    if (!reason) return;
-    try {
-      await openDispute({ projectId, reason });
-      toast.success("Ticket generated successfully. An admin will review it soon.");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to generate ticket");
+  const handleDispute = (orderId: string, projectId?: string) => {
+    if (onOpenSupport) {
+      onOpenSupport(orderId, projectId);
     }
   };
 
@@ -136,7 +131,7 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
       {activeTab === "gigs" && (
         <>
           {/* Verification Status */}
-          <VerificationUpload profile={profile} />
+          {!profile.isVerified && <VerificationUpload profile={profile} />}
 
           {(showCreateGig || editingGig) && (
             <CreateGigForm
@@ -250,7 +245,7 @@ export function FreelancerDashboard({ profile, activeTab }: FreelancerDashboardP
                     View Details
                   </button>
                   {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && (
-                    <button onClick={() => handleDispute(order._id)} className="bg-red-50 text-red-600 hover:text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">
+                    <button onClick={() => handleDispute(order._id, order.projectId)} className="bg-red-50 text-red-600 hover:text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">
                       Generate Ticket
                     </button>
                   )}
@@ -843,6 +838,134 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSubmitWork }: any) {
+  const isLate = order.deadline && Date.now() > order.deadline && (order.status === 'active' || order.status === 'revision_requested');
+  
+  const getStatusChip = (status: string) => {
+    if (isLate) return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">⚠ Late Delivery</span>;
+    switch (status) {
+      case 'active':
+      case 'in_progress':
+        return <span className="bg-blue-100 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> Active</span>;
+      case 'submitted':
+        return <span className="bg-purple-100 text-purple-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 In Review</span>;
+      case 'revision_requested':
+        return <span className="bg-orange-100 text-orange-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🔄 Revision Requested</span>;
+      case 'completed':
+        return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
+      default:
+        return <span className="bg-gray-100 text-gray-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
+    }
+  };
+
+  return (
+    <div className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${isLate ? 'border-red-500' : order.status === 'active' ? 'border-blue-500' : 'border-gray-200'}`}>
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{order.title}</h3>
+          {order.client && (
+            <p className="text-sm text-gray-600">Client: {order.client.firstName} {order.client.lastName}</p>
+          )}
+        </div>
+        <div className="text-right">
+          {getStatusChip(order.status)}
+          <p className="text-sm font-semibold text-green-600 mt-2">Payout: ₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
+        </div>
+      </div>
+
+      {order.deadline && (order.status === 'active' || order.status === 'revision_requested') && (
+        <div className="mb-4 bg-gray-50 p-3 rounded-lg flex justify-between items-center text-sm border border-gray-100">
+          <span className="font-medium text-gray-700">Deadline: {new Date(order.deadline).toLocaleString()}</span>
+          <span className={`font-bold ${isLate ? 'text-red-600' : 'text-blue-600'}`}>
+            {isLate ? "Overdue" : `${Math.max(0, Math.floor((order.deadline - Date.now()) / (1000 * 60 * 60)))} hours left`}
+          </span>
+        </div>
+      )}
+
+      {order.status === 'revision_requested' && order.revisionNotes && (
+        <div className="mb-4 bg-orange-50 border border-orange-100 p-3 rounded-lg text-sm text-orange-800">
+          <strong>Client requested revision:</strong> {order.revisionNotes}
+        </div>
+      )}
+
+      <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 flex-wrap">
+        <button 
+          onClick={onViewDetails}
+          className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+        >
+          View Details
+        </button>
+        
+        {(order.status === 'active' || order.status === 'revision_requested') && (
+          <button 
+            onClick={onSubmitWork}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+          >
+            Submit Work
+          </button>
+        )}
+
+        {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && (
+          <button onClick={onGenerateTicket} className="bg-red-50 text-red-600 hover:text-red-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors">
+            Generate Ticket
+          </button>
+        )}
+        {order.status === 'completed' && !order.hasReviewed && order.orderId && (
+          <button 
+            onClick={onLeaveReview}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Leave Review
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SubmitWorkModal({ order, onClose }: { order: any, onClose: () => void }) {
+  const [message, setMessage] = useState("");
+  const [link, setLink] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitDelivery = useMutation((api as any).projects.submitDelivery);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await submitDelivery({ orderId: order._id, message, link });
+      toast.success("Work submitted successfully! Client has 3 days to review.");
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit work.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Submit Work</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Message *</label>
+            <textarea required value={message} onChange={e => setMessage(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500" rows={4} placeholder="Describe what you have delivered..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Work (Optional)</label>
+            <input type="url" value={link} onChange={e => setLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500" placeholder="https://github.com/..." />
+          </div>
+          <button type="submit" disabled={isSubmitting || !message.trim()} className="w-full bg-green-600 text-white font-medium py-3 rounded-lg hover:bg-green-700 disabled:opacity-50">
+            {isSubmitting ? "Submitting..." : "Submit Delivery"}
+          </button>
+        </form>
       </div>
     </div>
   );

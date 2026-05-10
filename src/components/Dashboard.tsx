@@ -25,6 +25,9 @@ export function Dashboard({ profile }: DashboardProps) {
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [supportOrderId, setSupportOrderId] = useState<string | null>(null);
+  const [supportProjectId, setSupportProjectId] = useState<string | null>(null);
 
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
   // Profile Picture Upload
@@ -44,6 +47,15 @@ export function Dashboard({ profile }: DashboardProps) {
   const [chatInitData, setChatInitData] = useState<any>(null);
   const { results: conversations } = usePaginatedQuery(api.chat.getConversations, {}, { initialNumItems: 20 });
   const totalUnread = (conversations || []).reduce((acc, c) => acc + c.unreadCount, 0);
+
+  // Scroll effect for header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Log User Login
   useEffect(() => {
@@ -94,6 +106,12 @@ export function Dashboard({ profile }: DashboardProps) {
     }
   }, [isAdmin]);
 
+  const handleOpenSupport = (orderId?: string, projectId?: string) => {
+    setSupportOrderId(orderId || null);
+    setSupportProjectId(projectId || null);
+    setActiveTab("support");
+  };
+
   let tabs = [];
   if (profile.userType === "admin") {
     tabs = [{ id: "admin", label: "Admin Panel", icon: "⚙️" }];
@@ -104,6 +122,7 @@ export function Dashboard({ profile }: DashboardProps) {
       { id: "orders", label: "Orders", icon: "📋" },
       { id: "earnings", label: "Earnings", icon: "💰" },
       { id: "profile", label: "My Profile", icon: "👤" },
+      { id: "support", label: "Help & Support", icon: "🎧" },
     ];
     // If freelancer is not verified, add verification tab
     if (!profile.isVerified) {
@@ -116,20 +135,27 @@ export function Dashboard({ profile }: DashboardProps) {
       { id: "orders", label: "Orders", icon: "💼" },
       { id: "post-project", label: "Post Project", icon: "➕" },
       { id: "profile", label: "My Profile", icon: "👤" },
+      { id: "support", label: "Help & Support", icon: "🎧" },
     ];
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className={`sticky top-0 z-50 transition-all duration-200 border-b ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md border-gray-200' : 'bg-white shadow-sm border-gray-100'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">CG</span>
+              <div 
+                className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                title="Go to top"
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">CG</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900">CollegeGig</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">CollegeGig</span>
               
               {profile.userType === "freelancer" && !profile.isVerified && (
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -284,7 +310,7 @@ export function Dashboard({ profile }: DashboardProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex space-x-8">
           {/* Sidebar */}
-          <div className="w-64 flex-shrink-0">
+          <div className="w-64 flex-shrink-0 sticky top-24 self-start z-10">
             <nav className="bg-white rounded-lg shadow-sm p-4">
               <div className="space-y-2">
                 {tabs.map((tab) => (
@@ -315,12 +341,12 @@ export function Dashboard({ profile }: DashboardProps) {
               </div>
             )}
             {activeTab === "browse" && profile.userType !== "client" && <GigBrowser userType={profile.userType} />}
-            {activeTab === "admin" && profile.userType === "admin" && <AdminDashboard />}
+            {activeTab === "admin" && profile.userType === "admin" && <AdminDashboard adminId={profile.userId} onOpenChat={(data) => { setChatInitData(data); setIsChatOpen(true); }} />}
             {profile.userType === "freelancer" && (
               <>
                 {activeTab === "verification" && <VerificationUpload profile={profile} />}
                 {activeTab === "my-gigs" && <FreelancerDashboard profile={profile} activeTab="gigs" />}
-                {activeTab === "orders" && <FreelancerDashboard profile={profile} activeTab="orders" />}
+                {activeTab === "orders" && <FreelancerDashboard profile={profile} activeTab="orders" onOpenSupport={handleOpenSupport} />}
                 {activeTab === "earnings" && <FreelancerDashboard profile={profile} activeTab="earnings" />}
               </>
             )}
@@ -328,11 +354,12 @@ export function Dashboard({ profile }: DashboardProps) {
               <>
                 {activeTab === "browse" && <ClientDashboard profile={profile} activeTab="browse-services" />}
                 {activeTab === "projects" && <ClientDashboard profile={profile} activeTab="projects" onOpenChat={(data) => { setChatInitData(data); setIsChatOpen(true); }} />}
-                {activeTab === "orders" && <ClientDashboard profile={profile} activeTab="orders" />}
+                {activeTab === "orders" && <ClientDashboard profile={profile} activeTab="orders" onOpenSupport={handleOpenSupport} />}
                 {activeTab === "post-project" && <ClientDashboard profile={profile} activeTab="post-project" />}
               </>
             )}
             {activeTab === "profile" && <UserProfile profile={profile} onEditPhoto={() => setShowProfilePhotoModal(true)} />}
+            {activeTab === "support" && <SupportTicketForm initialOrderId={supportOrderId} initialProjectId={supportProjectId} />}
             </Suspense>
           </div>
         </div>
@@ -397,13 +424,81 @@ export function Dashboard({ profile }: DashboardProps) {
   );
 }
 
+function SupportTicketForm({ initialOrderId, initialProjectId }: { initialOrderId?: string | null, initialProjectId?: string | null }) {
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const openDispute = useMutation((api as any).disputes.openDispute);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await openDispute({
+        orderId: initialOrderId || undefined,
+        projectId: initialProjectId || undefined,
+        reason
+      });
+      toast.success("Support ticket generated successfully. An admin will review it soon.");
+      setReason("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-8 max-w-2xl mx-auto mt-4">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Help & Support</h2>
+      
+      {(initialOrderId || initialProjectId) && (
+        <div className="bg-blue-50 border border-blue-100 text-blue-800 p-4 rounded-lg mb-6 text-sm">
+          <strong>Note:</strong> You are submitting a ticket regarding a specific {initialOrderId ? "Order" : "Project"}. The details have been attached automatically.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            How can we help you?
+          </label>
+          <textarea
+            required
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={6}
+            placeholder="Describe your issue in detail..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {isSubmitting ? "Submitting..." : "Submit Ticket"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () => void }) {
   const profileData = useQuery(api.projects.getFreelancerPublicProfile, { userId: profile.userId });
+  const clientProfileData = useQuery((api as any).projects?.getClientPublicProfile, profile.userType === "client" ? { userId: profile.userId } : "skip");
   
   const [bio, setBio] = useState(profile.bio || "");
   const [skills, setSkills] = useState<string[]>(profile.skills || []);
   const [portfolioItems, setPortfolioItems] = useState<any[]>(profile.portfolioItems || []);
   const [company, setCompany] = useState(profile.company || "");
+  const [identity, setIdentity] = useState(profile.identity || "");
+  const [website, setWebsite] = useState(profile.website || "");
+  const [linkedin, setLinkedin] = useState(profile.linkedin || "");
+  const [industry, setIndustry] = useState(profile.industry || "");
+  const [teamSize, setTeamSize] = useState(profile.teamSize || "");
+  const [hiringPreferences, setHiringPreferences] = useState<string[]>(profile.hiringPreferences || []);
+  const [preferredCommunication, setPreferredCommunication] = useState(profile.preferredCommunication || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
@@ -418,18 +513,40 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
   });
   const [isUploadingPortfolioImage, setIsUploadingPortfolioImage] = useState(false);
 
+  const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const handlePrevMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
   useEffect(() => {
     setBio(profile.bio || "");
     setSkills(profile.skills || []);
     setPortfolioItems(profile.portfolioItems || []);
     setCompany(profile.company || "");
+    setIdentity(profile.identity || "");
+    setWebsite(profile.website || "");
+    setLinkedin(profile.linkedin || "");
+    setIndustry(profile.industry || "");
+    setTeamSize(profile.teamSize || "");
+    setHiringPreferences(profile.hiringPreferences || []);
+    setPreferredCommunication(profile.preferredCommunication || "");
   }, [profile]);
 
   const hasChanges = 
     bio !== (profile.bio || "") || 
     JSON.stringify(skills) !== JSON.stringify(profile.skills || []) ||
     JSON.stringify(portfolioItems.map((i: any) => ({ id: i.id, title: i.title, description: i.description, link: i.link || undefined, image: i.image || undefined }))) !== JSON.stringify(profile.portfolioItems || []) ||
-    company !== (profile.company || "");
+    company !== (profile.company || "") ||
+    identity !== (profile.identity || "") ||
+    website !== (profile.website || "") ||
+    linkedin !== (profile.linkedin || "") ||
+    industry !== (profile.industry || "") ||
+    teamSize !== (profile.teamSize || "") ||
+    JSON.stringify(hiringPreferences) !== JSON.stringify(profile.hiringPreferences || []) ||
+    preferredCommunication !== (profile.preferredCommunication || "");
 
   const handleSaveChanges = async () => {
     setIsSubmitting(true);
@@ -445,6 +562,13 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
           image: item.image || undefined,
         })) : undefined,
         company: profile.userType === "client" ? company : undefined,
+        identity: profile.userType === "client" ? identity : undefined,
+        website: profile.userType === "client" ? website : undefined,
+        linkedin: profile.userType === "client" ? linkedin : undefined,
+        industry: profile.userType === "client" ? industry : undefined,
+        teamSize: profile.userType === "client" ? teamSize : undefined,
+        hiringPreferences: profile.userType === "client" ? hiringPreferences : undefined,
+        preferredCommunication: profile.userType === "client" ? preferredCommunication : undefined,
       });
       toast.success("Profile updated successfully!");
     } catch (err: any) {
@@ -562,9 +686,10 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
               <div className="bg-white border rounded-lg p-4 text-center shadow-sm">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-bold text-gray-900">{completedProjects.length > 0 ? successRate + '%' : 'N/A'}</span>
+                  <span className="text-xl font-bold text-gray-900">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
                   <span className="text-green-500 text-lg">📈</span>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-1">On-Time Delivery</p>
               </div>
             </div>
 
@@ -771,41 +896,86 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
         {/* LeetCode Style Activity Graph */}
         <div className="border-t pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Activity Map</h3>
-          <div className="bg-gray-50 p-6 rounded-lg border overflow-x-auto">
-            <div className="flex gap-1">
-              {Array.from({ length: 52 }).map((_, col) => (
-                <div key={col} className="flex flex-col gap-1">
-                  {Array.from({ length: 7 }).map((_, row) => {
-                    const daysAgo = (51 - col) * 7 + (6 - row);
-                    const date = new Date();
-                    date.setDate(date.getDate() - daysAgo);
-                    const dateStr = date.toISOString().split("T")[0];
-                    const count = activityMap[dateStr] || 0;
-                    
-                    let intensity = 0;
-                    if (count > 0 && count <= 2) intensity = 1;
-                    else if (count > 2 && count <= 5) intensity = 2;
-                    else if (count > 5 && count <= 10) intensity = 3;
-                    else if (count > 10) intensity = 4;
-
-                    const colors = ["bg-gray-200", "bg-green-200", "bg-green-400", "bg-green-600", "bg-green-800"];
-                    return (
-                      <div key={`${col}-${row}`} className={`w-3 h-3 rounded-sm ${colors[intensity]}`} title={`${count} activities on ${dateStr}`}></div>
-                    );
-                  })}
-                </div>
-              ))}
+          <div className="bg-gray-50 p-6 rounded-lg border">
+            <div className="flex items-center justify-between mb-6">
+              <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <h4 className="font-semibold text-gray-800 text-lg">
+                {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </h4>
+              <button 
+                onClick={handleNextMonth} 
+                disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>Less</span>
-              <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-sm bg-gray-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-400"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-600"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-800"></div>
+
+            <div className="w-full">
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider py-1">{day}</div>
+                ))}
               </div>
-              <span>More</span>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {(() => {
+                  const year = currentMonth.getFullYear();
+                  const month = currentMonth.getMonth();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                const days = [];
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                  days.push(null);
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                  days.push(new Date(year, month, i));
+                }
+                while (days.length % 7 !== 0) {
+                  days.push(null);
+                }
+
+                return days.map((date, index) => {
+                  if (!date) return <div key={`empty-${index}`} className="h-10 sm:h-12"></div>;
+                  
+                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  const count = activityMap[dateStr] || 0;
+                  
+                  let intensity = 0;
+                  if (count > 0 && count <= 2) intensity = 1;
+                  else if (count > 2 && count <= 5) intensity = 2;
+                  else if (count > 5 && count <= 10) intensity = 3;
+                  else if (count > 10) intensity = 4;
+
+                  const colors = ["bg-white border-gray-200", "bg-green-100 border-green-200", "bg-green-300 border-green-400", "bg-green-500 border-green-600", "bg-green-700 border-green-800"];
+                  
+                  return (
+                    <div 
+                      key={dateStr} 
+                      className={`h-10 sm:h-12 rounded-md flex items-center justify-center text-xs font-medium border transition-all hover:scale-105 cursor-default ${colors[intensity]} ${intensity > 2 ? 'text-white' : 'text-gray-700'} shadow-sm`}
+                      title={`${count} activities on ${date.toLocaleDateString()}`}
+                    >
+                      {date.getDate()}
+                    </div>
+                  )
+                });
+              })()}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-gray-500 mt-6 pt-4 border-t">
+              <span>Less Activity</span>
+              <div className="flex gap-2">
+                <div className="w-4 h-4 rounded shadow-sm border border-gray-200 bg-white"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-200 bg-green-100"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-400 bg-green-300"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-600 bg-green-500"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-800 bg-green-700"></div>
+              </div>
+              <span>More Activity</span>
             </div>
           </div>
         </div>
@@ -847,12 +1017,25 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
-                <div key={project._id} className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <div key={project._id} className="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold text-gray-800 line-clamp-1">{project.title}</h4>
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded font-semibold">Completed</span>
+                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-semibold">Completed</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description}</p>
+                  <p className="text-sm text-gray-600 mt-2 line-clamp-2 flex-1">{project.description}</p>
+                  
+                  {project.review && (
+                    <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-yellow-400 text-sm">
+                          {'★'.repeat(project.review.rating)}{'☆'.repeat(5 - project.review.rating)}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-700 ml-1">Client Review</span>
+                      </div>
+                      <p className="text-sm text-gray-600 italic">"{project.review.comment}"</p>
+                    </div>
+                  )}
+
                   <div className="mt-4 flex justify-end border-t pt-3">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{project.category}</span>
                   </div>
@@ -868,6 +1051,8 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
       </div>
     );
   }
+
+  const clientData = clientProfileData || { postedProjectsCount: 0, completedHiresCount: 0 };
 
   // Fallback for Client or Admin view
   return (
@@ -901,6 +1086,34 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
               <span>✓</span> Verified {profile.userType === "freelancer" ? "Student" : "User"}
             </div>
           )}
+
+          {profile.paymentVerified && (
+            <div className="mt-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+              <span>💳</span> Payment Verified
+            </div>
+          )}
+
+          {profile.userType === "client" && (
+            <div className="mt-6 w-full text-left bg-gray-50 p-4 rounded-lg border">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Client Stats</h4>
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Projects Posted</span>
+                  <span className="font-semibold text-gray-900">{clientData.postedProjectsCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Completed Hires</span>
+                  <span className="font-semibold text-gray-900">{clientData.completedHiresCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Average Rating</span>
+                  <span className="font-semibold text-gray-900 flex items-center gap-1">
+                    {profile.averageRating ? profile.averageRating.toFixed(1) : "New"} <span className="text-yellow-400">★</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Details */}
@@ -916,16 +1129,94 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
             />
           </div>
 
-          {profile.userType === "client" && profile.company && (
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Company</h3>
-              <input 
-                type="text" 
-                value={company} 
-                onChange={(e) => setCompany(e.target.value)} 
-                className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 bg-white shadow-sm" 
-                placeholder="Your company name" 
-              />
+          {profile.userType === "client" && (
+            <div className="space-y-6 mt-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Company / Brand Name</h3>
+                <input 
+                  type="text" 
+                  value={company} 
+                  onChange={(e) => setCompany(e.target.value)} 
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 bg-white shadow-sm" 
+                  placeholder="Your company name" 
+                />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Identity</h3>
+                <select 
+                  value={identity} 
+                  onChange={(e) => setIdentity(e.target.value)} 
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 bg-white shadow-sm"
+                >
+                  <option value="">Select identity</option>
+                  <option value="Startup Founder">Startup Founder</option>
+                  <option value="Student Founder">Student Founder</option>
+                  <option value="Small Business">Small Business</option>
+                  <option value="Agency">Agency</option>
+                  <option value="Individual">Individual</option>
+                  <option value="Creator">Creator</option>
+                </select>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Hiring Preferences</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['Project-based', 'Long-term', 'Quick tasks', 'Ongoing support'].map(pref => (
+                    <label key={pref} className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded border">
+                      <input 
+                        type="checkbox" 
+                        checked={hiringPreferences.includes(pref)}
+                        onChange={(e) => {
+                          if (e.target.checked) setHiringPreferences([...hiringPreferences, pref]);
+                          else setHiringPreferences(hiringPreferences.filter((p: string) => p !== pref));
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{pref}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Preferred Communication</h3>
+                <select 
+                  value={preferredCommunication} 
+                  onChange={(e) => setPreferredCommunication(e.target.value)} 
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 bg-white shadow-sm"
+                >
+                  <option value="">Select preference</option>
+                  <option value="In-app chat">In-app chat</option>
+                  <option value="Email">Email</option>
+                  <option value="Flexible">Flexible</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2">Website</h3>
+                  <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="https://..." />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2">LinkedIn</h3>
+                  <input type="url" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="https://linkedin.com/..." />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2">Industry</h3>
+                  <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="e.g., SaaS, EdTech" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-2">Team Size</h3>
+                  <select value={teamSize} onChange={(e) => setTeamSize(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm">
+                    <option value="">Select size</option>
+                    <option value="1-10">1-10</option>
+                    <option value="11-50">11-50</option>
+                    <option value="51-200">51-200</option>
+                    <option value="201+">201+</option>
+                  </select>
+                </div>
+              </div>
             </div>
           )}
 

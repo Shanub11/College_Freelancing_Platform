@@ -101,6 +101,13 @@ export const createProfile = mutation({
     ),
     // Client fields
     company: v.optional(v.string()),
+    identity: v.optional(v.string()),
+    hiringPreferences: v.optional(v.array(v.string())),
+    preferredCommunication: v.optional(v.string()),
+    website: v.optional(v.string()),
+    linkedin: v.optional(v.string()),
+    industry: v.optional(v.string()),
+    teamSize: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -136,6 +143,13 @@ export const createProfile = mutation({
       skills: args.skills,
       portfolioItems: args.portfolioItems,
       company: args.company,
+      identity: args.identity,
+      hiringPreferences: args.hiringPreferences,
+      preferredCommunication: args.preferredCommunication,
+      website: args.website,
+      linkedin: args.linkedin,
+      industry: args.industry,
+      teamSize: args.teamSize,
       isAdmin: isAdmin,
       isVerified: isAdmin,
       totalReviews: 0,
@@ -225,6 +239,13 @@ export const updateProfile = mutation({
       )
     ),
     company: v.optional(v.string()),
+    identity: v.optional(v.string()),
+    hiringPreferences: v.optional(v.array(v.string())),
+    preferredCommunication: v.optional(v.string()),
+    website: v.optional(v.string()),
+    linkedin: v.optional(v.string()),
+    industry: v.optional(v.string()),
+    teamSize: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -245,6 +266,13 @@ export const updateProfile = mutation({
     if (args.skills !== undefined) updates.skills = args.skills;
     if (args.portfolioItems !== undefined) updates.portfolioItems = args.portfolioItems;
     if (args.company !== undefined) updates.company = args.company;
+    if (args.identity !== undefined) updates.identity = args.identity;
+    if (args.hiringPreferences !== undefined) updates.hiringPreferences = args.hiringPreferences;
+    if (args.preferredCommunication !== undefined) updates.preferredCommunication = args.preferredCommunication;
+    if (args.website !== undefined) updates.website = args.website;
+    if (args.linkedin !== undefined) updates.linkedin = args.linkedin;
+    if (args.industry !== undefined) updates.industry = args.industry;
+    if (args.teamSize !== undefined) updates.teamSize = args.teamSize;
 
     await ctx.db.patch(profile._id, updates);
 

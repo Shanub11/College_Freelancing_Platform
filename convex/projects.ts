@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 export const createProject = mutation({
   args: {
@@ -63,7 +64,13 @@ export const getProjects = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // This is a simplified version. You might have more complex logic.
+    if (args.category) {
+      return await ctx.db
+        .query("projectRequests")
+        .filter((q) => q.eq(q.field("category"), args.category))
+        .order("desc")
+        .take(args.limit || 20);
+    }
     const projects = await ctx.db.query("projectRequests").order("desc").take(args.limit || 20);
     return projects;
   },
@@ -114,9 +121,14 @@ export const getProjectById = query({
       .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
       .collect();
 
+    let profilePictureUrl = null;
+    if (clientProfile.profilePicture) {
+      profilePictureUrl = await ctx.storage.getUrl(clientProfile.profilePicture);
+    }
+
     return {
       ...project,
-      client: clientProfile,
+      client: { ...clientProfile, profilePictureUrl },
       proposalCount: proposals.length,
     };
   },
@@ -244,23 +256,56 @@ export const getFreelancerPublicProfile = query({
       portfolioItems,
     };
 
-    // NOTE: This assumes an index on `selectedFreelancer` and `status`.
-    // You may need to create a new index in your schema:
-    // .index("by_freelancer_status", ["selectedFreelancer", "status"])
-    const completedProjects = await ctx.db
-      .query("projectRequests")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("selectedFreelancer"), args.userId),
-          q.eq(q.field("status"), "completed")
-        )
-      )
+    const allOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
       .collect();
+
+    let completedCount = 0;
+    let onTimeCount = 0;
+    for (const o of allOrders) {
+      if (o.status === "completed") {
+        completedCount++;
+        if ((o.deadline && o.submittedAt && o.submittedAt <= o.deadline) || !o.deadline) {
+          onTimeCount++;
+        }
+      }
+    }
+    const onTimeRate = completedCount > 0 ? Math.round((onTimeCount / completedCount) * 100) : 100;
+
+    const completedOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "completed"))
+      .collect();
+
+    const completedProjects = await Promise.all(completedOrders.map(async (order) => {
+      let category = "Direct Order";
+      if (order.projectId) {
+         const proj = await ctx.db.get(order.projectId);
+         if (proj) category = proj.category;
+      } else if (order.gigId) {
+         const gig = await ctx.db.get(order.gigId);
+         if (gig) category = gig.category;
+      }
+      
+      const review = await ctx.db
+        .query("reviews")
+        .withIndex("by_order", (q) => q.eq("orderId", order._id))
+        .first();
+
+      return {
+        _id: order._id,
+        title: order.title,
+        description: order.description,
+        category,
+        review
+      };
+    }));
 
     const publicReviews = await ctx.db
       .query("reviews")
       .withIndex("by_reviewee", (q) => q.eq("revieweeId", args.userId))
-      .filter((q) => q.eq(q.field("isPublic"), true))
       .collect();
       
     const reviewsWithReviewer = await Promise.all(
@@ -295,7 +340,55 @@ export const getFreelancerPublicProfile = query({
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap, gigs };
+    return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap, gigs, onTimeRate };
+  },
+});
+
+export const getClientPublicProfile = query({
+  args: { userId: v.id("users") },
+  async handler(ctx, args) {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!profile) return null;
+
+    const postedProjects = await ctx.db
+      .query("projectRequests")
+      .withIndex("by_client", (q) => q.eq("clientId", args.userId))
+      .collect();
+
+    const completedOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_client", (q) => q.eq("clientId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "completed"))
+      .collect();
+
+    const publicReviews = await ctx.db
+      .query("reviews")
+      .withIndex("by_reviewee", (q) => q.eq("revieweeId", args.userId))
+      .collect();
+      
+    const reviewsWithReviewer = await Promise.all(
+      publicReviews.map(async (r) => {
+        const reviewerProfile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", r.reviewerId))
+          .first();
+        return {
+          ...r,
+          reviewerName: reviewerProfile ? `${reviewerProfile.firstName} ${reviewerProfile.lastName}` : "Anonymous"
+        };
+      })
+    );
+
+    return {
+      profile,
+      postedProjectsCount: postedProjects.length,
+      completedHiresCount: completedOrders.length,
+      reviews: reviewsWithReviewer,
+    };
   },
 });
 
@@ -305,7 +398,9 @@ export const markOrderPaid = mutation({
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
     
-    await ctx.db.patch(args.orderId, { status: "in_progress" });
+    const deadline = Date.now() + (order.deliveryTime * 24 * 60 * 60 * 1000);
+
+    await ctx.db.patch(args.orderId, { status: "active", deadline, revisionCount: 0 });
 
     if (order.projectId) {
       await ctx.db.patch(order.projectId, { 
@@ -343,6 +438,10 @@ export const completeOrderAndReleaseFunds = mutation({
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
     
+    if (order.autoCompleteJobId) {
+      try { await ctx.scheduler.cancel(order.autoCompleteJobId); } catch (e) {}
+    }
+
     await ctx.db.patch(args.orderId, { 
       status: "completed",
       completedAt: Date.now()
@@ -402,4 +501,131 @@ export const createDirectOrder = mutation({
 
     return orderId;
   },
+});
+
+export const submitDelivery = mutation({
+  args: {
+    orderId: v.id("orders"),
+    message: v.string(),
+    link: v.optional(v.string()),
+    attachment: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.freelancerId !== userId) throw new Error("Unauthorized");
+
+    const jobId = await ctx.scheduler.runAfter(
+      3 * 24 * 60 * 60 * 1000,
+      internal.projects.autoCompleteOrder,
+      { orderId: args.orderId }
+    );
+
+    await ctx.db.patch(args.orderId, {
+      status: "submitted",
+      submittedAt: Date.now(),
+      deliveryMessage: args.message,
+      deliveryLink: args.link,
+      deliverables: args.attachment ? [args.attachment] : undefined,
+      autoCompleteJobId: jobId,
+    });
+
+    await ctx.db.insert("notifications", {
+      userId: order.clientId,
+      type: "order_submitted",
+      message: `Freelancer has submitted work for "${order.title}". You have 3 days to review.`,
+      isRead: false,
+      link: `/orders`,
+    });
+  }
+});
+
+export const requestRevision = mutation({
+  args: {
+    orderId: v.id("orders"),
+    notes: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.clientId !== userId) throw new Error("Unauthorized");
+    
+    if ((order.revisionCount || 0) >= 2) throw new Error("Maximum revisions reached.");
+
+    if (order.autoCompleteJobId) {
+      try { await ctx.scheduler.cancel(order.autoCompleteJobId); } catch (e) {}
+    }
+
+    const newDeadline = Date.now() + (2 * 24 * 60 * 60 * 1000); // +2 days
+
+    await ctx.db.patch(args.orderId, {
+      status: "revision_requested",
+      revisionNotes: args.notes,
+      revisionCount: (order.revisionCount || 0) + 1,
+      deadline: newDeadline,
+    });
+
+    await ctx.db.insert("notifications", {
+      userId: order.freelancerId,
+      type: "revision_requested",
+      message: `Client requested a revision for "${order.title}". You have 2 days to resubmit.`,
+      isRead: false,
+    });
+  }
+});
+
+export const extendDeadline = mutation({
+  args: { orderId: v.id("orders"), days: v.number() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.clientId !== userId) throw new Error("Unauthorized");
+
+    const currentDeadline = order.deadline || Date.now();
+    const newDeadline = currentDeadline + (args.days * 24 * 60 * 60 * 1000);
+
+    await ctx.db.patch(args.orderId, {
+      deadline: newDeadline,
+      status: "active" 
+    });
+  }
+});
+
+export const cancelLateOrder = mutation({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order || order.clientId !== userId) throw new Error("Unauthorized");
+
+    const gracePeriodEnd = (order.deadline || 0) + (24 * 60 * 60 * 1000);
+    if (Date.now() < gracePeriodEnd) {
+      throw new Error("Grace period (24h) has not ended yet. Cannot cancel.");
+    }
+
+    await ctx.db.patch(args.orderId, { status: "cancelled" });
+    if (order.projectId) await ctx.db.patch(order.projectId, { status: "cancelled" as any });
+  }
+});
+
+export const autoCompleteOrder = internalMutation({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (order?.status === "submitted") {
+      await ctx.db.patch(args.orderId, { 
+        status: "completed",
+        completedAt: Date.now()
+      });
+      if (order.projectId) {
+        await ctx.db.patch(order.projectId, { status: "completed" as any });
+      }
+      await ctx.db.insert("notifications", {
+        userId: order.freelancerId,
+        type: "funds_released",
+        message: `Order "${order.title}" was auto-completed. Funds have been released!`,
+        isRead: false,
+      });
+    }
+  }
 });

@@ -2,6 +2,7 @@ import { usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Link } from "react-router-dom";
 import posthog from "posthog-js";
+import { useInfiniteScroll } from "../../convex/useInfiniteScroll";
 
 export function ProjectRequestsList() {
   const { results: projectRequests, status, loadMore } = usePaginatedQuery(
@@ -9,6 +10,8 @@ export function ProjectRequestsList() {
     {},
     { initialNumItems: 20 }
   );
+
+  const loadMoreRef = useInfiniteScroll(loadMore, status, 20);
 
   if (projectRequests === undefined && status === "LoadingFirstPage") {
     return <div>Loading project requests...</div>;
@@ -56,14 +59,9 @@ export function ProjectRequestsList() {
             </li>
           ))}
         </ul>
-          {status === "CanLoadMore" && (
-            <div className="mt-4 flex justify-center">
-              <button
-                onClick={() => loadMore(20)}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                Load More
-              </button>
+          {(status === "CanLoadMore" || status === "LoadingMore") && (
+            <div ref={loadMoreRef} className="mt-6 flex justify-center pb-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           )}
         </>

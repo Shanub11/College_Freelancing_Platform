@@ -29,6 +29,7 @@ import type * as recommendations from "../recommendations.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as storage from "../storage.js";
+import type * as useInfiniteScroll from "../useInfiniteScroll.js";
 import type * as verification from "../verification.js";
 
 import type {
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   router: typeof router;
   storage: typeof storage;
+  useInfiniteScroll: typeof useInfiniteScroll;
   verification: typeof verification;
 }>;
 

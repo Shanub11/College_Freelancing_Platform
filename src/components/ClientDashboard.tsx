@@ -27,7 +27,7 @@ import { Helmet } from "react-helmet-async";
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
 // Main component for the client dashboard
-export function ClientDashboard({ profile, activeTab, onOpenChat }: { profile: any, activeTab: string, onOpenChat?: (data?: any) => void }) {
+export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport }: { profile: any, activeTab: string, onOpenChat?: (data?: any) => void, onOpenSupport?: (orderId?: string, projectId?: string) => void }) {
   const myProjects = useQuery(api.projects.getMyProjects, {}) || [];
   const notifications = useQuery(api.proposals.getNotifications, {}) || [];
   const myOrders = useQuery(api.projects.getMyClientOrders) || [];
@@ -138,38 +138,9 @@ export function ClientDashboard({ profile, activeTab, onOpenChat }: { profile: a
           </p>
         </div>
         <div className="relative flex gap-4">
-          <button onClick={() => { 
-            if (onOpenChat) {
-              onOpenChat(null);
-            } else {
-              setChatInitData(null); setIsChatOpen(true); 
-            }
-          }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            {totalUnread > 0 && (
-              <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                {totalUnread}
-              </span>
-            )}
-          </button>
+          
           <div className="relative">
-            <button className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors" onClick={() => {
-              if (!showNotifications && unreadCount > 0) {
-                markAllAsRead();
-              }
-              setShowNotifications(!showNotifications);
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            
             {showNotifications && (
               <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
                 <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -199,7 +170,7 @@ export function ClientDashboard({ profile, activeTab, onOpenChat }: { profile: a
       )}
 
       {activeTab === 'orders' && (
-        <OrderList orders={myOrders} />
+        <OrderList orders={myOrders} onOpenSupport={onOpenSupport} />
       )}
 
       {activeTab === 'post-project' && (
@@ -274,19 +245,13 @@ function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
 
 
 // Component to display the list of orders
-function OrderList({ orders }: { orders: any[] }) {
-  const openDispute = useMutation((api as any).disputes?.openDispute);
+function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (orderId?: string, projectId?: string) => void }) {
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
   const [viewOrder, setViewOrder] = useState<any | null>(null);
 
-  const handleDispute = async (projectId: string) => {
-    const reason = window.prompt("Please describe the issue to generate a support ticket:");
-    if (!reason) return;
-    try {
-      await openDispute({ projectId, reason });
-      toast.success("Ticket generated successfully. An admin will review it soon.");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to generate ticket");
+  const handleDispute = (orderId: string, projectId?: string) => {
+    if (onOpenSupport) {
+      onOpenSupport(orderId, projectId);
     }
   };
 
@@ -355,7 +320,7 @@ function OrderList({ orders }: { orders: any[] }) {
             </button>
             {order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'disputed' && order.status !== 'open' && order.status !== 'pending_payment' && (
               <button 
-                onClick={() => handleDispute(order._id)}
+                onClick={() => handleDispute(order._id, order.projectId)}
                 className="bg-red-50 text-red-700 border-transparent px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
               >
                 Generate Ticket
@@ -655,6 +620,14 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
   const profileData = useQuery(api.projects.getFreelancerPublicProfile, { userId });
   const [hireGig, setHireGig] = useState<any | null>(null);
 
+  const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const handlePrevMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
   if (!profileData) {
     return <div>Loading profile...</div>;
   }
@@ -756,9 +729,10 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-bold text-gray-900">{completedProjects.length > 0 ? successRate + '%' : 'N/A'}</span>
+                  <span className="text-xl font-bold text-gray-900">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
                   <span className="text-green-500 text-lg">📈</span>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-1">On-Time Delivery</p>
               </div>
             </div>
 
@@ -787,74 +761,86 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         {/* LeetCode Style Activity Graph (Mocked for visual representation) */}
         <div className="border-t border-gray-200 pt-8 mt-8">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Activity Map</h3>
-          <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg overflow-x-auto">
-            <div className="flex gap-1 ml-10 mb-2">
-              {Array.from({ length: 52 }).map((_, col) => {
-                const daysAgo = (51 - col) * 7 + 6;
-                const d = new Date();
-                d.setDate(d.getDate() - daysAgo);
-                
-                const prevDaysAgo = (51 - col + 1) * 7 + 6;
-                const prevD = new Date();
-                prevD.setDate(prevD.getDate() - prevDaysAgo);
-                
-                const isNewMonth = col === 0 || d.getMonth() !== prevD.getMonth();
-                
-                return (
-                  <div key={col} className="w-3 relative text-xs text-gray-500">
-                    {isNewMonth && <span className="absolute overflow-visible whitespace-nowrap">{d.toLocaleString('default', { month: 'short' })}</span>}
-                  </div>
-                );
-              })}
+          <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+            <div className="flex items-center justify-between mb-6">
+              <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <h4 className="font-semibold text-gray-800 text-lg">
+                {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </h4>
+              <button 
+                onClick={handleNextMonth} 
+                disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
-            <div className="flex">
-              <div className="flex flex-col gap-1 text-xs text-gray-500 mr-2 w-8 text-right">
-                {Array.from({ length: 7 }).map((_, row) => {
-                  const daysAgo = 6 - row;
-                  const d = new Date();
-                  d.setDate(d.getDate() - daysAgo);
-                  return (
-                    <div key={row} className="h-3 leading-3">
-                      {row % 2 !== 0 ? d.toLocaleString('default', { weekday: 'short' }) : ''}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex gap-1">
-                {Array.from({ length: 52 }).map((_, col) => (
-                  <div key={col} className="flex flex-col gap-1">
-                    {Array.from({ length: 7 }).map((_, row) => {
-                      const daysAgo = (51 - col) * 7 + (6 - row);
-                    const date = new Date();
-                    date.setDate(date.getDate() - daysAgo);
-                    const dateStr = date.toISOString().split("T")[0];
-                    const count = activityMap[dateStr] || 0;
-                    
-                    let intensity = 0;
-                    if (count > 0 && count <= 2) intensity = 1;
-                    else if (count > 2 && count <= 5) intensity = 2;
-                    else if (count > 5 && count <= 10) intensity = 3;
-                    else if (count > 10) intensity = 4;
 
-                    const colors = ["bg-gray-200", "bg-green-200", "bg-green-400", "bg-green-600", "bg-green-800"];
-                    return (
-                      <div key={`${col}-${row}`} className={`w-3 h-3 rounded-sm ${colors[intensity]}`} title={`${count} activities on ${dateStr}`}></div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>Less</span>
-              <div className="flex gap-1">
-                <div className="w-3 h-3 rounded-sm bg-gray-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-400"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-600"></div>
-                <div className="w-3 h-3 rounded-sm bg-green-800"></div>
+            <div className="w-full">
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider py-1">{day}</div>
+                ))}
               </div>
-              <span>More</span>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {(() => {
+                  const year = currentMonth.getFullYear();
+                  const month = currentMonth.getMonth();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                const days = [];
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                  days.push(null);
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                  days.push(new Date(year, month, i));
+                }
+                while (days.length % 7 !== 0) {
+                  days.push(null);
+                }
+
+                return days.map((date, index) => {
+                  if (!date) return <div key={`empty-${index}`} className="h-10 sm:h-12"></div>;
+                  
+                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  const count = activityMap[dateStr] || 0;
+                  
+                  let intensity = 0;
+                  if (count > 0 && count <= 2) intensity = 1;
+                  else if (count > 2 && count <= 5) intensity = 2;
+                  else if (count > 5 && count <= 10) intensity = 3;
+                  else if (count > 10) intensity = 4;
+
+                  const colors = ["bg-white border-gray-200", "bg-green-100 border-green-200", "bg-green-300 border-green-400", "bg-green-500 border-green-600", "bg-green-700 border-green-800"];
+                  
+                  return (
+                    <div 
+                      key={dateStr} 
+                      className={`h-10 sm:h-12 rounded-md flex items-center justify-center text-xs font-medium border transition-all hover:scale-105 cursor-default ${colors[intensity]} ${intensity > 2 ? 'text-white' : 'text-gray-700'} shadow-sm`}
+                      title={`${count} activities on ${date.toLocaleDateString()}`}
+                    >
+                      {date.getDate()}
+                    </div>
+                  )
+                });
+              })()}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-gray-500 mt-6 pt-4 border-t border-gray-200">
+              <span>Less Activity</span>
+              <div className="flex gap-2">
+                <div className="w-4 h-4 rounded shadow-sm border border-gray-200 bg-white"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-200 bg-green-100"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-400 bg-green-300"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-600 bg-green-500"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-green-800 bg-green-700"></div>
+              </div>
+              <span>More Activity</span>
             </div>
           </div>
         </div>
@@ -954,12 +940,25 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
-                <div key={project._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div key={project._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-bold text-gray-800 line-clamp-1">{project.title}</h4>
                     <span className="bg-green-100 border border-transparent text-green-800 text-xs px-2 py-1 rounded-full font-semibold">Completed</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description}</p>
+                  <p className="text-sm text-gray-600 mt-2 line-clamp-2 flex-1">{project.description}</p>
+                  
+                  {project.review && (
+                    <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-yellow-400 text-sm">
+                          {'★'.repeat(project.review.rating)}{'☆'.repeat(5 - project.review.rating)}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-700 ml-1">Client Review</span>
+                      </div>
+                      <p className="text-sm text-gray-600 italic">"{project.review.comment}"</p>
+                    </div>
+                  )}
+
                 <div className="mt-4 flex justify-end border-t border-gray-200 pt-3">
                   <span className="text-xs bg-gray-100 border border-transparent text-gray-600 px-2 py-1 rounded-lg">{project.category}</span>
                   </div>

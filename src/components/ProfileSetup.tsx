@@ -16,6 +16,13 @@ export function ProfileSetup() {
     graduationYear: new Date().getFullYear(),
     skills: [] as string[],
     company: "",
+    identity: "",
+    hiringPreferences: [] as string[],
+    preferredCommunication: "",
+    website: "",
+    linkedin: "",
+    industry: "",
+    teamSize: "",
   });
 
   const createProfile = useMutation(api.profiles.createProfile);
@@ -36,6 +43,13 @@ export function ProfileSetup() {
         bio: formData.bio || undefined, // Bio is optional
         skills: userType === "freelancer" && formData.skills.length > 0 ? formData.skills : undefined,
         company: userType === "client" ? formData.company || undefined : undefined,
+        identity: userType === "client" ? formData.identity || undefined : undefined,
+        hiringPreferences: userType === "client" && formData.hiringPreferences.length > 0 ? formData.hiringPreferences : undefined,
+        preferredCommunication: userType === "client" ? formData.preferredCommunication || undefined : undefined,
+        website: userType === "client" ? formData.website || undefined : undefined,
+        linkedin: userType === "client" ? formData.linkedin || undefined : undefined,
+        industry: userType === "client" ? formData.industry || undefined : undefined,
+        teamSize: userType === "client" ? formData.teamSize || undefined : undefined,
       });
 
       toast.success("Profile created successfully!");
@@ -168,28 +182,45 @@ export function ProfileSetup() {
                 onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                 rows={3}
                 className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                placeholder={userType === "freelancer" ? "Tell clients about yourself and your skills..." : "Tell freelancers about your business..."}
+                placeholder={userType === "freelancer" ? "Tell clients about yourself and your skills..." : "e.g., Building SaaS products and hiring student developers for frontend work."}
               />
             </div>
 
-            {userType === "freelancer" && (
-              <>
-              </>
-            )}
-
             {userType === "client" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.company}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                  className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  placeholder="Your company name"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I am a... (Identity) *
+                  </label>
+                  <select
+                    required
+                    value={formData.identity}
+                    onChange={(e) => setFormData(prev => ({ ...prev, identity: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  >
+                    <option value="">Select identity</option>
+                    <option value="Startup Founder">Startup Founder</option>
+                    <option value="Student Founder">Student Founder</option>
+                    <option value="Small Business">Small Business</option>
+                    <option value="Agency">Agency</option>
+                    <option value="Individual">Individual</option>
+                    <option value="Creator">Creator</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Company / Brand Name <span className="text-gray-500 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.company}
+                    onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    placeholder="e.g., PixelForge Labs"
+                  />
+                </div>
+              </>
             )}
 
             <button
