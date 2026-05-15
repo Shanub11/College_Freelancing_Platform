@@ -2,7 +2,9 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
-import { enforceModeration } from "./moderation";
+import { enforceModeration, enforceModerationOnFields } from "./moderation";
+import { enforceRateLimit } from "./rateLimiter";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Query to get all project requests that are currently open.
@@ -41,6 +43,28 @@ export const getOpenProjectRequests = query({
   },
 });
 
+const projectRequestShape = {
+  _id: v.id("projectRequests"),
+  _creationTime: v.number(),
+  clientId: v.id("users"),
+  title: v.string(),
+  description: v.string(),
+  category: v.string(),
+  budget: v.optional(v.any()),
+  deadline: v.number(),
+  skills: v.array(v.string()),
+  attachments: v.optional(v.array(v.id("_storage"))),
+  status: v.union(
+    v.literal("open"),
+    v.literal("in_progress"),
+    v.literal("completed"),
+    v.literal("cancelled"),
+    v.literal("disputed")
+  ),
+  selectedFreelancer: v.optional(v.id("users")),
+  proposalCount: v.number(),
+};
+
 /**
  * Query to get a single project request by its ID.
  */
@@ -48,6 +72,7 @@ export const getProjectRequestById = query({
   args: {
     projectId: v.id("projectRequests"),
   },
+  returns: v.union(v.null(), v.object(projectRequestShape)),
   handler: async (ctx, args) => {
     return await ctx.db.get(args.projectId);
   },
@@ -76,6 +101,7 @@ export const createProposal = mutation({
     deliveryTime: v.number(),
 
   },
+  returns: v.id("proposals"),
 
   handler: async (ctx, args) => {
 
@@ -89,6 +115,19 @@ export const createProposal = mutation({
 
 
 
+    await enforceModerationOnFields(ctx, freelancerId as Id<"users">, [
+      { fieldName: "cover letter", value: args.coverLetter },
+    ]);
+
+    await enforceRateLimit(
+      ctx,
+      freelancerId as Id<"users">,
+      "proposal_submit",
+      3,
+      60 * 60 * 1000,
+      "You can only submit 3 proposals per hour. Please wait."
+    );
+
     const project = await ctx.db.get(args.projectId);
 
     if (!project) {
@@ -98,6 +137,16 @@ export const createProposal = mutation({
     }
 
 
+
+    const existingProposal = await ctx.db
+      .query("proposals")
+      .withIndex("by_project_and_freelancer", (q) =>
+        q.eq("projectId", args.projectId).eq("freelancerId", freelancerId)
+      )
+      .first();
+    if (existingProposal) {
+      throw new Error("You have already submitted a proposal for this project.");
+    }
 
     const proposalId = await ctx.db.insert("proposals", {
 

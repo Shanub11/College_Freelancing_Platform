@@ -3,22 +3,18 @@ import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import { enforceRateLimit } from "./rateLimiter";
+import { Id } from "./_generated/dataModel";
+import { enforceModerationOnFields } from "./moderation";
 
-/**
- * Internal helper to check if the current user is an admin.
- * @param ctx - The query or mutation context.
- * @returns {Promise<boolean>} - True if the user is an admin, false otherwise.
- */
-async function isAdminUser(ctx: QueryCtx): Promise<boolean> {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) return false;
+type QueryIndexBuilder = any;
 
-  const user = await ctx.db.get(userId);
-  if (!user) return false;
-
-  const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
-
-  return adminEmails.includes(user.email || "");
+async function isAdminByUserId(ctx: any, userId: string) {
+  const profile = await ctx.db
+    .query("profiles")
+    .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
+    .unique();
+  return profile?.isAdmin === true;
 }
 
 export const getCurrentProfile = query({
@@ -29,7 +25,7 @@ export const getCurrentProfile = query({
 
     const profile = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
       .unique();
 
     if (!profile) return null;
@@ -55,7 +51,7 @@ export const getProfile = query({
   handler: async (ctx, args) => {
     const profile = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", args.userId))
       .unique();
 
     if (!profile) return null;
@@ -109,14 +105,20 @@ export const createProfile = mutation({
     industry: v.optional(v.string()),
     teamSize: v.optional(v.string()),
   },
+  returns: v.id("profiles"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    const fieldsToCheck = [
+      { fieldName: "bio", value: args.bio || "" },
+    ];
+    await enforceModerationOnFields(ctx, userId as Id<"users">, fieldsToCheck);
+
     // Check if profile already exists
     const existing = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
       .unique();
 
     if (existing) {
@@ -124,7 +126,8 @@ export const createProfile = mutation({
     }
 
     const user = await ctx.db.get(userId);
-    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
+    // TODO: Remove this after manually setting isAdmin via Convex dashboard for real admins
+    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com"];
     const isAdmin = adminEmails.includes(user?.email || "");
 
     // If user is admin, set userType to 'admin'.
@@ -182,6 +185,15 @@ export const submitForVerification = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "verification_submit",
+      1,
+      7 * 24 * 60 * 60 * 1000,
+      "You have already submitted a verification request recently. Please wait for it to be reviewed."
+    );
+
     // Verify email was actually verified via OTP
     const emailRecord = await ctx.db
       .query("emailVerifications")
@@ -216,6 +228,8 @@ export const submitForVerification = mutation({
       timestamp: Date.now(),
       relatedId: requestId,
     });
+
+    return null;
   },
 });
 
@@ -247,6 +261,7 @@ export const updateProfile = mutation({
     industry: v.optional(v.string()),
     teamSize: v.optional(v.string()),
   },
+  returns: v.id("profiles"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
@@ -257,6 +272,25 @@ export const updateProfile = mutation({
       .unique();
 
     if (!profile) throw new Error("Profile not found");
+
+    const fieldsToCheck = [
+      { fieldName: "bio", value: args.bio || "" },
+      { fieldName: "company name", value: args.company || "" },
+    ];
+
+    if (args.portfolioItems) {
+      for (const item of args.portfolioItems) {
+        fieldsToCheck.push({ 
+          fieldName: `portfolio item "${item.title}" description`, 
+          value: item.description 
+        });
+        fieldsToCheck.push({ 
+          fieldName: `portfolio item "${item.title}" link`, 
+          value: item.link || "" 
+        });
+      }
+    }
+    await enforceModerationOnFields(ctx, userId as Id<"users">, fieldsToCheck);
 
     const updates: any = {};
     if (args.firstName !== undefined) updates.firstName = args.firstName;
@@ -340,13 +374,17 @@ export const getFreelancers = query({
 export const checkIsAdmin = query({
   args: {},
   handler: async (ctx) => {
-    return await isAdminUser(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+    return await isAdminByUserId(ctx, userId);
   },
 });
 
 export const getPendingVerifications = query({
   handler: async (ctx) => {
-    const isAdmin = await isAdminUser(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("You are not authorized to perform this action.");
+    const isAdmin = await isAdminByUserId(ctx, userId);
     if (!isAdmin) {
       throw new Error("You are not authorized to perform this action.");
     }
@@ -388,8 +426,11 @@ export const approveVerification = mutation({
     requestId: v.id("verificationRequests"),
     profileId: v.id("profiles"),
   },
+  returns: v.null(),
   handler: async (ctx, { requestId, profileId }) => {
-    const isAdmin = await isAdminUser(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("You are not authorized to perform this action.");
+    const isAdmin = await isAdminByUserId(ctx, userId);
     if (!isAdmin) {
       throw new Error("You are not authorized to perform this action.");
     }
@@ -411,6 +452,8 @@ export const approveVerification = mutation({
         relatedId: requestId,
       });
     }
+
+    return null;
   },
 });
 
@@ -419,8 +462,11 @@ export const rejectVerification = mutation({
     requestId: v.id("verificationRequests"),
     adminNotes: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, { requestId, adminNotes }) => {
-    const isAdmin = await isAdminUser(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("You are not authorized to perform this action.");
+    const isAdmin = await isAdminByUserId(ctx, userId);
     if (!isAdmin) {
       throw new Error("You are not authorized to perform this action.");
     }
@@ -439,6 +485,8 @@ export const rejectVerification = mutation({
         relatedId: requestId,
       });
     }
+
+    return null;
   },
 });
 
@@ -455,6 +503,10 @@ export const getVerificationStatus = query({
   },
 });
 
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  }
 });

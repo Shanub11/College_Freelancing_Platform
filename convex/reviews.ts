@@ -9,6 +9,7 @@ export const submitReview = mutation({
     rating: v.number(),
     comment: v.string(),
   },
+  returns: v.id("reviews"),
   handler: async (ctx, args) => {
     const authUserId = await getAuthUserId(ctx);
     if (!authUserId) throw new Error("Unauthorized");

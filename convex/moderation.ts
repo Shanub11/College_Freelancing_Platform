@@ -56,8 +56,30 @@ export function checkContentModeration(text: string): { isClean: boolean; reason
   return { isClean: true };
 }
 
+export function checkMultipleFields(
+  fields: Array<{ fieldName: string; value: string }>
+): { fieldName: string; reason: string } | null {
+  for (const field of fields) {
+    if (!field.value) continue;
+    const result = checkContentModeration(field.value);
+    if (!result.isClean) {
+      return { 
+        fieldName: field.fieldName, 
+        reason: result.reason || "Content not allowed" 
+      };
+    }
+  }
+  return null;
+}
+
 // Reusable function to enforce moderation and handle abuse logging
-export async function enforceModeration(ctx: MutationCtx, userId: Id<"users">, text: string, context: string) {
+export async function enforceModeration(
+  ctx: MutationCtx, 
+  userId: Id<"users">, 
+  text: string, 
+  context: string,
+  additionalFields?: Array<{ fieldName: string; value: string }>
+): Promise<void> {
   const moderationResult = checkContentModeration(text);
   
   if (!moderationResult.isClean) {
@@ -72,8 +94,9 @@ export async function enforceModeration(ctx: MutationCtx, userId: Id<"users">, t
     // Suspend or warn the user based on past violations
     const pastViolations = await ctx.db
       .query("activityLogs")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("action"), "Content Moderation Violation"))
+      .withIndex("by_user_and_action", (q) => 
+        q.eq("userId", userId).eq("action", "Content Moderation Violation")
+      )
       .collect();
 
     if (pastViolations.length >= 3) {
@@ -82,4 +105,35 @@ export async function enforceModeration(ctx: MutationCtx, userId: Id<"users">, t
 
     throw new Error(`Your message was blocked: ${moderationResult.reason}`);
   }
+
+  if (additionalFields) {
+    const violation = checkMultipleFields(additionalFields);
+    if (violation) {
+      await ctx.db.insert("activityLogs", {
+        action: "Content Moderation Violation",
+        details: `User attempted to add contact info in ${violation.fieldName} in ${context}. Reason: ${violation.reason}`,
+        userId,
+        timestamp: Date.now(),
+      });
+      throw new Error(`Your ${violation.fieldName} contains content that is not allowed: ${violation.reason}`);
+    }
+  }
+}
+
+export async function enforceModerationOnFields(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  fields: Array<{ fieldName: string; value: string }>
+): Promise<void> {
+  const violation = checkMultipleFields(fields);
+  if (!violation) return;
+  
+  await ctx.db.insert("activityLogs", {
+    action: "Content Moderation Violation",
+    details: `User attempted to share contact info in ${violation.fieldName}. Reason: ${violation.reason}`,
+    userId,
+    timestamp: Date.now(),
+  });
+  
+  throw new Error(`Your ${violation.fieldName} contains content that is not allowed: ${violation.reason}`);
 }

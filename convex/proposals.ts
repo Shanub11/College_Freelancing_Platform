@@ -21,15 +21,19 @@ export const markAsRead = mutation({
   args: {
     notificationId: v.id("notifications"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.notificationId, { isRead: true });
+    return null;
   },
 });
 
 export const markAllAsRead = mutation({
+  args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return;
+    if (!userId) return null;
 
     const unreadNotifications = await ctx.db
       .query("notifications")
@@ -39,6 +43,8 @@ export const markAllAsRead = mutation({
     for (const notification of unreadNotifications) {
       await ctx.db.patch(notification._id, { isRead: true });
     }
+
+    return null;
   },
 });
 
@@ -88,6 +94,16 @@ export const acceptProposal = mutation({
       throw new Error("You are not authorized to accept proposals for this project.");
     }
 
+    // Prevent duplicate order creation for this project
+    const existingOrder = await ctx.db
+      .query("orders")
+      .withIndex("by_client", (q) => q.eq("clientId", project.clientId))
+      .filter((q) => q.eq(q.field("projectId"), project._id))
+      .first();
+    if (existingOrder && existingOrder.status !== "cancelled") {
+      throw new Error("An order already exists for this project.");
+    }
+
     // Mark proposal as payment pending instead of accepted
     await ctx.db.patch(args.proposalId, { status: "payment_pending" });
     
@@ -134,6 +150,7 @@ export const rejectProposal = mutation({
   args: {
     proposalId: v.id("proposals"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -160,5 +177,7 @@ export const rejectProposal = mutation({
       timestamp: Date.now(),
       relatedId: args.proposalId,
     });
+
+    return null;
   },
 });

@@ -3,6 +3,8 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { enforceRateLimit } from "./rateLimiter";
+import { enforceModerationOnFields } from "./moderation";
 
 export const createProject = mutation({
   args: {
@@ -12,11 +14,26 @@ export const createProject = mutation({
     deadline: v.number(),
     skills: v.array(v.string()),
   },
+  returns: v.id("projectRequests"),
   handler: async (ctx, args) => {
     const clientId = await getAuthUserId(ctx);
     if (!clientId) {
       throw new Error("You must be logged in to create a project.");
     }
+
+    await enforceModerationOnFields(ctx, clientId as Id<"users">, [
+      { fieldName: "project title", value: args.title },
+      { fieldName: "project description", value: args.description },
+    ]);
+
+    await enforceRateLimit(
+      ctx,
+      clientId as Id<"users">,
+      "project_create",
+      3,
+      60 * 60 * 1000,
+      "You can only post 3 projects per hour."
+    );
 
     const projectId = await ctx.db.insert("projectRequests", {
       clientId,
@@ -275,8 +292,9 @@ export const getFreelancerPublicProfile = query({
 
     const completedOrders = await ctx.db
       .query("orders")
-      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
-      .filter((q) => q.eq(q.field("status"), "completed"))
+      .withIndex("by_freelancer_and_status", (q) => 
+        q.eq("freelancerId", args.userId).eq("status", "completed")
+      )
       .collect();
 
     const completedProjects = await Promise.all(completedOrders.map(async (order) => {
@@ -361,8 +379,9 @@ export const getClientPublicProfile = query({
 
     const completedOrders = await ctx.db
       .query("orders")
-      .withIndex("by_client", (q) => q.eq("clientId", args.userId))
-      .filter((q) => q.eq(q.field("status"), "completed"))
+      .withIndex("by_client_and_status", (q) => 
+        q.eq("clientId", args.userId).eq("status", "completed")
+      )
       .collect();
 
     const publicReviews = await ctx.db
@@ -392,8 +411,9 @@ export const getClientPublicProfile = query({
   },
 });
 
-export const markOrderPaid = mutation({
+export const markOrderPaid = internalMutation({
   args: { orderId: v.id("orders") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
@@ -457,6 +477,8 @@ export const completeOrderAndReleaseFunds = mutation({
       message: `Client has approved your work for "${order.title}". Funds have been released!`,
       isRead: false,
     });
+
+    return null;
   },
 });
 
@@ -469,6 +491,7 @@ export const createDirectOrder = mutation({
     price: v.number(),
     deliveryTime: v.number(),
   },
+  returns: v.id("orders"),
   handler: async (ctx, args) => {
     const clientId = await getAuthUserId(ctx);
     if (!clientId) {
@@ -537,6 +560,8 @@ export const submitDelivery = mutation({
       isRead: false,
       link: `/orders`,
     });
+
+    return null;
   }
 });
 
@@ -545,6 +570,7 @@ export const requestRevision = mutation({
     orderId: v.id("orders"),
     notes: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -571,11 +597,14 @@ export const requestRevision = mutation({
       message: `Client requested a revision for "${order.title}". You have 2 days to resubmit.`,
       isRead: false,
     });
+
+    return null;
   }
 });
 
 export const extendDeadline = mutation({
   args: { orderId: v.id("orders"), days: v.number() },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -588,11 +617,14 @@ export const extendDeadline = mutation({
       deadline: newDeadline,
       status: "active" 
     });
+
+    return null;
   }
 });
 
 export const cancelLateOrder = mutation({
   args: { orderId: v.id("orders") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -605,6 +637,8 @@ export const cancelLateOrder = mutation({
 
     await ctx.db.patch(args.orderId, { status: "cancelled" });
     if (order.projectId) await ctx.db.patch(order.projectId, { status: "cancelled" as any });
+
+    return null;
   }
 });
 

@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const getLogs = query({
   args: {
@@ -13,10 +14,8 @@ export const getLogs = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    const user = await ctx.db.get(userId);
-    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
-    
-    if (!adminEmails.includes(user?.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId });
+    if (!isAdmin) {
       return [];
     }
 
@@ -87,14 +86,17 @@ export const logActivity = mutation({
     details: v.string(),
     relatedId: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return;
+    if (!userId) return null;
 
     await ctx.db.insert("activityLogs", {
       ...args,
       userId,
       timestamp: Date.now(),
     });
+
+    return null;
   },
 });

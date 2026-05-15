@@ -181,7 +181,9 @@ const applicationTables = {
     .index("by_client", ["clientId"])
     .index("by_freelancer", ["freelancerId"])
     .index("by_status", ["status"])
-    .index("by_gig", ["gigId"]),
+    .index("by_gig", ["gigId"])
+    .index("by_client_and_status", ["clientId", "status"])
+    .index("by_freelancer_and_status", ["freelancerId", "status"]),
 
   // Real-time messaging
   conversations: defineTable({
@@ -190,6 +192,8 @@ const applicationTables = {
     projectId: v.optional(v.id("projectRequests")),
     lastMessage: v.optional(v.string()),
     updatedAt: v.number(),
+    clientUnreadCount: v.optional(v.number()),
+    freelancerUnreadCount: v.optional(v.number()),
   })
     .index("by_project_client_freelancer", ["projectId", "clientId", "freelancerId"])
     .index("by_client", ["clientId"])
@@ -203,7 +207,8 @@ const applicationTables = {
     seen: v.boolean(),
     attachment: v.optional(v.id("_storage")),
   })
-    .index("by_conversation", ["conversationId"]),
+    .index("by_conversation", ["conversationId"])
+    .index("by_conversation_and_seen", ["conversationId", "seen"]),
 
   // Reviews and ratings
   reviews: defineTable({
@@ -276,7 +281,8 @@ const applicationTables = {
     resolvedAt: v.optional(v.number()),
   })
     .index("by_projectId", ["projectId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_orderId", ["orderId"]),
 
   // Add the new 'payments' table
   payments: defineTable({
@@ -303,7 +309,8 @@ const applicationTables = {
     relatedId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
-    .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_user_and_action", ["userId", "action"]),
 };
 
 export default defineSchema({

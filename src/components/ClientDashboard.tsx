@@ -1,19 +1,5 @@
 import { useState, useRef, Suspense, lazy } from "react";
 import { useQuery, useMutation, usePaginatedQuery, useAction } from "convex/react";
-// Optional file storage hook: convex/react-file-storage may not be available in all environments.
-// Provide a local fallback that returns a string URL when the stored reference is already a URL,
-// or null otherwise. Replace this with the real useStorage from 'convex/react-file-storage' if available.
-function useStorage(fileRef: any): string | null {
-  if (!fileRef) return null;
-  if (typeof fileRef === "string") return fileRef;
-  if (typeof fileRef === "object") {
-    // Common fields that might contain a URL or path in different environments
-    if (typeof fileRef.url === "string") return fileRef.url;
-    if (typeof fileRef.path === "string") return fileRef.path;
-    if (typeof (fileRef as any).filename === "string") return (fileRef as any).filename;
-  }
-  return null;
-}
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
@@ -23,20 +9,28 @@ import { compressImage } from "../../convex/image";
 import posthog from "posthog-js";
 import { PayButton } from "./PayButton";
 import { Helmet } from "react-helmet-async";
+import { getProfilePictureUrl, getStorageUrl } from "@/lib/storageHelpers";
+import LoadingState from "./LoadingState";
+import ConfirmModal from "./ConfirmModal";
 
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
 // Main component for the client dashboard
 export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport }: { profile: any, activeTab: string, onOpenChat?: (data?: any) => void, onOpenSupport?: (orderId?: string, projectId?: string) => void }) {
-  const myProjects = useQuery(api.projects.getMyProjects, {}) || [];
+  const myProjects = useQuery(api.projects.getMyProjects, {});
   const notifications = useQuery(api.proposals.getNotifications, {}) || [];
-  const myOrders = useQuery(api.projects.getMyClientOrders) || [];
+  const myOrders = useQuery(api.projects.getMyClientOrders);
   const [selectedProject, setSelectedProject] = useState<Id<"projectRequests"> | null>(null);
   const [viewingFreelancer, setViewingFreelancer] = useState<Id<"users"> | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const markAsRead = useMutation(api.proposals.markAsRead);
   const markAllAsRead = useMutation(api.proposals.markAllAsRead);
   const completeOrder = useMutation(api.projects.completeOrderAndReleaseFunds);
+  
+  const [releaseModal, setReleaseModal] = useState<{
+    orderId: Id<"orders">
+  } | null>(null);
+  const [isReleasing, setIsReleasing] = useState(false);
   
   // Chat state
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -70,20 +64,27 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
       const { storageId } = await result.json();
       await updateProfile({ profilePicture: storageId });
       toast.success("Profile picture updated!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to upload image");
+      toast.error(error.message || "Failed to upload image. Please try again.");
     }
   };
 
-  const handleReleaseFunds = async (orderId: Id<"orders">) => {
-    if (confirm("Are you sure you want to approve this work and release funds to the freelancer?\n\n⚠️ This action cannot be undone.")) {
-      try {
-        await completeOrder({ orderId });
-        toast.success("Work approved and funds released to the freelancer!");
-      } catch (error) {
-        toast.error("Failed to release funds.");
-      }
+  const handleReleaseFunds = (orderId: Id<"orders">) => {
+    setReleaseModal({ orderId });
+  };
+
+  const handleReleaseConfirm = async () => {
+    if (!releaseModal) return;
+    setIsReleasing(true);
+    try {
+      await completeOrder({ orderId: releaseModal.orderId });
+      toast.success("Work approved and funds released to the freelancer!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to release funds. Please try again.");
+    } finally {
+      setIsReleasing(false);
+      setReleaseModal(null);
     }
   };
 
@@ -166,11 +167,19 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
       </div>
       
       {activeTab === 'projects' && (
-        <ProjectList projects={myProjects} onSelectProject={handleSelectProject} onReleaseFunds={handleReleaseFunds} />
+        myProjects === undefined ? (
+          <LoadingState message="Loading your projects..." />
+        ) : (
+          <ProjectList projects={myProjects} onSelectProject={handleSelectProject} onReleaseFunds={handleReleaseFunds} />
+        )
       )}
 
       {activeTab === 'orders' && (
-        <OrderList orders={myOrders} onOpenSupport={onOpenSupport} />
+        myOrders === undefined ? (
+          <LoadingState message="Loading your orders..." />
+        ) : (
+          <OrderList orders={myOrders} onOpenSupport={onOpenSupport} />
+        )
       )}
 
       {activeTab === 'post-project' && (
@@ -203,9 +212,10 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Photo</h3>
             <div className="mb-6 flex justify-center">
               <img 
-                src={profile.profilePictureUrl || useStorage(profile.profilePicture) || '/default-avatar.png'} 
+                src={getProfilePictureUrl(profile.profilePictureUrl, profile.profilePicture)} 
                 alt="Profile" 
                 className="w-48 h-48 rounded-full object-cover border-4 border-gray-100 shadow-sm"
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
               />
             </div>
             <div className="flex gap-3 justify-center">
@@ -228,6 +238,17 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={releaseModal !== null}
+        title="Release Funds to Freelancer"
+        message="Are you sure you want to approve this work and release funds to the freelancer? This action cannot be undone."
+        confirmLabel="Yes, Release Funds"
+        confirmVariant="success"
+        isLoading={isReleasing}
+        onConfirm={handleReleaseConfirm}
+        onCancel={() => setReleaseModal(null)}
+      />
       
     </div>
   );
@@ -236,7 +257,12 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
 function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
   return (
     <div className="flex items-center space-x-2 text-sm text-gray-600">
-      <img src={freelancer.profilePictureUrl || useStorage(freelancer.profilePicture) || '/default-avatar.png'} alt="Freelancer" className="w-6 h-6 rounded-full object-cover" />
+      <img 
+        src={getProfilePictureUrl(freelancer.profilePictureUrl, freelancer.profilePicture)} 
+        alt="Freelancer" 
+        className="w-6 h-6 rounded-full object-cover" 
+        onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+      />
       <span>{freelancer.firstName} {freelancer.lastName}</span>
     </div>
   );
@@ -587,7 +613,11 @@ function ProjectProposals({
               <div key={freelancer._id} className="bg-white border border-gray-100 rounded-lg p-6 shadow-sm hover:shadow-md transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <img src={useStorage(freelancer.profilePicture) || '/default-avatar.png'} className="w-12 h-12 rounded-full object-cover" />
+                    <img 
+                      src={getProfilePictureUrl(undefined, freelancer.profilePicture)} 
+                      className="w-12 h-12 rounded-full object-cover" 
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                    />
                     <div>
                       <h3 className="font-semibold text-gray-900">{freelancer.firstName} {freelancer.lastName}</h3>
                       <p className="text-xs text-blue-600 font-medium">{Math.round(freelancer.score)}% Match Score</p>
@@ -670,9 +700,10 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
           {/* Left Column: Basic Info & Avatar */}
           <div className="md:w-1/3 flex flex-col items-center text-center">
             <img 
-              src={useStorage(profile.profilePicture) || '/default-avatar.png'} 
+              src={getProfilePictureUrl(undefined, profile.profilePicture)} 
               alt="Freelancer" 
               className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mb-4" 
+              onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
             />
             <h1 className="text-2xl font-bold text-gray-900">{profile.firstName} {profile.lastName}</h1>
             <p className="text-gray-600 font-medium">{profile.tagline || "Student Freelancer"}</p>
@@ -884,7 +915,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               {profile.portfolioItems.map((item: any) => (
                 <div key={item.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow group">
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-40 object-cover" />
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.title} 
+                      className="w-full h-40 object-cover" 
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                    />
                   ) : (
                     <div className="w-full h-40 bg-gray-100 border-b border-gray-200 flex items-center justify-center">
                       <span className="text-4xl text-gray-300">🖼️</span>
@@ -981,7 +1017,6 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
   const createDirectOrder = useMutation(api.projects.createDirectOrder);
   const createRazorpayOrder = useAction(api.paymentActions.createRazorpayOrder);
-  const markOrderPaid = useMutation(api.projects.markOrderPaid);
 
   const [formData, setFormData] = useState({
     title: `Direct Order: ${gig.title}`,
@@ -1015,9 +1050,8 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
         name: "College Freelancing Platform",
         description: "Escrow Payment for Direct Order",
         order_id: razorpayOrderId,
-        handler: async function () {
-          await markOrderPaid({ orderId });
-          toast.success("Payment Successful! Order has started.");
+        handler: async function (response: any) {
+          toast.success("Payment received! Your order will activate shortly.", { duration: 6000 });
           onClose();
         },
         theme: { color: "#3399cc" },

@@ -243,7 +243,12 @@ export function Dashboard({ profile }: DashboardProps) {
                   title="Profile Menu"
                 >
                   {profile.profilePictureUrl ? (
-                    <img src={profile.profilePictureUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+                    <img 
+                      src={profile.profilePictureUrl} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover" 
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                    />
                   ) : (
                     <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                       <span className="text-sm font-medium">
@@ -391,6 +396,7 @@ export function Dashboard({ profile }: DashboardProps) {
                   src={profile.profilePictureUrl} 
                   alt="Profile" 
                   className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+                  onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                 />
               ) : (
                 <div className="w-48 h-48 bg-gray-200 rounded-full flex items-center justify-center border-4 border-gray-100">
@@ -619,6 +625,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                   src={profile.profilePictureUrl} 
                   alt="Profile" 
                   className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mb-4 group-hover:opacity-75 transition-opacity" 
+                  onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                 />
               ) : (
                 <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-white shadow-md mb-4 group-hover:opacity-75 transition-opacity">
@@ -797,7 +804,12 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                         />
                       </label>
                       {newPortfolioItem.imageUrl && (
-                        <img src={newPortfolioItem.imageUrl} alt="Preview" className="h-10 w-10 object-cover rounded border" />
+                        <img 
+                          src={newPortfolioItem.imageUrl} 
+                          alt="Preview" 
+                          className="h-10 w-10 object-cover rounded border" 
+                          onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                        />
                       )}
                     </div>
                     <div className="flex justify-end gap-2 mt-2">
@@ -855,7 +867,12 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                         ✕
                       </button>
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-32 object-cover" />
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title} 
+                          className="w-full h-32 object-cover" 
+                          onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                        />
                       ) : (
                         <div className="w-full h-32 bg-gray-100 flex items-center justify-center border-b">
                           <span className="text-4xl text-gray-300">🖼️</span>
@@ -1066,6 +1083,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 src={profile.profilePictureUrl} 
                 alt="Profile" 
                 className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mb-4 group-hover:opacity-75 transition-opacity" 
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
               />
             ) : (
               <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-white shadow-md mb-4 group-hover:opacity-75 transition-opacity">

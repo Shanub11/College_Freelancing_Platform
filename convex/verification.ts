@@ -100,16 +100,8 @@ export const getPendingVerifications = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Check if user is admin
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    const adminEmails = [
-      "admin@collegeskills.com",
-      "owner@collegeskills.com"
-    ];
-    
-    if (!adminEmails.includes(user.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId });
+    if (!isAdmin) {
       throw new Error("Access denied: Admin privileges required");
     }
 
@@ -146,20 +138,13 @@ export const reviewVerification = mutation({
     status: v.union(v.literal("approved"), v.literal("rejected")),
     adminNotes: v.optional(v.string()),
   },
+  returns: v.id("verificationRequests"),
   handler: async (ctx, args) => {
     const adminUserId = await getAuthUserId(ctx);
     if (!adminUserId) throw new Error("Not authenticated");
 
-    // Check if user is admin
-    const adminUser = await ctx.db.get(adminUserId);
-    if (!adminUser) throw new Error("User not found");
-
-    const adminEmails = [
-      "admin@collegeskills.com",
-      "owner@collegeskills.com"
-    ];
-    
-    if (!adminEmails.includes(adminUser.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId: adminUserId });
+    if (!isAdmin) {
       throw new Error("Access denied: Admin privileges required");
     }
 
@@ -202,16 +187,8 @@ export const getVerificationDetails = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    // Check if user is admin
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    const adminEmails = [
-      "admin@collegeskills.com",
-      "owner@collegeskills.com"
-    ];
-    
-    if (!adminEmails.includes(user.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId });
+    if (!isAdmin) {
       throw new Error("Access denied: Admin privileges required");
     }
 
@@ -281,6 +258,7 @@ export const sendOtpEmail = action({
 
 export const saveOtp = internalMutation({
   args: { email: v.string(), otp: v.string(), expiresAt: v.number() },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("emailVerifications")
@@ -295,11 +273,14 @@ export const saveOtp = internalMutation({
       expiresAt: args.expiresAt,
       verified: false,
     });
+
+    return null;
   },
 });
 
 export const verifyOtp = mutation({
   args: { email: v.string(), otp: v.string() },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const record = await ctx.db
       .query("emailVerifications")

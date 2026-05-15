@@ -3,6 +3,8 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { enforceModeration } from "./moderation";
+import { enforceRateLimit } from "./rateLimiter";
+import { Id } from "./_generated/dataModel";
 
 export const getOrCreateConversation = mutation({
   args: {
@@ -10,6 +12,7 @@ export const getOrCreateConversation = mutation({
     clientId: v.id("users"),
     freelancerId: v.id("users"),
   },
+  returns: v.id("conversations"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
@@ -27,8 +30,8 @@ export const getOrCreateConversation = mutation({
 
     const existingAsFreelancer = await ctx.db
       .query("conversations")
-      .withIndex("by_client", (q) => q.eq("clientId", args.freelancerId))
-      .filter((q) => q.eq(q.field("freelancerId"), args.clientId))
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.clientId))
+      .filter((q) => q.eq(q.field("clientId"), args.freelancerId))
       .first();
 
     if (existingAsFreelancer) {
@@ -41,6 +44,8 @@ export const getOrCreateConversation = mutation({
       clientId: args.clientId,
       freelancerId: args.freelancerId,
       updatedAt: Date.now(),
+      clientUnreadCount: 0,
+      freelancerUnreadCount: 0,
     });
 
     return conversationId;
@@ -53,9 +58,19 @@ export const sendMessage = mutation({
     text: v.string(),
     attachment: v.optional(v.id("_storage")),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
+
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "message_send",
+      20,
+      60 * 1000,
+      "You are sending messages too quickly. Please slow down."
+    );
 
     await enforceModeration(ctx, userId, args.text, "chat");
 
@@ -68,10 +83,26 @@ export const sendMessage = mutation({
       attachment: args.attachment,
     });
 
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    let clientUnreadCount = conversation.clientUnreadCount || 0;
+    let freelancerUnreadCount = conversation.freelancerUnreadCount || 0;
+
+    if (userId === conversation.clientId) {
+      freelancerUnreadCount += 1;
+    } else if (userId === conversation.freelancerId) {
+      clientUnreadCount += 1;
+    }
+
     await ctx.db.patch(args.conversationId, {
       lastMessage: args.text,
       updatedAt: Date.now(),
+      clientUnreadCount,
+      freelancerUnreadCount,
     });
+
+    return null;
   },
 });
 
@@ -135,12 +166,9 @@ export const getConversations = query({
         .withIndex("by_user", (q) => q.eq("userId", otherUserId))
         .unique();
       
-      const unreadCount = (await ctx.db
-        .query("messages")
-        .withIndex("by_conversation", (q) => q.eq("conversationId", c._id))
-        .filter(q => q.neq(q.field("senderId"), userId))
-        .filter(q => q.eq(q.field("seen"), false))
-        .collect()).length;
+      const unreadCount = userId === c.clientId 
+        ? (c.clientUnreadCount || 0)
+        : (c.freelancerUnreadCount || 0);
 
       return {
         _id: c._id,
@@ -164,23 +192,40 @@ export const getConversations = query({
 
 export const markAsRead = mutation({
   args: { conversationId: v.id("conversations") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return;
+    if (!userId) return null;
 
     const messages = await ctx.db
       .query("messages")
-      .withIndex("by_conversation", (q) => q.eq("conversationId", args.conversationId))
+      .withIndex("by_conversation_and_seen", (q) => 
+        q.eq("conversationId", args.conversationId).eq("seen", false)
+      )
       .filter(q => q.neq(q.field("senderId"), userId))
-      .filter(q => q.eq(q.field("seen"), false))
       .collect();
 
     for (const msg of messages) {
       await ctx.db.patch(msg._id, { seen: true });
     }
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (conversation) {
+      if (userId === conversation.clientId) {
+        await ctx.db.patch(args.conversationId, { clientUnreadCount: 0 });
+      } else {
+        await ctx.db.patch(args.conversationId, { freelancerUnreadCount: 0 });
+      }
+    }
+
+    return null;
   }
 });
 
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  }
 });

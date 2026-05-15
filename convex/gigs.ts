@@ -1,6 +1,71 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { enforceRateLimit } from "./rateLimiter";
+import { Id } from "./_generated/dataModel";
+import { enforceModerationOnFields } from "./moderation";
+
+const gigShape = {
+  _id: v.id("gigs"),
+  _creationTime: v.number(),
+  freelancerId: v.id("users"),
+  title: v.string(),
+  description: v.string(),
+  category: v.string(),
+  subcategory: v.optional(v.string()),
+  tags: v.array(v.string()),
+  basePrice: v.number(),
+  deliveryTime: v.number(),
+  images: v.array(v.id("_storage")),
+  packages: v.optional(v.array(v.object({
+    name: v.string(),
+    description: v.string(),
+    price: v.number(),
+    deliveryTime: v.number(),
+    features: v.array(v.string())
+  }))),
+  isActive: v.boolean(),
+  totalOrders: v.number(),
+  averageRating: v.optional(v.number()),
+};
+
+const profileShape = {
+  _id: v.id("profiles"),
+  _creationTime: v.number(),
+  userId: v.id("users"),
+  userType: v.union(v.literal("freelancer"), v.literal("client"), v.literal("admin")),
+  firstName: v.string(),
+  lastName: v.string(),
+  profilePicture: v.optional(v.id("_storage")),
+  bio: v.optional(v.string()),
+  collegeName: v.optional(v.string()),
+  collegeEmail: v.optional(v.string()),
+  graduationYear: v.optional(v.number()),
+  studentId: v.optional(v.id("_storage")),
+  isVerified: v.boolean(),
+  skills: v.optional(v.array(v.string())),
+  portfolioItems: v.optional(v.array(v.object({
+    id: v.string(),
+    title: v.string(),
+    description: v.string(),
+    image: v.optional(v.id("_storage")),
+    link: v.optional(v.string())
+  }))),
+  paypalMerchantId: v.optional(v.string()),
+  razorpayAccountId: v.optional(v.string()),
+  company: v.optional(v.string()),
+  identity: v.optional(v.string()),
+  hiringPreferences: v.optional(v.array(v.string())),
+  preferredCommunication: v.optional(v.string()),
+  website: v.optional(v.string()),
+  linkedin: v.optional(v.string()),
+  industry: v.optional(v.string()),
+  teamSize: v.optional(v.string()),
+  paymentVerified: v.optional(v.boolean()),
+  isAdmin: v.optional(v.boolean()),
+  averageRating: v.optional(v.number()),
+  totalReviews: v.number(),
+};
 
 export const createGig = mutation({
   args: {
@@ -20,9 +85,24 @@ export const createGig = mutation({
       features: v.array(v.string())
     }))),
   },
+  returns: v.id("gigs"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    await enforceModerationOnFields(ctx, userId as Id<"users">, [
+      { fieldName: "gig title", value: args.title },
+      { fieldName: "gig description", value: args.description },
+    ]);
+
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "gig_create",
+      5,
+      24 * 60 * 60 * 1000,
+      "You can only create 5 gigs per day."
+    );
 
     // Verify user is a verified freelancer
     const profile = await ctx.db
@@ -61,6 +141,7 @@ export const getGigs = query({
     maxPrice: v.optional(v.number()),
     limit: v.optional(v.number()),
   },
+  returns: v.array(v.object({ ...gigShape, freelancer: v.union(v.null(), v.object(profileShape)) })),
   handler: async (ctx, args) => {
     let gigs;
 
@@ -112,6 +193,7 @@ export const getGigs = query({
 
 export const getGig = query({
   args: { gigId: v.id("gigs") },
+  returns: v.union(v.null(), v.object({ ...gigShape, freelancer: v.union(v.null(), v.object(profileShape)) })),
   handler: async (ctx, args) => {
     const gig = await ctx.db.get(args.gigId);
     if (!gig) return null;
@@ -127,6 +209,7 @@ export const getGig = query({
 
 export const getMyGigs = query({
   args: {},
+  returns: v.array(v.object(gigShape)),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
@@ -145,6 +228,7 @@ export const searchGigs = query({
     searchTerm: v.string(),
     category: v.optional(v.string()),
   },
+  returns: v.array(v.object({ ...gigShape, freelancer: v.union(v.null(), v.object(profileShape)) })),
   handler: async (ctx, args) => {
     let results = await ctx.db
       .query("gigs")

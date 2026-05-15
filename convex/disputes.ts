@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
+import { enforceRateLimit } from "./rateLimiter";
+import { Id } from "./_generated/dataModel";
 
 export const openDispute = mutation({
   args: {
@@ -8,9 +11,19 @@ export const openDispute = mutation({
     orderId: v.optional(v.id("orders")),
     reason: v.string(),
   },
+  returns: v.id("disputes"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
+
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "dispute_open",
+      2,
+      24 * 60 * 60 * 1000,
+      "You can only open 2 support tickets per day."
+    );
 
     if (args.orderId) {
       const order = await ctx.db.get(args.orderId);
@@ -21,8 +34,8 @@ export const openDispute = mutation({
       
       const existingDispute = await ctx.db
         .query("disputes")
-        .withIndex("by_status", (q) => q.eq("status", "open"))
-        .filter((q) => q.eq(q.field("orderId"), args.orderId))
+        .withIndex("by_orderId", (q) => q.eq("orderId", args.orderId))
+        .filter((q) => q.eq(q.field("status"), "open"))
         .first();
 
       if (existingDispute) throw new Error("A dispute is already open for this order");
@@ -120,9 +133,8 @@ export const getOpenDisputes = query({
     const adminId = await getAuthUserId(ctx);
     if (!adminId) return [];
 
-    const user = await ctx.db.get(adminId);
-    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
-    if (!adminEmails.includes(user?.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId: adminId });
+    if (!isAdmin) {
       return [];
     }
 
@@ -160,13 +172,13 @@ export const resolveDispute = mutation({
     resolution: v.union(v.literal("resolved_refund"), v.literal("resolved_release"), v.literal("resolved_general")),
     notes: v.string(),
   },
+  returns: v.id("disputes"),
   handler: async (ctx, args) => {
     const adminId = await getAuthUserId(ctx);
     if (!adminId) throw new Error("Unauthorized");
 
-    const user = await ctx.db.get(adminId);
-    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com", "admin123@gmail.com"];
-    if (!adminEmails.includes(user?.email || "")) {
+    const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId: adminId });
+    if (!isAdmin) {
       throw new Error("Access denied: Admin privileges required");
     }
 

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { VerificationUpload } from "./VerificationUpload";
 import { useNavigate } from "react-router-dom";
 import { compressImage } from "../../convex/image";
+import LoadingState from "./LoadingState";
 
 function useStorage(fileRef: any): string | null {
   if (!fileRef) return null;
@@ -64,9 +65,9 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
       const { storageId } = await result.json();
       await updateProfile({ profilePicture: storageId });
       toast.success("Profile picture updated!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to upload image");
+      toast.error(error.message || "Failed to upload image. Please try again.");
     }
   };
 
@@ -87,7 +88,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
     );
   });
 
-  const completedOrders = (myOrders || []).filter((o: any) => o.status === 'completed');
+  const completedOrders = myOrders ? myOrders.filter((o: any) => o.status === 'completed') : [];
   const totalEarnings = completedOrders.reduce((sum: number, o: any) => sum + (o.freelancerPayout || Math.round(o.price * 0.9)), 0);
   const thisMonthEarnings = completedOrders.filter((o: any) => {
     const completedAt = o.completedAt || o._creationTime;
@@ -142,11 +143,9 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {myGigs === undefined ? (
-              <>
-                <GigSkeleton />
-                <GigSkeleton />
-                <GigSkeleton />
-              </>
+              <div className="col-span-full">
+                <LoadingState message="Loading your gigs..." />
+              </div>
             ) : myGigs.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">💼</div>
@@ -209,11 +208,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
 
       {activeTab === "orders" && (
         myOrders === undefined ? (
-          <div className="space-y-4">
-            <OrderSkeleton />
-            <OrderSkeleton />
-            <OrderSkeleton />
-          </div>
+          <LoadingState message="Loading your orders..." />
         ) : myOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <div className="text-gray-400 text-6xl mb-4">📋</div>
@@ -666,9 +661,9 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
         toast.success("Gig created successfully!");
       }
       onClose();
-    } catch (error) {
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} gig`);
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'create'} gig. Please try again.`);
     }
   };
 

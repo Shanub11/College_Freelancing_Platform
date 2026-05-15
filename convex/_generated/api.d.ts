@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as ErrorState from "../../src/components/ErrorState.js";
+import type * as LoadingState from "../../src/components/LoadingState.js";
+import type * as QueryWrapper from "../../src/components/QueryWrapper.js";
+import type * as adminHelpers from "../adminHelpers.js";
 import type * as auth from "../auth.js";
 import type * as categories from "../categories.js";
 import type * as chat from "../chat.js";
@@ -24,6 +28,7 @@ import type * as profiles from "../profiles.js";
 import type * as projectRequests from "../projectRequests.js";
 import type * as projects from "../projects.js";
 import type * as proposals from "../proposals.js";
+import type * as rateLimiter from "../rateLimiter.js";
 import type * as razorpay from "../razorpay.js";
 import type * as recommendations from "../recommendations.js";
 import type * as reviews from "../reviews.js";
@@ -39,6 +44,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ErrorState: typeof ErrorState;
+  LoadingState: typeof LoadingState;
+  QueryWrapper: typeof QueryWrapper;
+  adminHelpers: typeof adminHelpers;
   auth: typeof auth;
   categories: typeof categories;
   chat: typeof chat;
@@ -55,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   projectRequests: typeof projectRequests;
   projects: typeof projects;
   proposals: typeof proposals;
+  rateLimiter: typeof rateLimiter;
   razorpay: typeof razorpay;
   recommendations: typeof recommendations;
   reviews: typeof reviews;

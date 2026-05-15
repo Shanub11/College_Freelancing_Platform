@@ -6,6 +6,7 @@ import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { Helmet } from "react-helmet-async";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
 const ProfileSetup = lazy(() => import("./components/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
@@ -21,9 +22,10 @@ export default function App() {
   }, [seedCategories]);
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
-        <Authenticated>
+    <AppErrorBoundary>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <Authenticated>
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>
             <Routes>
               <Route path="/dashboard" element={<AuthenticatedApp />} />
@@ -34,11 +36,12 @@ export default function App() {
           </Suspense>
         </Authenticated>
         <Unauthenticated>
-          <UnauthenticatedApp />
-        </Unauthenticated>
-        <Toaster />
-      </div>
-    </Router>
+            <UnauthenticatedApp />
+          </Unauthenticated>
+          <Toaster />
+        </div>
+      </Router>
+    </AppErrorBoundary>
   );
 }
 
