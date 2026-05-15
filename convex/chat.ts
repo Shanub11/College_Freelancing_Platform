@@ -137,21 +137,66 @@ export const getConversations = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return { page: [], isDone: true, continueCursor: "" };
 
-    const conversations = await ctx.db
+    // Use indexed queries instead of full table scan filter.
+    // Fetch conversations where user is either the client or the freelancer.
+    // We take up to 50 from each side then merge and sort.
+    const asClient = await ctx.db
       .query("conversations")
-      .filter((q) =>
-        q.or(
-          q.eq(q.field("clientId"), userId),
-          q.eq(q.field("freelancerId"), userId)
-        )
-      )
-      .paginate(args.paginationOpts);
+      .withIndex("by_client", (q) => q.eq("clientId", userId))
+      .order("desc")
+      .take(50);
 
-    // Deduplicate by other participant to ensure only one chat card per person
-    const uniqueConversations = [];
+    const asFreelancer = await ctx.db
+      .query("conversations")
+      .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
+      .order("desc")
+      .take(50);
+
+    // Merge both lists, remove duplicates by _id
+    const seen = new Set<string>();
+    const allConversations: typeof asClient = [];
+    
+    for (const conv of [...asClient, ...asFreelancer]) {
+      if (!seen.has(conv._id)) {
+        seen.add(conv._id);
+        allConversations.push(conv);
+      }
+    }
+
+    // Sort merged list by updatedAt descending
+    allConversations.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    // Apply manual pagination using paginationOpts
+    // paginationOptsValidator gives us numItems and cursor
+    const numItems = args.paginationOpts.numItems ?? 20;
+    const cursor = args.paginationOpts.cursor;
+    
+    // Find the start index based on cursor
+    let startIndex = 0;
+    if (cursor) {
+      const cursorIndex = allConversations.findIndex(
+        (c) => c._id === cursor
+      );
+      startIndex = cursorIndex !== -1 ? cursorIndex + 1 : 0;
+    }
+
+    const pageConversations = allConversations.slice(
+      startIndex, 
+      startIndex + numItems
+    );
+    
+    const isDone = startIndex + numItems >= allConversations.length;
+    const lastItem = pageConversations[pageConversations.length - 1];
+    const continueCursor = isDone ? "" : (lastItem?._id ?? "");
+
+    // Deduplicate by other participant (keep most recent conv per person)
+    const uniqueConversations: typeof pageConversations = [];
     const seenUsers = new Set<string>();
-    for (const c of conversations.page) {
-      const otherUserId = c.clientId === userId ? c.freelancerId : c.clientId;
+    
+    for (const c of pageConversations) {
+      const otherUserId = c.clientId === userId 
+        ? c.freelancerId 
+        : c.clientId;
       if (!seenUsers.has(otherUserId)) {
         seenUsers.add(otherUserId);
         uniqueConversations.push(c);
@@ -159,33 +204,40 @@ export const getConversations = query({
     }
 
     // Enrich with other participant's details and unread count
-    const page = await Promise.all(uniqueConversations.map(async (c) => {
-      const otherUserId = c.clientId === userId ? c.freelancerId : c.clientId;
-      const profile = await ctx.db
-        .query("profiles")
-        .withIndex("by_user", (q) => q.eq("userId", otherUserId))
-        .unique();
-      
-      const unreadCount = userId === c.clientId 
-        ? (c.clientUnreadCount || 0)
-        : (c.freelancerUnreadCount || 0);
+    const page = await Promise.all(
+      uniqueConversations.map(async (c) => {
+        const otherUserId = c.clientId === userId 
+          ? c.freelancerId 
+          : c.clientId;
+        
+        const profile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", otherUserId))
+          .unique();
 
-      return {
-        _id: c._id,
-        otherUserId,
-        otherUserName: profile ? `${profile.firstName} ${profile.lastName}` : "Unknown User",
-        otherUserPicture: profile?.profilePicture,
-        lastMessage: c.lastMessage,
-        updatedAt: c.updatedAt,
-        unreadCount
-      };
-    }));
+        const unreadCount =
+          userId === c.clientId
+            ? (c.clientUnreadCount || 0)
+            : (c.freelancerUnreadCount || 0);
 
-    page.sort((a, b) => b.updatedAt - a.updatedAt);
+        return {
+          _id: c._id,
+          otherUserId,
+          otherUserName: profile
+            ? `${profile.firstName} ${profile.lastName}`
+            : "Unknown User",
+          otherUserPicture: profile?.profilePicture,
+          lastMessage: c.lastMessage,
+          updatedAt: c.updatedAt,
+          unreadCount,
+        };
+      })
+    );
 
     return {
-      ...conversations,
-      page
+      page,
+      isDone,
+      continueCursor,
     };
   }
 });

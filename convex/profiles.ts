@@ -125,13 +125,12 @@ export const createProfile = mutation({
       throw new Error("Profile already exists");
     }
 
-    const user = await ctx.db.get(userId);
-    // TODO: Remove this after manually setting isAdmin via Convex dashboard for real admins
-    const adminEmails = ["admin@collegeskills.com", "owner@collegeskills.com"];
-    const isAdmin = adminEmails.includes(user?.email || "");
-
-    // If user is admin, set userType to 'admin'.
-    const userType = isAdmin ? "admin" : args.userType;
+    // Admin status must NEVER be set by email pattern matching.
+    // To grant admin access: go to Convex Dashboard → Data → profiles table →
+    // find the user's profile document → manually set isAdmin: true and 
+    // userType: "admin" directly in the dashboard.
+    const isAdmin = false;
+    const userType = args.userType;
 
     const profileId = await ctx.db.insert("profiles", {
       userId,
@@ -153,8 +152,8 @@ export const createProfile = mutation({
       linkedin: args.linkedin,
       industry: args.industry,
       teamSize: args.teamSize,
-      isAdmin: isAdmin,
-      isVerified: isAdmin,
+      isAdmin: false,
+      isVerified: false,
       totalReviews: 0,
     });
 

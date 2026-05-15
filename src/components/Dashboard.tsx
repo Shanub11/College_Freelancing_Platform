@@ -3,7 +3,7 @@ import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { toast } from "sonner";
-import { compressImage } from "../../convex/image";
+import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
 
 const GigBrowser = lazy(() => import("./GigBrowser").then(m => ({ default: m.GigBrowser })));
@@ -28,6 +28,7 @@ export function Dashboard({ profile }: DashboardProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [supportOrderId, setSupportOrderId] = useState<string | null>(null);
   const [supportProjectId, setSupportProjectId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
   // Profile Picture Upload
@@ -80,6 +81,18 @@ export function Dashboard({ profile }: DashboardProps) {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file size before upload (max 5MB for profile pictures)
+    const MAX_PROFILE_PIC_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_PROFILE_PIC_SIZE) {
+      toast.error(
+        "Profile picture must be smaller than 5MB. " + 
+        "Please choose a smaller image."
+      );
+      // Reset the file input so user can try again
+      e.target.value = "";
+      return;
+    }
 
     try {
       const compressedFile = await compressImage(file, 800, 800, 0.8);
@@ -146,6 +159,22 @@ export function Dashboard({ profile }: DashboardProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
+              {/* Hamburger menu - only visible on mobile */}
+              <button
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 
+                           hover:text-gray-900 transition-colors focus:outline-none"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="Open navigation menu"
+              >
+                <svg 
+                  className="w-6 h-6" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
               <div 
                 className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -312,16 +341,64 @@ export function Dashboard({ profile }: DashboardProps) {
         </div>
       </header>
 
+      {/* Mobile sidebar backdrop overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex space-x-8">
-          {/* Sidebar */}
-          <div className="w-64 flex-shrink-0 sticky top-24 self-start z-10">
-            <nav className="bg-white rounded-lg shadow-sm p-4">
+          
+          {/* Sidebar - slides in on mobile, static on desktop */}
+          <div
+            className={`
+              fixed md:static
+              inset-y-0 left-0
+              z-40 md:z-10
+              w-64 flex-shrink-0
+              bg-white md:bg-transparent
+              shadow-xl md:shadow-none
+              transform transition-transform duration-300 ease-in-out
+              ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+              md:translate-x-0
+              md:sticky md:top-24 md:self-start
+              overflow-y-auto md:overflow-visible
+            `}
+          >
+            {/* Mobile sidebar header with close button */}
+            <div className="flex items-center justify-between p-4 border-b md:hidden">
+              <div className="flex items-center space-x-2">
+                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center 
+                                justify-center">
+                  <span className="text-white font-bold text-xs">CG</span>
+                </div>
+                <span className="font-bold text-gray-900">CollegeGig</span>
+              </div>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 
+                           hover:text-gray-900 transition-colors"
+                aria-label="Close navigation menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <nav className="bg-white rounded-lg shadow-sm p-4 md:shadow-sm pb-safe-area-inset-bottom">
               <div className="space-y-2">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setIsSidebarOpen(false); // Close sidebar on mobile after selection
+                    }}
                     className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
                       activeTab === tab.id
                         ? "bg-blue-100 text-blue-700 font-medium"
@@ -337,7 +414,7 @@ export function Dashboard({ profile }: DashboardProps) {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
             {/* Show a loading state until the active tab is determined */}
             {activeTab === null && (
@@ -782,6 +859,15 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+
+                          // Validate file size (max 5MB for portfolio images)
+                          const MAX_PORTFOLIO_SIZE = 5 * 1024 * 1024;
+                          if (file.size > MAX_PORTFOLIO_SIZE) {
+                            toast.error("Portfolio image must be smaller than 5MB.");
+                            e.target.value = "";
+                            return;
+                          }
+
                             try {
                               setIsUploadingPortfolioImage(true);
                               const compressedFile = await compressImage(file, 800, 800, 0.8);

@@ -7,6 +7,7 @@ import { SignOutButton } from "./SignOutButton";
 import { Toaster } from "sonner";
 import { Helmet } from "react-helmet-async";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import { NetworkBanner } from "./components/NetworkBanner";
 
 const Dashboard = lazy(() => import("./components/Dashboard").then(m => ({ default: m.Dashboard })));
 const ProfileSetup = lazy(() => import("./components/ProfileSetup").then(m => ({ default: m.ProfileSetup })));
@@ -24,6 +25,8 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <Router>
+        {/* Network status banner - shown at top of all pages when offline */}
+        <NetworkBanner />
         <div className="min-h-screen bg-gray-50">
           <Authenticated>
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}>

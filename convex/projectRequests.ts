@@ -207,53 +207,62 @@ export const createProposal = mutation({
  */
 
 export const getProposalsForProject = query({
-
   args: {
-
     projectId: v.id("projectRequests"),
-
   },
-
   handler: async (ctx, args) => {
+    // Step 1: Get the authenticated user
+    const userId = await getAuthUserId(ctx);
+    
+    // Step 2: If not logged in, return empty array
+    if (!userId) return [];
 
-    const proposals = await ctx.db
+    // Step 3: Load the project to check ownership
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
 
+    // Step 4: Check if the user is the client who posted this project
+    const isClient = project.clientId === userId;
+
+    // Step 5: Check if the user has submitted a proposal for this project
+    // (freelancers can only see their own proposal, not others')
+    const ownProposal = await ctx.db
       .query("proposals")
+      .withIndex("by_project_and_freelancer", (q) =>
+        q.eq("projectId", args.projectId).eq("freelancerId", userId)
+      )
+      .first();
+    
+    const isFreelancerWithProposal = ownProposal !== null;
 
+    // Step 6: If neither client nor a bidding freelancer, deny access
+    if (!isClient && !isFreelancerWithProposal) return [];
+
+    // Step 7: Fetch proposals based on role
+    // Clients see ALL proposals. Freelancers only see their own.
+    const proposals = await ctx.db
+      .query("proposals")
       .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-
       .collect();
 
+    const visibleProposals = isClient
+      ? proposals
+      : proposals.filter((p) => p.freelancerId === userId);
 
-
+    // Step 8: Enrich with freelancer profile name
     return Promise.all(
-
-      proposals.map(async (proposal) => {
-
+      visibleProposals.map(async (proposal) => {
         const freelancerProfile = await ctx.db
-
           .query("profiles")
-
           .withIndex("by_user", (q) => q.eq("userId", proposal.freelancerId))
-
           .unique();
-
         return {
-
           ...proposal,
-
           freelancerName: freelancerProfile
-
             ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
-
             : "Unknown Freelancer",
-
         };
-
       })
-
     );
-
   },
-
 });

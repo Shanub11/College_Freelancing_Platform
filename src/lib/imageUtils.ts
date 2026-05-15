@@ -9,7 +9,7 @@ export const compressImage = async (
   quality = 0.8
 ): Promise<File> => {
   if (!file.type.startsWith("image/")) {
-    return file; // Skip compression for PDFs or non-image files
+    return file;
   }
 
   return new Promise((resolve) => {
@@ -22,7 +22,7 @@ export const compressImage = async (
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         URL.revokeObjectURL(objectUrl);
-        return resolve(file); // Fallback to original
+        return resolve(file);
       }
 
       let { width, height } = img;
@@ -41,16 +41,21 @@ export const compressImage = async (
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(objectUrl);
         if (blob) {
-          resolve(new File([blob], file.name, { type: "image/jpeg", lastModified: Date.now() }));
+          resolve(
+            new File([blob], file.name, { 
+              type: "image/jpeg", 
+              lastModified: Date.now() 
+            })
+          );
         } else {
-          resolve(file); // Fallback
+          resolve(file);
         }
       }, "image/jpeg", quality);
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      resolve(file); // Fallback to original on error
+      resolve(file);
     };
   });
 };

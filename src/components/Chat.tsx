@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, Fragment } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
-import { compressImage } from "../../convex/image";
+import { compressImage } from "@/lib/imageUtils";
+import { toast } from "sonner";
 
 interface ChatInterfaceProps {
   isOpen: boolean;
@@ -151,6 +152,16 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
 
     let attachmentId = undefined;
     if (selectedFile) {
+      // Validate file size before attempting upload (max 5MB for chat attachments)
+      const MAX_CHAT_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+      if (selectedFile.size > MAX_CHAT_FILE_SIZE) {
+        toast.error(
+          "File is too large. Maximum size for chat attachments is 5MB. " +
+          "Please compress or resize the file and try again."
+        );
+        setSelectedFile(null);
+        return;
+      }
       setIsUploading(true);
       const compressedFile = await compressImage(selectedFile, 1200, 1200, 0.8);
       const postUrl = await generateUploadUrl();

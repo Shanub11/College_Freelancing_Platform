@@ -8,9 +8,6 @@
  * @module
  */
 
-import type * as ErrorState from "../../src/components/ErrorState.js";
-import type * as LoadingState from "../../src/components/LoadingState.js";
-import type * as QueryWrapper from "../../src/components/QueryWrapper.js";
 import type * as adminHelpers from "../adminHelpers.js";
 import type * as auth from "../auth.js";
 import type * as categories from "../categories.js";
@@ -18,7 +15,6 @@ import type * as chat from "../chat.js";
 import type * as disputes from "../disputes.js";
 import type * as gigs from "../gigs.js";
 import type * as http from "../http.js";
-import type * as image from "../image.js";
 import type * as logs from "../logs.js";
 import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
@@ -34,7 +30,6 @@ import type * as recommendations from "../recommendations.js";
 import type * as reviews from "../reviews.js";
 import type * as router from "../router.js";
 import type * as storage from "../storage.js";
-import type * as useInfiniteScroll from "../useInfiniteScroll.js";
 import type * as verification from "../verification.js";
 
 import type {
@@ -44,9 +39,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  ErrorState: typeof ErrorState;
-  LoadingState: typeof LoadingState;
-  QueryWrapper: typeof QueryWrapper;
   adminHelpers: typeof adminHelpers;
   auth: typeof auth;
   categories: typeof categories;
@@ -54,7 +46,6 @@ declare const fullApi: ApiFromModules<{
   disputes: typeof disputes;
   gigs: typeof gigs;
   http: typeof http;
-  image: typeof image;
   logs: typeof logs;
   migrations: typeof migrations;
   moderation: typeof moderation;
@@ -70,7 +61,6 @@ declare const fullApi: ApiFromModules<{
   reviews: typeof reviews;
   router: typeof router;
   storage: typeof storage;
-  useInfiniteScroll: typeof useInfiniteScroll;
   verification: typeof verification;
 }>;
 

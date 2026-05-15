@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Block private routes from indexing
+Disallow: /dashboard
+Disallow: /projects/*/propose
+Disallow: /api/
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://www.collegegig.in/sitemap.xml

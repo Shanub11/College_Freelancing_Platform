@@ -4,7 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { VerificationUpload } from "./VerificationUpload";
 import { useNavigate } from "react-router-dom";
-import { compressImage } from "../../convex/image";
+import { compressImage } from "@/lib/imageUtils";
 import LoadingState from "./LoadingState";
 
 function useStorage(fileRef: any): string | null {
@@ -53,6 +53,14 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file size (max 5MB for profile pictures)
+    const MAX_PROFILE_PIC_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_PROFILE_PIC_SIZE) {
+      toast.error("Profile picture must be smaller than 5MB.");
+      e.target.value = "";
+      return;
+    }
 
     try {
       const compressedFile = await compressImage(file, 800, 800, 0.8);

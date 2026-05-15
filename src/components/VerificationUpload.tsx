@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import { compressImage } from "../../convex/image";
+import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
 
 interface VerificationUploadProps {
@@ -25,6 +25,17 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
 
   const handleFileUpload = async (file: File) => {
     if (!file) return null;
+
+    // Validate file size (max 10MB for verification documents like ID cards)
+    // Documents need higher limit than images since PDFs can be larger
+    const MAX_VERIFICATION_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_VERIFICATION_DOC_SIZE) {
+      toast.error(
+        "Document is too large. Maximum size is 10MB. " +
+        "Please scan at a lower resolution or compress the PDF."
+      );
+      return null;
+    }
 
     try {
       setIsUploading(true);
@@ -400,7 +411,7 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Upload a clear photo of your student ID card or official enrollment letter (JPG, PNG, or PDF)
+          Upload a clear photo of your student ID card (JPG, PNG, or PDF). Max 10MB.
         </p>
       </div>
 
@@ -416,7 +427,7 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <p className="text-xs text-gray-500 mt-1">
-          e.g., Adhaar Card, Driver's License, Passport, or PAN Card.
+          e.g., Adhaar Card, Driver's License, Passport, or PAN Card. Max 10MB.
         </p>
       </div>
 

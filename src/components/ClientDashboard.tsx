@@ -5,13 +5,14 @@ import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { ProposalActions } from "./ProposalActions";
 import { GigBrowser } from "./GigBrowser";
-import { compressImage } from "../../convex/image";
+import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
 import { PayButton } from "./PayButton";
 import { Helmet } from "react-helmet-async";
 import { getProfilePictureUrl, getStorageUrl } from "@/lib/storageHelpers";
 import LoadingState from "./LoadingState";
 import ConfirmModal from "./ConfirmModal";
+import { PaymentMethodBadges } from "./PaymentMethodBadges";
 
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
@@ -1032,6 +1033,14 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
 
     setIsLoading(true);
     try {
+      const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string;
+      if (!razorpayKeyId) {
+        toast.error(
+          "Payment system is not configured. Please contact support."
+        );
+        return;
+      }
+
       const orderId = await createDirectOrder({
         freelancerId: gig.freelancerId,
         gigId: gig._id,
@@ -1044,7 +1053,7 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
       const razorpayOrderId = await createRazorpayOrder({ orderId });
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
+        key: razorpayKeyId,
         amount: Math.round(formData.price * 100),
         currency: "INR",
         name: "College Freelancing Platform",
@@ -1099,8 +1108,9 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
             </div>
           </div>
           <button type="submit" disabled={isLoading} className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors shadow-sm">
-            {isLoading ? "Processing..." : `Pay ₹${formData.price} & Start Order`}
+            {isLoading ? "Processing..." : `Pay ₹${formData.price.toLocaleString("en-IN")} & Start Order`}
           </button>
+          <PaymentMethodBadges />
         </form>
       </div>
     </div>

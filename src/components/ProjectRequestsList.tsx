@@ -2,7 +2,7 @@ import { usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Link } from "react-router-dom";
 import posthog from "posthog-js";
-import { useInfiniteScroll } from "../../convex/useInfiniteScroll";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 
 export function ProjectRequestsList() {
   const { results: projectRequests, status, loadMore } = usePaginatedQuery(

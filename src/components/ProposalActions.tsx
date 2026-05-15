@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { PaymentMethodBadges } from "./PaymentMethodBadges";
 
 export function ProposalActions({ 
   proposalId, 
@@ -34,6 +35,17 @@ export function ProposalActions({
   }, []);
 
   const handleAccept = async () => {
+    const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string;
+    if (!razorpayKeyId) {
+      toast.error(
+        "Payment system is not configured. Please contact support."
+      );
+      console.error(
+        "Missing environment variable: VITE_RAZORPAY_KEY_ID"
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       // 1. Accept Proposal & Create Order in DB
@@ -44,7 +56,7 @@ export function ProposalActions({
 
       // 3. Open Razorpay Checkout
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
+        key: razorpayKeyId,
         amount: amount * 100, // Amount in paise
         currency: "INR",
         name: "College Freelancing Platform",
@@ -107,8 +119,11 @@ export function ProposalActions({
       </div>
       <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg flex items-start gap-2 border border-blue-100">
         <span className="text-base leading-none">🔒</span> 
-        <p className="font-medium">Your money is safe. Payment is held securely in escrow and released only after you approve the work.</p>
+        <p className="font-medium">
+          Your money is safe. Payment is held securely in escrow and released only after you approve the work.
+        </p>
       </div>
+      <PaymentMethodBadges />
     </div>
   );
 }

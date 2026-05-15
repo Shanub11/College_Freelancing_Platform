@@ -197,7 +197,9 @@ const applicationTables = {
   })
     .index("by_project_client_freelancer", ["projectId", "clientId", "freelancerId"])
     .index("by_client", ["clientId"])
-    .index("by_freelancer", ["freelancerId"]),
+    .index("by_freelancer", ["freelancerId"])
+    .index("by_client_and_updated", ["clientId", "updatedAt"])
+    .index("by_freelancer_and_updated", ["freelancerId", "updatedAt"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),

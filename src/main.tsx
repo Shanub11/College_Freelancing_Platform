@@ -18,9 +18,20 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // Record 100% of sessions that end in an error
 });
 
-posthog.init('phc_C4pB6yahx9gBZKVoSbxL7Q9Ruec4Bgjspi2m7LRLV4z2', {
-  api_host: 'https://us.i.posthog.com',
-});
+// Only initialize PostHog if the key is configured.
+// Set VITE_POSTHOG_KEY in your .env.local file for local dev
+// and in your Vercel environment variables for production.
+if (import.meta.env.VITE_POSTHOG_KEY) {
+  posthog.init(import.meta.env.VITE_POSTHOG_KEY as string, {
+    api_host: 'https://us.i.posthog.com',
+    // Disable in development to avoid polluting analytics
+    loaded: (ph) => {
+      if (import.meta.env.DEV) {
+        ph.opt_out_capturing();
+      }
+    },
+  });
+}
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
