@@ -5,6 +5,14 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import { enforceRateLimit } from "./rateLimiter";
 import { enforceModerationOnFields } from "./moderation";
+import { paginationOptsValidator } from "convex/server";
+
+// Status helper: orders may have legacy "in_progress" status which maps
+// to the current "active" status. Use this when displaying order status.
+export function normalizeDisplayStatus(status: string): string {
+  if (status === "in_progress") return "active";
+  return status;
+}
 
 export const createProject = mutation({
   args: {
@@ -21,6 +29,27 @@ export const createProject = mutation({
       throw new Error("You must be logged in to create a project.");
     }
 
+    // Server-side length validation
+    if (args.title.trim().length < 10) {
+      throw new Error("Project title must be at least 10 characters.");
+    }
+    if (args.title.length > 200) {
+      throw new Error("Project title is too long. Maximum 200 characters.");
+    }
+    if (args.description.trim().length < 50) {
+      throw new Error(
+        "Project description must be at least 50 characters. " +
+        "Please describe your project in more detail."
+      );
+    }
+    if (args.description.length > 10000) {
+      throw new Error(
+        "Project description is too long. Maximum 10000 characters."
+      );
+    }
+    if (args.skills.length > 20) {
+      throw new Error("Maximum 20 skills allowed per project.");
+    }
     await enforceModerationOnFields(ctx, clientId as Id<"users">, [
       { fieldName: "project title", value: args.title },
       { fieldName: "project description", value: args.description },
@@ -180,20 +209,24 @@ export const getProposalsForProject = query({
 });
 
 export const getMyClientOrders = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const clientId = await getAuthUserId(ctx);
     if (!clientId) {
-      return [];
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
-    const orders = await ctx.db
+    const result = await ctx.db
       .query("orders")
       .withIndex("by_client", (q) => q.eq("clientId", clientId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
-    const ordersWithFreelancerDetails = await Promise.all(
-      orders.map(async (order) => {
+    const page = await Promise.all(
+      result.page.map(async (order) => {
         const freelancerProfile = await ctx.db
           .query("profiles")
           .withIndex("by_user", (q) => q.eq("userId", order.freelancerId))
@@ -202,34 +235,43 @@ export const getMyClientOrders = query({
         let hasReviewed = false;
         const review = await ctx.db
           .query("reviews")
-          .withIndex("by_order", q => q.eq("orderId", order._id))
-          .filter(q => q.eq(q.field("reviewerId"), clientId))
+          .withIndex("by_order", (q) => q.eq("orderId", order._id))
+          .filter((q) => q.eq(q.field("reviewerId"), clientId))
           .first();
         if (review) hasReviewed = true;
 
-        return { ...order, freelancer: freelancerProfile, orderId: order._id, hasReviewed };
+        return {
+          ...order,
+          freelancer: freelancerProfile,
+          orderId: order._id,
+          hasReviewed,
+        };
       })
     );
 
-    return ordersWithFreelancerDetails;
+    return { ...result, page };
   },
 });
 
 export const getMyFreelancerOrders = query({
-  handler: async (ctx) => {
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
     const freelancerId = await getAuthUserId(ctx);
     if (!freelancerId) {
-      return [];
+      return { page: [], isDone: true, continueCursor: "" };
     }
 
-    const orders = await ctx.db
+    const result = await ctx.db
       .query("orders")
       .withIndex("by_freelancer", (q) => q.eq("freelancerId", freelancerId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts);
 
-    const ordersWithClientDetails = await Promise.all(
-      orders.map(async (order) => {
+    const page = await Promise.all(
+      result.page.map(async (order) => {
         const clientProfile = await ctx.db
           .query("profiles")
           .withIndex("by_user", (q) => q.eq("userId", order.clientId))
@@ -238,16 +280,21 @@ export const getMyFreelancerOrders = query({
         let hasReviewed = false;
         const review = await ctx.db
           .query("reviews")
-          .withIndex("by_order", q => q.eq("orderId", order._id))
-          .filter(q => q.eq(q.field("reviewerId"), freelancerId))
+          .withIndex("by_order", (q) => q.eq("orderId", order._id))
+          .filter((q) => q.eq(q.field("reviewerId"), freelancerId))
           .first();
         if (review) hasReviewed = true;
 
-        return { ...order, client: clientProfile, orderId: order._id, hasReviewed };
+        return {
+          ...order,
+          client: clientProfile,
+          orderId: order._id,
+          hasReviewed,
+        };
       })
     );
 
-    return ordersWithClientDetails;
+    return { ...result, page };
   },
 });
 
@@ -290,12 +337,15 @@ export const getFreelancerPublicProfile = query({
     }
     const onTimeRate = completedCount > 0 ? Math.round((onTimeCount / completedCount) * 100) : 100;
 
+    // Limit to 20 most recent completed orders to prevent unbounded 
+    // N+1 queries (each order triggers project/gig/review lookups).
     const completedOrders = await ctx.db
       .query("orders")
-      .withIndex("by_freelancer_and_status", (q) => 
+      .withIndex("by_freelancer_and_status", (q) =>
         q.eq("freelancerId", args.userId).eq("status", "completed")
       )
-      .collect();
+      .order("desc")
+      .take(20);
 
     const completedProjects = await Promise.all(completedOrders.map(async (order) => {
       let category = "Direct Order";
@@ -454,6 +504,7 @@ export const markOrderPaid = internalMutation({
 
 export const completeOrderAndReleaseFunds = mutation({
   args: { orderId: v.id("orders") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
@@ -533,6 +584,7 @@ export const submitDelivery = mutation({
     link: v.optional(v.string()),
     attachment: v.optional(v.id("_storage")),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     const order = await ctx.db.get(args.orderId);
@@ -561,8 +613,61 @@ export const submitDelivery = mutation({
       link: `/orders`,
     });
 
+    // Send email notification to the client
+    const clientUser = await ctx.db.get(order.clientId);
+    if (clientUser?.email && userId) {
+      const freelancerProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId as Id<"users">))
+        .unique();
+
+      await ctx.scheduler.runAfter(
+        0,
+        internal.email.sendOrderSubmittedEmail,
+        {
+          toEmail: clientUser.email,
+          toName: clientUser.email,
+          orderTitle: order.title,
+          freelancerName: freelancerProfile
+            ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
+            : "Your freelancer",
+          orderId: args.orderId,
+        }
+      );
+    }
+
     return null;
   }
+});
+
+/**
+ * Soft-deletes an order by setting deletedAt timestamp.
+ * Admin only. Use instead of hard deletion to preserve financial records.
+ */
+export const softDeleteOrder = internalMutation({
+  args: {
+    orderId: v.id("orders"),
+    reason: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const order = await ctx.db.get(args.orderId);
+    if (!order) throw new Error("Order not found");
+
+    await ctx.db.patch(args.orderId, {
+      deletedAt: Date.now(),
+    });
+
+    await ctx.db.insert("activityLogs", {
+      action: "Order Soft Deleted",
+      details: `Order ${args.orderId} soft-deleted. Reason: ${args.reason}`,
+      userId: order.clientId,
+      timestamp: Date.now(),
+      relatedId: args.orderId,
+    });
+
+    return null;
+  },
 });
 
 export const requestRevision = mutation({

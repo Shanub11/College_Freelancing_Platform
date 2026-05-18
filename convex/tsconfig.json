@@ -20,6 +20,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["./**/*", "../src/components/PromptModal.tsx", "../src/components/LoadingState.tsx", "../src/components/ConfirmModal.tsx", "../src/components/QueryWrapper.tsx", "../src/components/ErrorState.tsx"],
+  "include": ["./**/*"],
   "exclude": ["./_generated"]
 }

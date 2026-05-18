@@ -3,19 +3,27 @@ import { Id } from "./_generated/dataModel";
 
 /**
  * Enforces a rate limit for a specific action by a specific user.
- * 
- * Uses the "timestamp" field (not _creationTime) for time windowing because:
- * 1. "timestamp" is explicitly stored and accurate
- * 2. We filter after the index lookup using the stored timestamp
- * 
+ *
+ * Uses a dedicated `rateLimits` table instead of `activityLogs` so that:
+ * 1. Admin activity logs are not polluted with rate limit records.
+ * 2. Rate limit lookups only scan the small rateLimits table.
+ * 3. Old tokens outside the time window are cleaned up automatically.
+ *
  * HOW IT WORKS:
- * - Queries activityLogs by userId + action (using the existing index)
- * - Filters to only entries within the time window using timestamp field
+ * - Deletes all expired tokens for this user+action (cleanup).
+ * - Counts remaining tokens within the current window.
  * - If count >= maxCount, throws errorMessage
  * - Otherwise inserts a new log entry to count this attempt
- * 
- * NOTE: The rate limit log entries use a prefixed action name (e.g. 
- * "ratelimit:message_send") so they don't mix with real activity logs.
+ *
+ * This runs inside a Convex mutation which is serialized per-document,
+ * making it safe from race conditions for the same user+action pair.
+ *
+ * @param ctx        - Convex MutationCtx
+ * @param userId     - The user being rate limited
+ * @param action     - Short identifier e.g. "message_send", "gig_create"
+ * @param maxCount   - Max allowed calls within windowMs
+ * @param windowMs   - Time window in milliseconds
+ * @param errorMessage - Error thrown when limit is exceeded
  */
 export async function enforceRateLimit(
   ctx: MutationCtx,
@@ -25,29 +33,64 @@ export async function enforceRateLimit(
   windowMs: number,
   errorMessage: string
 ): Promise<void> {
-  const windowStart = Date.now() - windowMs;
+  const now = Date.now();
+  const windowStart = now - windowMs;
   
-  // Use a prefixed action name so rate limit logs don't pollute activity logs
-  const rateLimitAction = `ratelimit:${action}`;
+  // Step 1: Delete expired tokens for this user+action to keep table small.
+  // We fetch them first, then delete individually (Convex has no bulk delete).
+  const expiredTokens = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_user_and_action", (q) =>
+      q.eq("userId", userId).eq("action", action)
+    )
+    .filter((q) => q.lt(q.field("timestamp"), windowStart))
+    .collect();
 
-  // Query by index first (fast), then filter by timestamp (explicit field)
-  const recent = await ctx.db
-    .query("activityLogs")
-    .withIndex("by_user_and_action", (q) => 
-      q.eq("userId", userId).eq("action", rateLimitAction)
+  for (const token of expiredTokens) {
+    await ctx.db.delete(token._id);
+  }
+
+  // Step 2: Count active tokens within the current window.
+  const activeTokens = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_user_and_action", (q) =>
+      q.eq("userId", userId).eq("action", action)
     )
     .filter((q) => q.gte(q.field("timestamp"), windowStart))
     .collect();
   
-  if (recent.length >= maxCount) {
+  if (activeTokens.length >= maxCount) {
     throw new Error(errorMessage);
   }
   
-  // Record this attempt so future checks count it
-  await ctx.db.insert("activityLogs", {
-    action: rateLimitAction,
-    details: `Rate limit check for: ${action}`,
+  // Step 3: Insert a new token to record this attempt.
+  await ctx.db.insert("rateLimits", {
     userId,
-    timestamp: Date.now(),
+    action,
+    timestamp: now,
   });
+}
+
+/**
+ * Returns how many rate limit tokens a user has consumed for an action
+ * within the current window. Useful for showing "X of Y attempts used".
+ * Call from a query (read-only). Does NOT clean up expired tokens.
+ */
+export async function getRateLimitCount(
+  ctx: { db: MutationCtx["db"] },
+  userId: Id<"users">,
+  action: string,
+  windowMs: number
+): Promise<number> {
+  const windowStart = Date.now() - windowMs;
+
+  const activeTokens = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_user_and_action", (q) =>
+      q.eq("userId", userId).eq("action", action)
+    )
+    .filter((q) => q.gte(q.field("timestamp"), windowStart))
+    .collect();
+
+  return activeTokens.length;
 }

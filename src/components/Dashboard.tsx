@@ -78,21 +78,11 @@ export function Dashboard({ profile }: DashboardProps) {
     }
   }, [profile]);
 
+  const validateUpload = useMutation(api.storage.validateUpload);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file size before upload (max 5MB for profile pictures)
-    const MAX_PROFILE_PIC_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_PROFILE_PIC_SIZE) {
-      toast.error(
-        "Profile picture must be smaller than 5MB. " + 
-        "Please choose a smaller image."
-      );
-      // Reset the file input so user can try again
-      e.target.value = "";
-      return;
-    }
 
     try {
       const compressedFile = await compressImage(file, 800, 800, 0.8);
@@ -103,11 +93,19 @@ export function Dashboard({ profile }: DashboardProps) {
         body: compressedFile,
       });
       const { storageId } = await result.json();
-      await updateProfile({ profilePicture: storageId });
+
+      // SERVER-SIDE VALIDATION
+      const validatedId = await validateUpload({
+        storageId,
+        category: "profile_image",
+      });
+
+      await updateProfile({ profilePicture: validatedId });
       toast.success("Profile picture updated!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to upload image");
+      e.target.value = "";
+      toast.error(error.message || "Failed to upload image");
     }
   };
 
@@ -915,7 +913,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                             return;
                           }
                           setPortfolioItems([...portfolioItems, { 
-                            id: Math.random().toString(36).substring(2, 9), 
+                            id: crypto.randomUUID(), 
                             ...newPortfolioItem 
                           }]);
                           setNewPortfolioItem({ title: "", description: "", link: "", image: null, imageUrl: null });

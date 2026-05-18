@@ -123,6 +123,28 @@ export const openDispute = mutation({
         relatedId: disputeId,
       });
 
+      // Send email to the user confirming their ticket was received
+      const creatorUser = await ctx.db.get(userId);
+      if (creatorUser?.email) {
+        const creatorProfile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .unique();
+
+        await ctx.scheduler.runAfter(
+          0,
+          internal.email.sendDisputeOpenedEmail,
+          {
+            toEmail: creatorUser.email,
+            toName: creatorProfile
+              ? `${creatorProfile.firstName} ${creatorProfile.lastName}`
+              : creatorUser.email,
+            disputeReason: args.reason,
+            projectTitle: undefined,
+          }
+        );
+      }
+
       return disputeId;
     }
   },

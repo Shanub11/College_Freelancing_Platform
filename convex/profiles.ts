@@ -180,6 +180,7 @@ export const submitForVerification = mutation({
     studentId: v.id("_storage"),
     govtId: v.id("_storage"),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");

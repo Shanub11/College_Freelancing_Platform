@@ -33,7 +33,23 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
   });
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convexUrl = import.meta.env.VITE_CONVEX_URL as string | undefined;
+if (!convexUrl) {
+  throw new Error(
+    "[CollegeGig] VITE_CONVEX_URL is not set. " +
+    "Add it to your .env.local file: VITE_CONVEX_URL=https://your-deployment.convex.cloud"
+  );
+}
+
+const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined;
+if (!razorpayKeyId) {
+  console.warn(
+    "[CollegeGig] VITE_RAZORPAY_KEY_ID is not set. " +
+    "Payments will not work until this is configured."
+  );
+}
+
+const convex = new ConvexReactClient(convexUrl);
 
 createRoot(document.getElementById("root")!).render(
   <ConvexAuthProvider client={convex}>

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 export const getNotifications = query({
   handler: async (ctx) => {
@@ -124,7 +125,7 @@ export const acceptProposal = mutation({
       status: "pending_payment",
     });
 
-    // Notify the freelancer
+    // Notify the freelancer in-app
     await ctx.db.insert("notifications", {
       userId: proposalToAccept.freelancerId,
       type: "proposalAccepted",
@@ -141,6 +142,31 @@ export const acceptProposal = mutation({
       timestamp: Date.now(),
       relatedId: orderId,
     });
+
+    // Send email notification to the freelancer
+    const freelancerUser = await ctx.db.get(proposalToAccept.freelancerId);
+    if (freelancerUser?.email) {
+      const freelancerProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) =>
+          q.eq("userId", proposalToAccept.freelancerId)
+        )
+        .unique();
+
+      await ctx.scheduler.runAfter(
+        0,
+        internal.email.sendProposalAcceptedEmail,
+        {
+          toEmail: freelancerUser.email,
+          toName: freelancerProfile
+            ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
+            : freelancerUser.email,
+          projectTitle: project.title,
+          agreedPrice: proposalToAccept.proposedPrice,
+          orderId: orderId,
+        }
+      );
+    }
 
     return orderId;
   },

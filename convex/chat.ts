@@ -17,28 +17,52 @@ export const getOrCreateConversation = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
-    // Check if conversation exists between these two users (ignoring project)
-    const existingAsClient = await ctx.db
+    // RACE CONDITION FIX: Use deterministic participant IDs.
+    // Sort both user IDs so the pair is always stored in the same order
+    // regardless of who initiates — this prevents duplicate conversations.
+    const ids = [args.clientId as string, args.freelancerId as string].sort();
+    const participant1Id = ids[0] as Id<"users">;
+    const participant2Id = ids[1] as Id<"users">;
+
+    // Primary lookup: use the deterministic index (fast, no duplicates).
+    const existingByParticipants = await ctx.db
+      .query("conversations")
+      .withIndex("by_participants", (q) =>
+        q.eq("participant1Id", participant1Id).eq("participant2Id", participant2Id)
+      )
+      .first();
+
+    if (existingByParticipants) {
+      return existingByParticipants._id;
+    }
+
+    // Fallback: check legacy conversations that predate the participant fields.
+    // These were created before the by_participants index was added.
+    const legacyAsClient = await ctx.db
       .query("conversations")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .filter((q) => q.eq(q.field("freelancerId"), args.freelancerId))
       .first();
 
-    if (existingAsClient) {
-      return existingAsClient._id;
+    if (legacyAsClient) {
+      // Backfill participant fields so future lookups use the fast index.
+      await ctx.db.patch(legacyAsClient._id, { participant1Id, participant2Id });
+      return legacyAsClient._id;
     }
 
-    const existingAsFreelancer = await ctx.db
+    const legacyAsFreelancer = await ctx.db
       .query("conversations")
       .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.clientId))
       .filter((q) => q.eq(q.field("clientId"), args.freelancerId))
       .first();
 
-    if (existingAsFreelancer) {
-      return existingAsFreelancer._id;
+    if (legacyAsFreelancer) {
+      // Backfill participant fields so future lookups use the fast index.
+      await ctx.db.patch(legacyAsFreelancer._id, { participant1Id, participant2Id });
+      return legacyAsFreelancer._id;
     }
 
-    // Create new conversation
+    // No existing conversation found — create a new one with participant fields.
     const conversationId = await ctx.db.insert("conversations", {
       projectId: args.projectId,
       clientId: args.clientId,
@@ -46,6 +70,8 @@ export const getOrCreateConversation = mutation({
       updatedAt: Date.now(),
       clientUnreadCount: 0,
       freelancerUnreadCount: 0,
+      participant1Id,
+      participant2Id,
     });
 
     return conversationId;
@@ -63,6 +89,25 @@ export const sendMessage = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
+    // SECURITY FIX: Verify sender is a participant before sending.
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    const isParticipant =
+      conversation.clientId === userId ||
+      conversation.freelancerId === userId;
+
+    if (!isParticipant) {
+      throw new Error("Unauthorized: You are not part of this conversation");
+    }
+
+    // Server-side message length validation
+    if (args.text.trim().length === 0) {
+      throw new Error("Message cannot be empty.");
+    }
+    if (args.text.length > 5000) {
+      throw new Error("Message is too long. Maximum 5000 characters allowed.");
+    }
     await enforceRateLimit(
       ctx,
       userId as Id<"users">,
@@ -82,9 +127,6 @@ export const sendMessage = mutation({
       seen: false,
       attachment: args.attachment,
     });
-
-    const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) throw new Error("Conversation not found");
 
     let clientUnreadCount = conversation.clientUnreadCount || 0;
     let freelancerUnreadCount = conversation.freelancerUnreadCount || 0;
@@ -112,6 +154,21 @@ export const getMessages = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
+    // SECURITY FIX: Verify the requesting user is actually a participant
+    // in this conversation before returning any messages.
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return [];
+
+    const isParticipant =
+      conversation.clientId === userId ||
+      conversation.freelancerId === userId;
+
+    if (!isParticipant) {
+      // Do not throw — returning empty array avoids leaking 
+      // whether the conversation exists at all.
+      return [];
+    }
+
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
@@ -123,7 +180,9 @@ export const getMessages = query({
     return await Promise.all(messages.map(async (msg) => {
       return {
         ...msg,
-        attachmentUrl: msg.attachment ? await ctx.storage.getUrl(msg.attachment) : null,
+        attachmentUrl: msg.attachment
+          ? await ctx.storage.getUrl(msg.attachment)
+          : null,
       };
     }));
   },

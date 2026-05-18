@@ -114,6 +114,28 @@ export const createGig = mutation({
       throw new Error("Only verified freelancers can create gigs");
     }
 
+    // Server-side validation
+    if (args.title.trim().length < 10) {
+      throw new Error("Gig title must be at least 10 characters.");
+    }
+    if (args.title.length > 200) {
+      throw new Error("Gig title is too long. Maximum 200 characters.");
+    }
+    if (args.description.trim().length < 50) {
+      throw new Error(
+        "Gig description must be at least 50 characters."
+      );
+    }
+    if (args.basePrice < 50) {
+      throw new Error("Minimum gig price is ₹50.");
+    }
+    if (args.deliveryTime < 1 || args.deliveryTime > 90) {
+      throw new Error("Delivery time must be between 1 and 90 days.");
+    }
+    if (args.tags.length > 10) {
+      throw new Error("Maximum 10 tags allowed per gig.");
+    }
+
     const gigId = await ctx.db.insert("gigs", {
       freelancerId: userId,
       title: args.title,
@@ -148,11 +170,15 @@ export const getGigs = query({
     if (args.search) {
       gigs = await ctx.db
         .query("gigs")
-        .withSearchIndex("search_gigs", (q) =>
-          q.search("title", args.search!)
-            .eq("isActive", true)
-            .eq("category", args.category || "")
-        )
+        .withSearchIndex("search_gigs", (q) => {
+          // BUG FIX: Do not filter by category when it is empty string.
+          // Passing .eq("category", "") to the search index returns zero results.
+          const baseSearch = q.search("title", args.search!).eq("isActive", true);
+          if (args.category) {
+            return baseSearch.eq("category", args.category);
+          }
+          return baseSearch;
+        })
         .take(args.limit || 20);
     } else if (args.category) {
       gigs = await ctx.db
@@ -266,6 +292,7 @@ export const updateGig = mutation({
     deliveryTime: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
   },
+  returns: v.id("gigs"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");

@@ -27,7 +27,16 @@ interface FreelancerDashboardProps {
 export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: FreelancerDashboardProps) {
   const navigate = useNavigate();
   const myGigs = useQuery(api.gigs.getMyGigs);
-  const myOrders = useQuery((api as any).projects?.getMyFreelancerOrders);
+  const { 
+    results: myOrdersResults, 
+    status: ordersStatus, 
+    loadMore: loadMoreOrders 
+  } = usePaginatedQuery(
+    (api as any).projects.getMyFreelancerOrders, 
+    {}, 
+    { initialNumItems: 20 }
+  );
+  const myOrders = myOrdersResults;
   const [showCreateGig, setShowCreateGig] = useState(false);
   const [editingGig, setEditingGig] = useState<any | null>(null);
   const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
@@ -42,6 +51,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
   // Profile Picture Upload
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const validateUpload = useMutation(api.storage.validateUpload);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDispute = (orderId: string, projectId?: string) => {
@@ -71,7 +81,11 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
         body: compressedFile,
       });
       const { storageId } = await result.json();
-      await updateProfile({ profilePicture: storageId });
+      const validatedId = await validateUpload({
+        storageId,
+        category: "profile_image",
+      });
+      await updateProfile({ profilePicture: validatedId });
       toast.success("Profile picture updated!");
     } catch (error: any) {
       console.error(error);
@@ -167,7 +181,20 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               </div>
             ) : (
               myGigs.map((gig) => (
-                <div key={gig._id} className="bg-white rounded-lg shadow-sm p-6">
+                <div key={gig._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  {/* Gig image or placeholder */}
+                  {gig.images && gig.images.length > 0 ? (
+                    <div className="w-full h-36 bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">Image</span>
+                    </div>
+                  ) : (
+                    <div className="w-full h-36 bg-gradient-to-br from-blue-50 to-indigo-100 
+                                    flex flex-col items-center justify-center">
+                      <span className="text-3xl mb-1">💼</span>
+                      <span className="text-xs text-gray-500">No image added</span>
+                    </div>
+                  )}
+                  <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-semibold text-gray-900">{gig.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
@@ -207,6 +234,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                       {gig.isActive ? "Pause" : "Activate"}
                     </button>
                   </div>
+                  </div>
                 </div>
               ))
             )}
@@ -215,7 +243,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
       )}
 
       {activeTab === "orders" && (
-        myOrders === undefined ? (
+        ordersStatus === "LoadingFirstPage" ? (
           <LoadingState message="Loading your orders..." />
         ) : myOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -224,7 +252,8 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
             <p className="text-gray-600">Orders will appear here when clients hire you</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <>
+            <div className="space-y-4">
             {myOrders.map((order: any) => (
               <div key={order._id} className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -269,7 +298,24 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          {ordersStatus === "CanLoadMore" && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => loadMoreOrders(20)}
+                className="bg-white border border-gray-300 text-gray-700 px-6 py-2 
+                           rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Load More Orders
+              </button>
+            </div>
+          )}
+          {ordersStatus === "LoadingMore" && (
+            <div className="flex justify-center mt-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+            </div>
+          )}
+          </>
         )
       )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
@@ -23,29 +24,18 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
   const submitVerification = useMutation(api.profiles.submitForVerification);
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
 
+  const validateUpload = useMutation(api.storage.validateUpload);
+
   const handleFileUpload = async (file: File) => {
     if (!file) return null;
-
-    // Validate file size (max 10MB for verification documents like ID cards)
-    // Documents need higher limit than images since PDFs can be larger
-    const MAX_VERIFICATION_DOC_SIZE = 10 * 1024 * 1024; // 10MB
-    if (file.size > MAX_VERIFICATION_DOC_SIZE) {
-      toast.error(
-        "Document is too large. Maximum size is 10MB. " +
-        "Please scan at a lower resolution or compress the PDF."
-      );
-      return null;
-    }
 
     try {
       setIsUploading(true);
 
       const compressedFile = await compressImage(file, 1600, 1600, 0.8);
 
-      // Generate upload URL
       const uploadUrl = await generateUploadUrl();
 
-      // Upload file
       const result = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": compressedFile.type },
@@ -57,10 +47,18 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
       }
 
       const { storageId } = await result.json();
-      return storageId;
-    } catch (error) {
+
+      // SERVER-SIDE VALIDATION: validate file type and size on the server.
+      // If invalid, server deletes the file and throws an error.
+      const validatedId = await validateUpload({
+        storageId,
+        category: "verification_doc",
+      });
+
+      return validatedId;
+    } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload file");
+      toast.error(error.message || "Failed to upload file");
       return null;
     } finally {
       setIsUploading(false);

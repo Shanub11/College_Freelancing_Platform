@@ -49,10 +49,26 @@ export const getLogs = query({
     }
 
     // Apply Action and User Filters
+    // Also exclude ratelimit:* entries — those are now in the rateLimits 
+    // table. Legacy ratelimit:* entries in activityLogs are hidden here.
     const logs = await logsQuery
       .order("desc")
       .filter((q) => {
         const filters = [];
+        // Exclude legacy rate limit records that were stored in activityLogs
+        // before the rateLimits table was introduced.
+        filters.push(
+          q.not(
+            q.or(
+              q.eq(q.field("action"), "ratelimit:message_send"),
+              q.eq(q.field("action"), "ratelimit:proposal_submit"),
+              q.eq(q.field("action"), "ratelimit:gig_create"),
+              q.eq(q.field("action"), "ratelimit:project_create"),
+              q.eq(q.field("action"), "ratelimit:dispute_open"),
+              q.eq(q.field("action"), "ratelimit:verification_submit")
+            )
+          )
+        );
         if (args.action) filters.push(q.eq(q.field("action"), args.action));
         if (matchingUserIds) filters.push(q.or(...matchingUserIds.map(id => q.eq(q.field("userId"), id))));
         else if (args.userId) filters.push(q.eq(q.field("userId"), args.userId));

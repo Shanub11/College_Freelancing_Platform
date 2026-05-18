@@ -177,6 +177,9 @@ const applicationTables = {
     revisionCount: v.optional(v.number()),
     revisionNotes: v.optional(v.string()),
     autoCompleteJobId: v.optional(v.id("_scheduled_functions")),
+    // Soft delete — set instead of hard-deleting financial records.
+    // Queries must filter deletedAt: undefined to exclude deleted records.
+    deletedAt: v.optional(v.number()),
   })
     .index("by_client", ["clientId"])
     .index("by_freelancer", ["freelancerId"])
@@ -194,12 +197,19 @@ const applicationTables = {
     updatedAt: v.number(),
     clientUnreadCount: v.optional(v.number()),
     freelancerUnreadCount: v.optional(v.number()),
+    // Deterministic participant fields for deduplication.
+    // participant1Id is always the lexicographically smaller userId,
+    // participant2Id is always the larger. This guarantees a unique
+    // pair regardless of who initiates the conversation.
+    participant1Id: v.optional(v.id("users")),
+    participant2Id: v.optional(v.id("users")),
   })
     .index("by_project_client_freelancer", ["projectId", "clientId", "freelancerId"])
     .index("by_client", ["clientId"])
     .index("by_freelancer", ["freelancerId"])
     .index("by_client_and_updated", ["clientId", "updatedAt"])
-    .index("by_freelancer_and_updated", ["freelancerId", "updatedAt"]),
+    .index("by_freelancer_and_updated", ["freelancerId", "updatedAt"])
+    .index("by_participants", ["participant1Id", "participant2Id"]),
 
   messages: defineTable({
     conversationId: v.id("conversations"),
@@ -208,6 +218,9 @@ const applicationTables = {
     createdAt: v.number(),
     seen: v.boolean(),
     attachment: v.optional(v.id("_storage")),
+    // Marks whether the text field is AES-256-GCM encrypted.
+    // Legacy messages (isEncrypted: undefined or false) are plaintext.
+    isEncrypted: v.optional(v.boolean()),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_conversation_and_seen", ["conversationId", "seen"]),
@@ -281,6 +294,8 @@ const applicationTables = {
     resolutionNotes: v.optional(v.string()),
     resolvedBy: v.optional(v.id("users")),
     resolvedAt: v.optional(v.number()),
+    // Soft delete — never hard-delete dispute records.
+    deletedAt: v.optional(v.number()),
   })
     .index("by_projectId", ["projectId"])
     .index("by_status", ["status"])
@@ -298,6 +313,8 @@ const applicationTables = {
       v.literal("released"), // Paid out to freelancer
       v.literal("refunded")  // Refunded to client
     ),
+    // Soft delete — never hard-delete payment records.
+    deletedAt: v.optional(v.number()),
   })
     .index("by_orderId", ["orderId"])
     .index("by_razorpayOrderId", ["razorpayOrderId"]),
@@ -313,6 +330,18 @@ const applicationTables = {
     .index("by_user", ["userId"])
     .index("by_timestamp", ["timestamp"])
     .index("by_user_and_action", ["userId", "action"]),
+
+  // Dedicated rate limiting table — separate from activityLogs so admin
+  // logs are not polluted with ratelimit:* entries.
+  // Each record represents one "token" consumed for a rate-limited action.
+  // Records are cleaned up automatically when they fall outside the window.
+  rateLimits: defineTable({
+    userId: v.id("users"),
+    action: v.string(),       // e.g. "message_send", "proposal_submit"
+    timestamp: v.number(),    // when this token was consumed (ms since epoch)
+  })
+    .index("by_user_and_action", ["userId", "action"])
+    .index("by_timestamp", ["timestamp"]),
 };
 
 export default defineSchema({

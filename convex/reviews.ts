@@ -142,6 +142,8 @@ async function updateGigRating(ctx: MutationCtx, gigId: Id<"gigs">) {
 
 export const getOrderReviews = query({
   args: { orderId: v.id("orders") },
+  // TODO: Replace v.any() with a precise validator once review shape is stable
+  returns: v.any(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx) as Id<"users"> | null;
     

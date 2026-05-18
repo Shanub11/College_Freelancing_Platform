@@ -20,7 +20,9 @@ const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatIn
 export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport }: { profile: any, activeTab: string, onOpenChat?: (data?: any) => void, onOpenSupport?: (orderId?: string, projectId?: string) => void }) {
   const myProjects = useQuery(api.projects.getMyProjects, {});
   const notifications = useQuery(api.proposals.getNotifications, {}) || [];
-  const myOrders = useQuery(api.projects.getMyClientOrders);
+  const { results: myOrdersResults, status: ordersStatus, loadMore: loadMoreOrders } = 
+    usePaginatedQuery(api.projects.getMyClientOrders, {}, { initialNumItems: 20 });
+  const myOrders = myOrdersResults;
   const [selectedProject, setSelectedProject] = useState<Id<"projectRequests"> | null>(null);
   const [viewingFreelancer, setViewingFreelancer] = useState<Id<"users"> | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -42,6 +44,7 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
   // Profile Picture Upload
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const validateUpload = useMutation(api.storage.validateUpload);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
 
@@ -63,7 +66,11 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
         body: compressedFile,
       });
       const { storageId } = await result.json();
-      await updateProfile({ profilePicture: storageId });
+      const validatedId = await validateUpload({
+        storageId,
+        category: "profile_image",
+      });
+      await updateProfile({ profilePicture: validatedId });
       toast.success("Profile picture updated!");
     } catch (error: any) {
       console.error(error);
@@ -176,10 +183,28 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
       )}
 
       {activeTab === 'orders' && (
-        myOrders === undefined ? (
+        ordersStatus === "LoadingFirstPage" ? (
           <LoadingState message="Loading your orders..." />
         ) : (
-          <OrderList orders={myOrders} onOpenSupport={onOpenSupport} />
+          <>
+            <OrderList orders={myOrders || []} onOpenSupport={onOpenSupport} />
+            {ordersStatus === "CanLoadMore" && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => loadMoreOrders(20)}
+                  className="bg-white border border-gray-300 text-gray-700 px-6 py-2 
+                             rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Load More Orders
+                </button>
+              </div>
+            )}
+            {ordersStatus === "LoadingMore" && (
+              <div className="flex justify-center mt-6">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+              </div>
+            )}
+          </>
         )
       )}
 

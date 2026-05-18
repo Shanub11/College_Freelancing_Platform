@@ -5,6 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 import { enforceModeration, enforceModerationOnFields } from "./moderation";
 import { enforceRateLimit } from "./rateLimiter";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 /**
  * Query to get all project requests that are currently open.
@@ -115,6 +116,23 @@ export const createProposal = mutation({
 
 
 
+    // Server-side length validation
+    if (args.coverLetter.trim().length < 50) {
+      throw new Error(
+        "Cover letter is too short. Please write at least 50 characters."
+      );
+    }
+    if (args.coverLetter.length > 3000) {
+      throw new Error(
+        "Cover letter is too long. Maximum 3000 characters allowed."
+      );
+    }
+    if (args.proposedPrice < 50) {
+      throw new Error("Minimum proposal price is ₹50.");
+    }
+    if (args.deliveryTime < 1 || args.deliveryTime > 365) {
+      throw new Error("Delivery time must be between 1 and 365 days.");
+    }
     await enforceModerationOnFields(ctx, freelancerId as Id<"users">, [
       { fieldName: "cover letter", value: args.coverLetter },
     ]);
@@ -167,30 +185,46 @@ export const createProposal = mutation({
 
 
     // Increment proposal count on the project request
-
     await ctx.db.patch(args.projectId, { proposalCount: (project.proposalCount || 0) + 1 });
 
-
-
-    // Create a notification for the client
-
+    // Create in-app notification for the client
     await ctx.db.insert("notifications", {
-
       userId: project.clientId,
-
       type: "new_proposal",
-
       message: `You have a new proposal for your project: ${project.title}`,
-
       isRead: false,
-
       link: `/projects/${args.projectId}/proposals`,
-
     });
 
+    // Send email notification to the client
+    const freelancerProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", freelancerId))
+      .unique();
 
+    const clientUser = await ctx.db.get(project.clientId);
 
+    if (clientUser?.email && freelancerProfile) {
+      const clientProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) => q.eq("userId", project.clientId))
+        .unique();
 
+      await ctx.scheduler.runAfter(
+        0,
+        internal.email.sendNewProposalEmail,
+        {
+          toEmail: clientUser.email,
+          toName: clientProfile
+            ? `${clientProfile.firstName} ${clientProfile.lastName}`
+            : clientUser.email,
+          projectTitle: project.title,
+          freelancerName: `${freelancerProfile.firstName} ${freelancerProfile.lastName}`,
+          proposedPrice: args.proposedPrice,
+          projectId: args.projectId,
+        }
+      );
+    }
 
     return proposalId;
 

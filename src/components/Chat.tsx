@@ -139,6 +139,7 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
   const messages = useQuery(api.chat.getMessages, { conversationId }) || [];
   const sendMessage = useMutation(api.chat.sendMessage);
   const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
+  const validateUpload = useMutation(api.storage.validateUpload);
   
   const [newMessage, setNewMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -171,7 +172,11 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
         body: compressedFile,
       });
       const { storageId } = await result.json();
-      attachmentId = storageId;
+      // SERVER-SIDE VALIDATION
+      attachmentId = await validateUpload({
+        storageId,
+        category: "chat_attachment",
+      });
     }
 
     await sendMessage({ conversationId, text: newMessage, attachment: attachmentId });

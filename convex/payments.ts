@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 /**
  * INTERNAL: Marks a payment as funded.
@@ -10,23 +11,52 @@ export const markAsFunded = internalMutation({
     razorpayOrderId: v.string(),
     razorpayTransferId: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const payment = await ctx.db
       .query("payments")
-      .withIndex("by_razorpayOrderId", (q) => q.eq("razorpayOrderId", args.razorpayOrderId))
+      .withIndex("by_razorpayOrderId", (q) =>
+        q.eq("razorpayOrderId", args.razorpayOrderId)
+      )
       .unique();
 
     if (!payment) {
-      throw new Error(`Payment not found for Razorpay Order ID: ${args.razorpayOrderId}`);
+      // Log but do not throw — Razorpay may send webhooks for orders
+      // created outside this system or before our DB record was created.
+      console.warn(
+        `[Webhook] Payment not found for Razorpay Order ID: ${args.razorpayOrderId}. Skipping.`
+      );
+      return null;
     }
 
+    // IDEMPOTENCY CHECK: If already funded, this is a duplicate webhook.
+    // Do nothing and return success so Razorpay stops retrying.
+    if (payment.status === "funded" || payment.status === "released") {
+      console.log(
+        `[Webhook] Payment ${payment._id} already has status "${payment.status}". ` +
+        `Duplicate webhook for Razorpay Order ID: ${args.razorpayOrderId}. Skipping.`
+      );
+      return null;
+    }
+
+    // Only process if currently in "pending" status
+    if (payment.status !== "pending") {
+      console.warn(
+        `[Webhook] Payment ${payment._id} has unexpected status "${payment.status}" ` +
+        `for Razorpay Order ID: ${args.razorpayOrderId}. Skipping.`
+      );
+      return null;
+    }
+
+    // Mark payment as funded
     await ctx.db.patch(payment._id, {
       status: "funded",
       razorpayTransferId: args.razorpayTransferId,
     });
 
+    // Update order status
     await ctx.db.patch(payment.orderId, {
-      status: "in_progress",
+      status: "active",
     });
 
     // Fetch the order to get the project ID
@@ -41,11 +71,11 @@ export const markAsFunded = internalMutation({
       // Mark the winning proposal as accepted now that payment is confirmed
       const winningProposal = await ctx.db
         .query("proposals")
-        .withIndex("by_project_and_freelancer", (q) => 
+        .withIndex("by_project_and_freelancer", (q) =>
           q.eq("projectId", order.projectId!).eq("freelancerId", order.freelancerId)
         )
         .first();
-      
+
       if (winningProposal) {
         await ctx.db.patch(winningProposal._id, { status: "accepted" });
       }
@@ -61,6 +91,45 @@ export const markAsFunded = internalMutation({
         await ctx.db.patch(proposal._id, { status: "rejected" });
       }
     }
+
+    // Send email notification to the freelancer that payment is confirmed
+    if (order) {
+      const freelancerUser = await ctx.db.get(order.freelancerId);
+      const clientProfile = await ctx.db
+        .query("profiles")
+        .withIndex("by_user", (q) => q.eq("userId", order.clientId))
+        .unique();
+
+      if (freelancerUser?.email) {
+        const freelancerProfile = await ctx.db
+          .query("profiles")
+          .withIndex("by_user", (q) => q.eq("userId", order.freelancerId))
+          .unique();
+
+        await ctx.scheduler.runAfter(
+          0,
+          internal.email.sendPaymentReceivedEmail,
+          {
+            toEmail: freelancerUser.email,
+            toName: freelancerProfile
+              ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
+              : freelancerUser.email,
+            orderTitle: order.title,
+            amount: payment.amount,
+            clientName: clientProfile
+              ? `${clientProfile.firstName} ${clientProfile.lastName}`
+              : "Your client",
+          }
+        );
+      }
+    }
+
+    console.log(
+      `[Webhook] Successfully funded payment ${payment._id} ` +
+      `for Razorpay Order ID: ${args.razorpayOrderId}`
+    );
+
+    return null;
   },
 });
 
