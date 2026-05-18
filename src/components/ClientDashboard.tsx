@@ -606,6 +606,11 @@ function ProjectProposals({
                       proposalId={p._id}
                       amount={p.proposedPrice}
                       clientName={`${clientProfile.firstName} ${clientProfile.lastName}`}
+                      disabledReason={
+                        p.freelancerIsPayoutReady
+                          ? undefined
+                          : "This freelancer is still completing Razorpay payout verification."
+                      }
                     />
                   </div>
                 )}
@@ -986,8 +991,18 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                   <p className="text-sm text-gray-600 mt-2 line-clamp-2">{gig.description}</p>
                   <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-gray-500">
                     <span>⏱️ {gig.deliveryTime} days</span>
-                    <button onClick={() => setHireGig(gig)} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm">
-                      Hire Me
+                    <button
+                      onClick={() => {
+                        if (!profile.isPayoutReady) {
+                          toast.error("This freelancer is still completing Razorpay payout verification.");
+                          return;
+                        }
+                        setHireGig(gig);
+                      }}
+                      disabled={!profile.isPayoutReady}
+                      className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {profile.isPayoutReady ? "Hire Me" : "Payout Pending"}
                     </button>
                   </div>
                 </div>

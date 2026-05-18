@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Suspense, lazy } from "react";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { toast } from "sonner";
@@ -582,7 +582,14 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
   const [preferredCommunication, setPreferredCommunication] = useState(profile.preferredCommunication || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
+  const startPayoutOnboarding = useAction((api as any).paymentActions.saveBankDetailsAndStartRouteOnboarding);
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
+  const [bankAccountHolderName, setBankAccountHolderName] = useState(profile.bankAccountHolderName || "");
+  const [bankIfsc, setBankIfsc] = useState(profile.bankIfsc || "");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [stakeholderPhone, setStakeholderPhone] = useState("");
+  const [stakeholderPan, setStakeholderPan] = useState("");
+  const [isSavingBankDetails, setIsSavingBankDetails] = useState(false);
   
   const [isAddingPortfolio, setIsAddingPortfolio] = useState(false);
   const [newPortfolioItem, setNewPortfolioItem] = useState({
@@ -614,6 +621,10 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
     setTeamSize(profile.teamSize || "");
     setHiringPreferences(profile.hiringPreferences || []);
     setPreferredCommunication(profile.preferredCommunication || "");
+    setBankAccountHolderName(profile.bankAccountHolderName || "");
+    setBankIfsc(profile.bankIfsc || "");
+    setBankAccountNumber("");
+    setStakeholderPan("");
   }, [profile]);
 
   const hasChanges = 
@@ -658,6 +669,111 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
       setIsSubmitting(false);
     }
   };
+
+  const handleSaveBankDetails = async () => {
+    setIsSavingBankDetails(true);
+    try {
+      const result = await startPayoutOnboarding({
+        accountHolderName: bankAccountHolderName,
+        ifsc: bankIfsc,
+        accountNumber: bankAccountNumber,
+        stakeholderPhone,
+        stakeholderPan,
+      });
+      setBankAccountNumber("");
+      setStakeholderPan("");
+      toast.success(
+        result.status === "activated"
+          ? "Payout account activated."
+          : "Payout onboarding sent to Razorpay for review."
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update bank details");
+    } finally {
+      setIsSavingBankDetails(false);
+    }
+  };
+
+  const bankDetailsSection = profile.userType === "freelancer" ? (
+    <div className="border-t pt-6">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Bank Details</h3>
+          <p className="text-xs text-gray-500">
+            We store only IFSC, account holder name, and last 4 digits. PAN and full bank details are sent to Razorpay for Route KYC.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {profile.bankAccountLast4 && (
+            <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2 py-1 rounded-full">
+              Saved ****{profile.bankAccountLast4}
+            </span>
+          )}
+          <span className={`text-xs border px-2 py-1 rounded-full ${
+            profile.isPayoutReady
+              ? "bg-green-50 text-green-700 border-green-100"
+              : profile.payoutOnboardingStatus === "failed"
+              ? "bg-red-50 text-red-700 border-red-100"
+              : "bg-yellow-50 text-yellow-700 border-yellow-100"
+          }`}>
+            {profile.isPayoutReady
+              ? "Payout ready"
+              : profile.payoutOnboardingStatus === "failed"
+              ? "Onboarding failed"
+              : profile.razorpayAccountId
+              ? "Razorpay review pending"
+              : "Not payout ready"}
+          </span>
+        </div>
+      </div>
+      <div className="grid md:grid-cols-3 gap-3">
+        <input
+          type="text"
+          value={bankAccountHolderName}
+          onChange={(e) => setBankAccountHolderName(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          placeholder="Account holder name"
+        />
+        <input
+          type="text"
+          value={bankIfsc}
+          onChange={(e) => setBankIfsc(e.target.value.toUpperCase())}
+          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm uppercase"
+          placeholder="IFSC code"
+        />
+        <input
+          type="password"
+          value={bankAccountNumber}
+          onChange={(e) => setBankAccountNumber(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          placeholder={profile.bankAccountLast4 ? "Re-enter to update" : "Account number"}
+        />
+        <input
+          type="tel"
+          value={stakeholderPhone}
+          onChange={(e) => setStakeholderPhone(e.target.value)}
+          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          placeholder="Phone without country code"
+        />
+        <input
+          type="password"
+          value={stakeholderPan}
+          onChange={(e) => setStakeholderPan(e.target.value.toUpperCase())}
+          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm uppercase"
+          placeholder="PAN"
+        />
+      </div>
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={handleSaveBankDetails}
+          disabled={isSavingBankDetails || !bankAccountHolderName || !bankIfsc || !bankAccountNumber || !stakeholderPhone || !stakeholderPan}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+        >
+          {isSavingBankDetails ? "Submitting..." : "Start Razorpay KYC"}
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   const addSkill = (skill: string) => {
     if (skill && !skills.includes(skill)) {
@@ -785,6 +901,8 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 placeholder="Tell us about yourself..." 
               />
             </div>
+
+            {bankDetailsSection}
 
             {/* Skills */}
             <div>
@@ -1230,6 +1348,8 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
               placeholder="Tell us about yourself..." 
             />
           </div>
+
+          {bankDetailsSection}
 
           {profile.userType === "client" && (
             <div className="space-y-6 mt-6">

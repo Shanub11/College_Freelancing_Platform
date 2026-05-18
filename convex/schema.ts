@@ -29,6 +29,19 @@ const applicationTables = {
     // Client specific fields
     paypalMerchantId: v.optional(v.string()), // To store the freelancer's PayPal Merchant ID
     razorpayAccountId: v.optional(v.string()), // Linked Razorpay Account ID (acc_...)
+    razorpayStakeholderId: v.optional(v.string()),
+    razorpayProductId: v.optional(v.string()),
+    isPayoutReady: v.optional(v.boolean()),
+    payoutOnboardingStatus: v.optional(v.union(
+      v.literal("not_started"),
+      v.literal("pending"),
+      v.literal("activated"),
+      v.literal("failed")
+    )),
+    bankAccountHolderName: v.optional(v.string()),
+    bankIfsc: v.optional(v.string()),
+    bankAccountLast4: v.optional(v.string()),
+    bankDetailsUpdatedAt: v.optional(v.number()),
     company: v.optional(v.string()),
     identity: v.optional(v.string()), // Startup Founder, Student Founder, etc.
     hiringPreferences: v.optional(v.array(v.string())),
@@ -48,6 +61,7 @@ const applicationTables = {
     .index("by_type", ["userType"])
     .index("by_verified", ["isVerified"])
     .index("by_college", ["collegeName"])
+    .index("by_razorpayAccountId", ["razorpayAccountId"])
     .searchIndex("search_skills", {
       searchField: "skills",
       filterFields: ["userType", "isVerified", "collegeName"]
@@ -90,7 +104,17 @@ const applicationTables = {
     title: v.string(),
     description: v.string(),
     category: v.string(),
-    budget: v.optional(v.any()), // Temporarily relaxed to fix TS error during migration
+    // Temporarily accepts legacy { min, max } budget objects until
+    // migrations:fixBudgets has normalized all rows to a single number.
+    budget: v.optional(
+      v.union(
+        v.number(),
+        v.object({
+          min: v.optional(v.number()),
+          max: v.optional(v.number()),
+        })
+      )
+    ),
     deadline: v.number(), // timestamp
     skills: v.array(v.string()),
     attachments: v.optional(v.array(v.id("_storage"))),
@@ -305,7 +329,9 @@ const applicationTables = {
   payments: defineTable({
     orderId: v.id("orders"),
     razorpayOrderId: v.string(),
+    razorpayPaymentId: v.optional(v.string()),
     razorpayTransferId: v.optional(v.string()), // Transfer ID for Escrow release
+    razorpayRefundId: v.optional(v.string()),
     amount: v.number(),
     status: v.union(
       v.literal("pending"), // Client needs to pay

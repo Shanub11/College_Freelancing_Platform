@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 export const markAsFunded = internalMutation({
   args: {
     razorpayOrderId: v.string(),
+    razorpayPaymentId: v.optional(v.string()),
     razorpayTransferId: v.optional(v.string()),
   },
   returns: v.null(),
@@ -51,6 +52,7 @@ export const markAsFunded = internalMutation({
     // Mark payment as funded
     await ctx.db.patch(payment._id, {
       status: "funded",
+      razorpayPaymentId: args.razorpayPaymentId,
       razorpayTransferId: args.razorpayTransferId,
     });
 
@@ -175,8 +177,112 @@ export const saveFreelancerAccountId = internalMutation({
       .unique();
 
     if (profile) {
-      await ctx.db.patch(profile._id, { razorpayAccountId: args.razorpayAccountId });
+      await ctx.db.patch(profile._id, {
+        razorpayAccountId: args.razorpayAccountId,
+        isPayoutReady: false,
+        payoutOnboardingStatus: "pending",
+      });
     }
+  },
+});
+
+export const getFreelancerPayoutProfile = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .unique();
+    const user = await ctx.db.get(args.userId);
+
+    return { profile, user };
+  },
+});
+
+export const saveFreelancerPayoutOnboarding = internalMutation({
+  args: {
+    userId: v.id("users"),
+    accountHolderName: v.string(),
+    ifsc: v.string(),
+    accountNumberLast4: v.string(),
+    razorpayAccountId: v.optional(v.string()),
+    razorpayStakeholderId: v.optional(v.string()),
+    razorpayProductId: v.optional(v.string()),
+    status: v.union(
+      v.literal("not_started"),
+      v.literal("pending"),
+      v.literal("activated"),
+      v.literal("failed")
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .unique();
+
+    if (!profile) throw new Error("Profile not found");
+    if (profile.userType !== "freelancer") {
+      throw new Error("Only freelancers can configure payout details");
+    }
+
+    await ctx.db.patch(profile._id, {
+      bankAccountHolderName: args.accountHolderName,
+      bankIfsc: args.ifsc,
+      bankAccountLast4: args.accountNumberLast4,
+      bankDetailsUpdatedAt: Date.now(),
+      razorpayAccountId: args.razorpayAccountId,
+      razorpayStakeholderId: args.razorpayStakeholderId,
+      razorpayProductId: args.razorpayProductId,
+      isPayoutReady: args.status === "activated",
+      payoutOnboardingStatus: args.status,
+    });
+
+    await ctx.db.insert("activityLogs", {
+      action: "Payout Onboarding Updated",
+      details: `Route payout onboarding status set to ${args.status} for ${profile.firstName} ${profile.lastName}`,
+      userId: args.userId,
+      timestamp: Date.now(),
+      relatedId: profile._id,
+    });
+
+    return null;
+  },
+});
+
+export const markFreelancerPayoutReady = internalMutation({
+  args: { razorpayAccountId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_razorpayAccountId", (q) =>
+        q.eq("razorpayAccountId", args.razorpayAccountId)
+      )
+      .unique();
+
+    if (!profile) {
+      console.warn(
+        `[Webhook] No freelancer profile found for Razorpay account ${args.razorpayAccountId}`
+      );
+      return null;
+    }
+
+    await ctx.db.patch(profile._id, {
+      isPayoutReady: true,
+      payoutOnboardingStatus: "activated",
+    });
+
+    await ctx.db.insert("activityLogs", {
+      action: "Payout Account Activated",
+      details: `Razorpay Route account activated for ${profile.firstName} ${profile.lastName}`,
+      userId: profile.userId,
+      timestamp: Date.now(),
+      relatedId: profile._id,
+    });
+
+    return null;
   },
 });
 
@@ -187,9 +293,36 @@ export const getPayment = internalQuery({
   },
 });
 
+export const getPaymentByOrderId = internalQuery({
+  args: { orderId: v.id("orders") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("payments")
+      .withIndex("by_orderId", (q) => q.eq("orderId", args.orderId))
+      .first();
+  },
+});
+
 export const markAsReleased = internalMutation({
   args: { paymentId: v.id("payments") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.paymentId, { status: "released" });
+    return null;
+  },
+});
+
+export const markAsRefunded = internalMutation({
+  args: {
+    paymentId: v.id("payments"),
+    razorpayRefundId: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.paymentId, {
+      status: "refunded",
+      razorpayRefundId: args.razorpayRefundId,
+    });
+    return null;
   },
 });

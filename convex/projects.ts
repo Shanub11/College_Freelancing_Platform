@@ -199,6 +199,7 @@ export const getProposalsForProject = query({
         return {
           ...p,
           freelancerName: `${freelancerProfile?.firstName || ''} ${freelancerProfile?.lastName || ''}`.trim() || "A Freelancer",
+          freelancerIsPayoutReady: freelancerProfile?.isPayoutReady === true,
           // You can add more freelancer details here if needed
         };
       })
@@ -508,6 +509,14 @@ export const completeOrderAndReleaseFunds = mutation({
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
+
+    const freelancerProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", order.freelancerId))
+      .unique();
+    if (!freelancerProfile?.isPayoutReady) {
+      throw new Error("Freelancer payout account is still pending Razorpay approval.");
+    }
     
     if (order.autoCompleteJobId) {
       try { await ctx.scheduler.cancel(order.autoCompleteJobId); } catch (e) {}
@@ -547,6 +556,17 @@ export const createDirectOrder = mutation({
     const clientId = await getAuthUserId(ctx);
     if (!clientId) {
       throw new Error("You must be logged in to hire a freelancer.");
+    }
+
+    const freelancerProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.freelancerId))
+      .unique();
+
+    if (!freelancerProfile?.isPayoutReady) {
+      throw new Error(
+        "This freelancer is still completing Razorpay payout verification and cannot be hired yet."
+      );
     }
 
     const platformFee = Math.round(args.price * 0.10);

@@ -78,8 +78,20 @@ export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
 
       await ctx.runMutation(internal.payments.markAsFunded, {
         razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
         razorpayTransferId: transferId,
       });
+    }
+
+    if (event.event === "account.activated") {
+      const accountId = event.payload?.account?.entity?.id;
+      if (!accountId) {
+        console.warn("[Webhook] account.activated event missing account id.");
+      } else {
+        await ctx.runMutation(internal.payments.markFreelancerPayoutReady, {
+          razorpayAccountId: accountId,
+        });
+      }
     }
 
     // Return a 200 response to acknowledge receipt of the event

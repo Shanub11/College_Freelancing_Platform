@@ -51,7 +51,17 @@ const projectRequestShape = {
   title: v.string(),
   description: v.string(),
   category: v.string(),
-  budget: v.optional(v.any()),
+  // TODO: Change back to v.optional(v.number()) after migrations:fixBudgets
+  // returns 0 legacy rows in every deployment.
+  budget: v.optional(
+    v.union(
+      v.number(),
+      v.object({
+        min: v.optional(v.number()),
+        max: v.optional(v.number()),
+      })
+    )
+  ),
   deadline: v.number(),
   skills: v.array(v.string()),
   attachments: v.optional(v.array(v.id("_storage"))),

@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { MutationCtx, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
@@ -32,6 +32,115 @@ const ALLOWED_CHAT_TYPES = [
 ];
 
 type FileCategory = "profile_image" | "chat_attachment" | "verification_doc" | "gig_image";
+
+function isStorageId(value: unknown, storageId: Id<"_storage">): boolean {
+  return value === storageId;
+}
+
+function storageIdInArray(
+  values: Array<Id<"_storage">> | undefined,
+  storageId: Id<"_storage">
+): boolean {
+  return (values ?? []).some((value) => value === storageId);
+}
+
+async function userCanDeleteFile(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  storageId: Id<"_storage">
+): Promise<boolean> {
+  const profile = await ctx.db
+    .query("profiles")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .unique();
+
+  if (profile) {
+    if (isStorageId(profile.profilePicture, storageId)) return true;
+    if (isStorageId(profile.studentId, storageId)) return true;
+    if ((profile.portfolioItems ?? []).some((item) => item.image === storageId)) {
+      return true;
+    }
+  }
+
+  const verificationRequests = await ctx.db
+    .query("verificationRequests")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  if (
+    verificationRequests.some(
+      (request) =>
+        request.studentId === storageId ||
+        request.govtId === storageId
+    )
+  ) {
+    return true;
+  }
+
+  const gigs = await ctx.db
+    .query("gigs")
+    .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
+    .collect();
+  if (gigs.some((gig) => storageIdInArray(gig.images, storageId))) {
+    return true;
+  }
+
+  const projects = await ctx.db
+    .query("projectRequests")
+    .withIndex("by_client", (q) => q.eq("clientId", userId))
+    .collect();
+  if (projects.some((project) => storageIdInArray(project.attachments, storageId))) {
+    return true;
+  }
+
+  const proposals = await ctx.db
+    .query("proposals")
+    .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
+    .collect();
+  if (proposals.some((proposal) => storageIdInArray(proposal.attachments, storageId))) {
+    return true;
+  }
+
+  const clientOrders = await ctx.db
+    .query("orders")
+    .withIndex("by_client", (q) => q.eq("clientId", userId))
+    .collect();
+  const freelancerOrders = await ctx.db
+    .query("orders")
+    .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
+    .collect();
+  if (
+    [...clientOrders, ...freelancerOrders].some((order) =>
+      storageIdInArray(order.deliverables, storageId)
+    )
+  ) {
+    return true;
+  }
+
+  const conversationsAsClient = await ctx.db
+    .query("conversations")
+    .withIndex("by_client", (q) => q.eq("clientId", userId))
+    .take(100);
+  const conversationsAsFreelancer = await ctx.db
+    .query("conversations")
+    .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
+    .take(100);
+  const conversationIds = new Set(
+    [...conversationsAsClient, ...conversationsAsFreelancer].map((c) => c._id)
+  );
+
+  for (const conversationId of conversationIds) {
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
+      .filter((q) => q.eq(q.field("senderId"), userId))
+      .take(100);
+    if (messages.some((message) => message.attachment === storageId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 export const generateUploadUrl = mutation({
   args: {},
@@ -142,6 +251,20 @@ export const deleteFile = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    const metadata = await ctx.db.system.get(args.storageId);
+    if (!metadata) {
+      throw new Error("File not found");
+    }
+
+    const canDelete = await userCanDeleteFile(
+      ctx,
+      userId as Id<"users">,
+      args.storageId
+    );
+    if (!canDelete) {
+      throw new Error("Unauthorized: you can only delete your own files");
+    }
 
     await ctx.storage.delete(args.storageId);
     return null;

@@ -14,6 +14,10 @@ const ENCRYPTED_PREFIX = "enc:";
 function getKey(): Buffer {
   const hexKey = process.env.MESSAGE_ENCRYPTION_KEY;
   if (!hexKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("MESSAGE_ENCRYPTION_KEY is required in production.");
+    }
+
     console.warn(
       "[Encryption] MESSAGE_ENCRYPTION_KEY not set. Using development fallback key. Set the env var for production."
     );

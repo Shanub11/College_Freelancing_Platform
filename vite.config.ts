@@ -14,7 +14,6 @@ export default defineConfig(({ mode }) => ({
   },
   // This is to prevent the CSP error from happening in development.
   build: {
-    // `true` will generate a separate source map file.
-    sourcemap: true,
+    sourcemap: false,
   },
 }));

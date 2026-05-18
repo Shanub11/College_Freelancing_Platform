@@ -323,6 +323,59 @@ export const updateProfile = mutation({
   },
 });
 
+export const saveBankDetails = mutation({
+  args: {
+    accountHolderName: v.string(),
+    ifsc: v.string(),
+    accountNumber: v.string(),
+  },
+  returns: v.id("profiles"),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const accountHolderName = args.accountHolderName.trim();
+    const ifsc = args.ifsc.trim().toUpperCase();
+    const accountNumber = args.accountNumber.replace(/\s+/g, "");
+
+    if (accountHolderName.length < 3 || accountHolderName.length > 120) {
+      throw new Error("Account holder name must be between 3 and 120 characters.");
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+      throw new Error("Enter a valid 11-character IFSC code.");
+    }
+    if (!/^\d{5,35}$/.test(accountNumber)) {
+      throw new Error("Enter a valid bank account number.");
+    }
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+
+    if (!profile) throw new Error("Profile not found");
+
+    await ctx.db.patch(profile._id, {
+      bankAccountHolderName: accountHolderName,
+      bankIfsc: ifsc,
+      bankAccountLast4: accountNumber.slice(-4),
+      bankDetailsUpdatedAt: Date.now(),
+      isPayoutReady: false,
+      payoutOnboardingStatus: "pending",
+    });
+
+    await ctx.db.insert("activityLogs", {
+      action: "Bank Details Updated",
+      details: `Bank payout metadata updated for ${profile.firstName} ${profile.lastName}`,
+      userId,
+      timestamp: Date.now(),
+      relatedId: profile._id,
+    });
+
+    return profile._id;
+  },
+});
+
 export const getFreelancers = query({
   args: {
     college: v.optional(v.string()),

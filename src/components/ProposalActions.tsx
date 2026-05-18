@@ -50,11 +50,13 @@ export function ProposalActions({
   amount,
   clientName,
   clientEmail,
+  disabledReason,
 }: {
   proposalId: Id<"proposals">;
   amount: number;
   clientName?: string;
   clientEmail?: string;
+  disabledReason?: string;
 }) {
   const navigate = useNavigate();
   const acceptProposal = useMutation(api.proposals.acceptProposal);
@@ -65,6 +67,11 @@ export function ProposalActions({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAccept = async () => {
+    if (disabledReason) {
+      toast.error(disabledReason);
+      return;
+    }
+
     const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID as string;
     if (!razorpayKeyId) {
       toast.error("Payment system is not configured. Please contact support.");
@@ -128,7 +135,7 @@ export function ProposalActions({
     }
   };
 
-  const isDisabled = isLoading || !razorpayReady;
+  const isDisabled = isLoading || !razorpayReady || !!disabledReason;
 
   return (
     <div className="flex flex-col gap-3 w-full max-w-md">
@@ -142,6 +149,8 @@ export function ProposalActions({
         >
           {isLoading
             ? "Processing..."
+            : disabledReason
+            ? "Payout Pending"
             : !razorpayReady
             ? "Loading..."
             : "Accept & Pay"}

@@ -1,9 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { internal } from "./_generated/api";
+import { internal as internalApi } from "./_generated/api";
 import { enforceRateLimit } from "./rateLimiter";
 import { Id } from "./_generated/dataModel";
+
+const internal = internalApi as any;
 
 export const openDispute = mutation({
   args: {
@@ -224,6 +226,22 @@ export const resolveDispute = mutation({
       if (dispute.orderId) {
         const orderStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
         await ctx.db.patch(dispute.orderId, { status: orderStatus as any });
+
+        if (args.resolution === "resolved_release") {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.paymentActions.releaseEscrowForDispute,
+            { orderId: dispute.orderId }
+          );
+        }
+
+        if (args.resolution === "resolved_refund") {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.paymentActions.refundPaymentForDispute,
+            { orderId: dispute.orderId }
+          );
+        }
       }
     }
 

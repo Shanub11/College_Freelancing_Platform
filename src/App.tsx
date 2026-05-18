@@ -1,6 +1,6 @@
-import { useEffect, useRef, Suspense, lazy } from "react";
+import { useRef, useState, Suspense, lazy } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { Authenticated, Unauthenticated, useQuery, useMutation } from "convex/react";
+import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
 import { SignOutButton } from "./SignOutButton";
@@ -16,12 +16,6 @@ const SubmitProposalPage = lazy(() => import("./components/SubmitProposalPage").
 const ProjectDetailsPage = lazy(() => import("./components/ProjectDetailsPage").then(m => ({ default: m.ProjectDetailsPage })));
 
 export default function App() {
-  const seedCategories = useMutation(api.categories.seedCategories);
-
-  useEffect(() => {
-    seedCategories().catch(console.error);
-  }, [seedCategories]);
-
   return (
     <AppErrorBoundary>
       <Router>
@@ -75,6 +69,7 @@ function UnauthenticatedApp() {
   const signInRef = useRef<HTMLElement>(null);
   const howItWorksRef = useRef<HTMLElement>(null);
   const categoriesRef = useRef<HTMLElement>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLoginClick = () => {
     signInRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -117,9 +112,76 @@ function UnauthenticatedApp() {
                 Login
               </button>
             </nav>
+            <button
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label="Open navigation menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <div className="w-5 h-0.5 bg-gray-700 mb-1" />
+              <div className="w-5 h-0.5 bg-gray-700 mb-1" />
+              <div className="w-5 h-0.5 bg-gray-700" />
+            </button>
           </div>
         </div>
       </header>
+
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-black/40"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div
+            className="bg-white w-64 h-full p-6 flex flex-col gap-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">CG</span>
+                </div>
+                <span className="text-lg font-bold text-gray-900">CollegeGig</span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-gray-500 hover:text-gray-900"
+                aria-label="Close navigation menu"
+              >
+                x
+              </button>
+            </div>
+            <a
+              href="#categories"
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                handleBrowseServicesClick(e);
+              }}
+              className="text-gray-700 hover:text-gray-900 font-medium"
+            >
+              Browse Services
+            </a>
+            <a
+              href="#how-it-works"
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                handleHowItWorksClick(e);
+              }}
+              className="text-gray-700 hover:text-gray-900 font-medium"
+            >
+              How It Works
+            </a>
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLoginClick();
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-left"
+            >
+              Login
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">

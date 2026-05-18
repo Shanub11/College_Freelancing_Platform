@@ -105,6 +105,17 @@ export const acceptProposal = mutation({
       throw new Error("An order already exists for this project.");
     }
 
+    const freelancerProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", proposalToAccept.freelancerId))
+      .unique();
+
+    if (!freelancerProfile?.isPayoutReady) {
+      throw new Error(
+        "This freelancer is still completing Razorpay payout verification and cannot be hired yet."
+      );
+    }
+
     // Mark proposal as payment pending instead of accepted
     await ctx.db.patch(args.proposalId, { status: "payment_pending" });
     
@@ -146,7 +157,7 @@ export const acceptProposal = mutation({
     // Send email notification to the freelancer
     const freelancerUser = await ctx.db.get(proposalToAccept.freelancerId);
     if (freelancerUser?.email) {
-      const freelancerProfile = await ctx.db
+      const latestFreelancerProfile = await ctx.db
         .query("profiles")
         .withIndex("by_user", (q) =>
           q.eq("userId", proposalToAccept.freelancerId)
@@ -158,8 +169,8 @@ export const acceptProposal = mutation({
         internal.email.sendProposalAcceptedEmail,
         {
           toEmail: freelancerUser.email,
-          toName: freelancerProfile
-            ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
+          toName: latestFreelancerProfile
+            ? `${latestFreelancerProfile.firstName} ${latestFreelancerProfile.lastName}`
             : freelancerUser.email,
           projectTitle: project.title,
           agreedPrice: proposalToAccept.proposedPrice,

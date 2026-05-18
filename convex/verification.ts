@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation, action } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
+import { enforceRateLimit, getRateLimitCount } from "./rateLimiter";
 
 declare const process: any;
 
@@ -282,14 +284,38 @@ export const verifyOtp = mutation({
   args: { email: v.string(), otp: v.string() },
   returns: v.boolean(),
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "otp_verify",
+      5,
+      15 * 60 * 1000,
+      "Too many OTP attempts. Please request a new code later."
+    );
+
     const record = await ctx.db
       .query("emailVerifications")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
 
     if (!record) throw new Error("No OTP requested for this email.");
-    if (record.otp !== args.otp) throw new Error("Invalid OTP.");
     if (Date.now() > record.expiresAt) throw new Error("OTP has expired.");
+    if (record.otp !== args.otp) {
+      const attempts = await getRateLimitCount(
+        ctx,
+        userId as Id<"users">,
+        "otp_verify",
+        15 * 60 * 1000
+      );
+      if (attempts >= 5) {
+        await ctx.db.delete(record._id);
+        throw new Error("Too many incorrect OTP attempts. Please request a new code.");
+      }
+      throw new Error("Invalid OTP.");
+    }
 
     await ctx.db.patch(record._id, { verified: true });
     return true;
