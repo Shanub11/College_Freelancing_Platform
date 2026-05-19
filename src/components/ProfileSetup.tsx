@@ -7,6 +7,7 @@ import { SignOutButton } from "../SignOutButton";
 export function ProfileSetup() {
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState<"freelancer" | "client" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -36,6 +37,7 @@ export function ProfileSetup() {
     }
 
     try {
+      setIsSubmitting(true);
       await createProfile({
         userType,
         firstName: formData.firstName,
@@ -56,6 +58,8 @@ export function ProfileSetup() {
     } catch (error) {
       toast.error("Failed to create profile");
       console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -105,13 +109,12 @@ export function ProfileSetup() {
       <div className="w-full md:w-1/2 min-h-screen bg-gray-50 dark:bg-dark-bg flex items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-md">
           <div className="card p-6 md:p-8 relative">
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-3 mb-8 justify-center">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center shadow-md">1</div>
-                <div className={`h-1 w-12 rounded-full ${step === 2 ? "bg-primary-600" : "bg-gray-200 dark:bg-dark-surface-2"}`}></div>
+                <div className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center shadow-md transition-colors ${step >= 1 ? "bg-primary-600 text-white" : "bg-gray-100 dark:bg-dark-surface-2 text-gray-400 dark:text-gray-500"}`}>1</div>
+                <div className={`h-1 w-12 rounded-full transition-colors ${step >= 2 ? "bg-primary-600" : "bg-gray-200 dark:bg-dark-surface-2"}`}></div>
                 <div className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center shadow-sm transition-colors ${step === 2 ? "bg-primary-600 text-white" : "bg-gray-100 dark:bg-dark-surface-2 text-gray-400 dark:text-gray-500"}`}>2</div>
               </div>
-              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profile Setup</span>
             </div>
 
             <div className="text-center mb-8">
@@ -119,50 +122,56 @@ export function ProfileSetup() {
                 <span className="text-white font-bold text-2xl">CG</span>
               </div>
               
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Welcome to CollegeGig</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">Let's set up your profile</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Welcome to CollegeGig</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">Let's set up your profile</p>
             </div>
 
             {step === 1 && (
               <div className="space-y-6 animate-fade-in">
-                <h2 className="text-xl font-bold text-center text-gray-900 dark:text-white">I want to...</h2>
+                <h2 className="text-lg font-bold text-center text-gray-800 dark:text-gray-200">Select your account type</h2>
                 
                 <div className="space-y-4">
                   <button
-                    onClick={() => {
-                      setUserType("freelancer");
-                      setStep(2);
-                    }}
-                    className="w-full p-5 border-2 border-gray-200 dark:border-dark-border rounded-2xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all duration-300 text-left group card-hover relative overflow-hidden"
+                    type="button"
+                    onClick={() => setUserType("freelancer")}
+                    className={`w-full p-5 border-2 rounded-2xl text-left group transition-all duration-300 relative overflow-hidden ${
+                      userType === "freelancer"
+                        ? "border-primary-500 bg-primary-50/50 dark:bg-primary-950/10 shadow-sm"
+                        : "border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-dark-surface/40"
+                    }`}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
                         <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path d="M12 14l9-5-9-5-9 5 9 5z" />
-                          <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                         </svg>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors text-lg">Offer my services</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I'm a college student looking to freelance</p>
-                        <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-semibold mt-3 bg-green-50 dark:bg-green-900/30 px-2.5 py-1 rounded-full">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                          Most popular choice
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Offer My Services</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I am a college student looking to find gig work and build my portfolio.</p>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-green-700 dark:text-green-400 font-bold mt-3 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30 px-2.5 py-0.5 rounded-full">
+                          ✓ Most Popular
                         </span>
                       </div>
+                      {userType === "freelancer" && (
+                        <div className="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
+                      )}
                     </div>
                   </button>
 
                   <button
-                    onClick={() => {
-                      setUserType("client");
-                      setStep(2);
-                    }}
-                    className="w-full p-5 border-2 border-gray-200 dark:border-dark-border rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all duration-300 text-left group card-hover"
+                    type="button"
+                    onClick={() => setUserType("client")}
+                    className={`w-full p-5 border-2 rounded-2xl text-left group transition-all duration-300 relative overflow-hidden ${
+                      userType === "client"
+                        ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/10 shadow-sm"
+                        : "border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-dark-surface/40"
+                    }`}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -171,13 +180,25 @@ export function ProfileSetup() {
                           />
                         </svg>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-lg">Hire students</h3>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I want to find talented student freelancers</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Hire Students</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I want to hire talented, verified university students for freelance tasks.</p>
                       </div>
+                      {userType === "client" && (
+                        <div className="w-5 h-5 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm">✓</div>
+                      )}
                     </div>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  disabled={!userType}
+                  onClick={() => setStep(2)}
+                  className="w-full btn-primary !py-3.5 mt-6 font-semibold active:scale-[0.99] transition-transform disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  Continue to Details
+                </button>
               </div>
             )}
 
@@ -288,12 +309,26 @@ export function ProfileSetup() {
 
                 <button
                   type="submit"
-                  className="btn-primary w-full !py-3.5 mt-8 flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
+                  className={`w-full py-3.5 mt-8 flex items-center justify-center gap-2.5 rounded-xl font-semibold transition-all ${
+                    isSubmitting
+                      ? "bg-primary-700 dark:bg-primary-800 text-white cursor-wait opacity-100"
+                      : "btn-primary active:scale-[0.99]"
+                  }`}
                 >
-                  Create My Profile
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating Profile...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Create My Profile</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </>
+                  )}
                 </button>
 
               </form>

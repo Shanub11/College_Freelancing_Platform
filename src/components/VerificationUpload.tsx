@@ -12,6 +12,8 @@ interface VerificationUploadProps {
 
 export function VerificationUpload({ profile }: VerificationUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [studentIdFile, setStudentIdFile] = useState<File | null>(null);
+  const [govtIdFile, setGovtIdFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     collegeEmail: profile.collegeEmail || "",
     collegeName: profile.collegeName || "",
@@ -67,11 +69,6 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const fileInput = document.getElementById("studentId") as HTMLInputElement;
-    const studentIdFile = fileInput?.files?.[0];
-    const govtIdInput = document.getElementById("govtId") as HTMLInputElement;
-    const govtIdFile = govtIdInput?.files?.[0];
 
     if (!studentIdFile || !govtIdFile) {
       toast.error("Please upload both your Student ID and Government ID.");
@@ -179,6 +176,10 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
             setFormData={setFormData}
             onSubmit={handleSubmit}
             isUploading={isUploading}
+            studentIdFile={studentIdFile}
+            setStudentIdFile={setStudentIdFile}
+            govtIdFile={govtIdFile}
+            setGovtIdFile={setGovtIdFile}
           />
         </div>
       </div>
@@ -200,7 +201,112 @@ export function VerificationUpload({ profile }: VerificationUploadProps) {
         setFormData={setFormData}
         onSubmit={handleSubmit}
         isUploading={isUploading}
+        studentIdFile={studentIdFile}
+        setStudentIdFile={setStudentIdFile}
+        govtIdFile={govtIdFile}
+        setGovtIdFile={setGovtIdFile}
       />
+    </div>
+  );
+}
+
+interface FileUploaderProps {
+  id: string;
+  label: string;
+  description: string;
+  file: File | null;
+  onChange: (file: File | null) => void;
+}
+
+function FileUploader({ id, label, description, file, onChange }: FileUploaderProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [file]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      onChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>
+      <div
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all ${
+          dragActive
+            ? "border-primary-500 bg-primary-50/30 dark:bg-primary-950/10"
+            : "border-gray-300 dark:border-dark-border hover:border-gray-400 dark:hover:border-gray-600 bg-gray-50/50 dark:bg-dark-surface/40"
+        }`}
+      >
+        <input
+          type="file"
+          id={id}
+          required={!file}
+          accept="image/*,.pdf"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              onChange(e.target.files[0]);
+            }
+          }}
+        />
+        {previewUrl ? (
+          <div className="relative z-20 space-y-3">
+            <img src={previewUrl} alt="Preview" className="max-h-32 mx-auto rounded-lg object-contain shadow-sm border border-gray-200 dark:border-dark-border" />
+            <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[280px]">{file?.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {((file?.size || 0) / 1024 / 1024).toFixed(2)} MB · <button type="button" onClick={() => onChange(null)} className="text-red-500 hover:text-red-700 underline font-semibold">Remove</button>
+            </div>
+          </div>
+        ) : file ? (
+          <div className="relative z-20 space-y-2">
+            <div className="text-4xl">📄</div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-white truncate max-w-[280px]">{file.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {((file.size) / 1024 / 1024).toFixed(2)} MB · <button type="button" onClick={() => onChange(null)} className="text-red-500 hover:text-red-700 underline font-semibold">Remove</button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-4xl text-gray-400">📤</div>
+            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <span className="text-primary-600 dark:text-primary-400">Click to upload</span> or drag and drop
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -210,9 +316,22 @@ interface VerificationFormProps {
   setFormData: (updater: (prev: any) => any) => void;
   onSubmit: (e: React.FormEvent) => void;
   isUploading: boolean;
+  studentIdFile: File | null;
+  setStudentIdFile: (file: File | null) => void;
+  govtIdFile: File | null;
+  setGovtIdFile: (file: File | null) => void;
 }
 
-function VerificationForm({ formData, setFormData, onSubmit, isUploading }: VerificationFormProps) {
+function VerificationForm({
+  formData,
+  setFormData,
+  onSubmit,
+  isUploading,
+  studentIdFile,
+  setStudentIdFile,
+  govtIdFile,
+  setGovtIdFile,
+}: VerificationFormProps) {
   const [step, setStep] = useState<"email" | "otp" | "details">("email");
   const [otp, setOtp] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -265,7 +384,7 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
     return (
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             College Email *
           </label>
           <input
@@ -274,18 +393,29 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
             value={formData.collegeEmail}
             onChange={(e) => setFormData((prev: any) => ({ ...prev, collegeEmail: e.target.value }))}
             placeholder="your.name@college.edu"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-field"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-1.5">
             Must be your official college email address (e.g., .edu, .ac.in domains).
           </p>
         </div>
         <button
           onClick={handleSendOtp}
           disabled={isSending || !formData.collegeEmail}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2.5 ${
+            isSending
+              ? "bg-primary-700 dark:bg-primary-800 text-white cursor-wait opacity-100"
+              : "btn-primary active:scale-[0.99] disabled:opacity-50"
+          }`}
         >
-          {isSending ? "Sending OTP..." : "Send Verification OTP"}
+          {isSending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Sending OTP...</span>
+            </>
+          ) : (
+            "Send Verification OTP"
+          )}
         </button>
       </div>
     );
@@ -295,7 +425,7 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
     return (
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Enter Verification Code (OTP) *
           </label>
           <p className="text-sm text-gray-600 mb-2">Sent to {formData.collegeEmail}</p>
@@ -305,7 +435,7 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             placeholder="123456"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg tracking-widest"
+            className="input-field text-center text-lg tracking-widest font-bold"
             maxLength={6}
           />
         </div>
@@ -313,16 +443,27 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           <button
             type="button"
             onClick={() => setStep("email")}
-            className="w-1/3 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            className="w-1/3 btn-secondary py-3"
           >
             Back
           </button>
           <button
             onClick={handleVerifyOtp}
             disabled={isVerifying || otp.length < 6}
-            className="w-2/3 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className={`w-2/3 py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2.5 ${
+              isVerifying
+                ? "bg-primary-700 dark:bg-primary-800 text-white cursor-wait opacity-100"
+                : "btn-primary disabled:opacity-50"
+            }`}
           >
-            {isVerifying ? "Verifying..." : "Verify Email"}
+            {isVerifying ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Verifying...</span>
+              </>
+            ) : (
+              "Verify Email"
+            )}
           </button>
         </div>
       </div>
@@ -331,16 +472,16 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
-      <div className="bg-green-50 text-green-800 p-4 rounded-lg flex items-center justify-between">
+      <div className="bg-emerald-50 border border-emerald-200/60 text-emerald-800 p-4 rounded-xl flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl">✓</span>
-          <p className="font-medium">Email Verified: {formData.collegeEmail}</p>
+          <p className="font-semibold">Email Verified: {formData.collegeEmail}</p>
         </div>
-        <button type="button" onClick={() => setStep("email")} className="text-sm text-green-700 underline">Change</button>
+        <button type="button" onClick={() => setStep("email")} className="text-sm text-emerald-700 font-bold hover:underline">Change</button>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
           College Name *
         </label>
         <input
@@ -349,13 +490,13 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           value={formData.collegeName}
           onChange={(e) => setFormData(prev => ({ ...prev, collegeName: e.target.value }))}
           placeholder="e.g., Stanford University"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="input-field"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Current Course *
           </label>
           <input
@@ -364,11 +505,11 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
             value={formData.course}
             onChange={(e) => setFormData(prev => ({ ...prev, course: e.target.value }))}
             placeholder="e.g., B.Tech in Computer Science"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-field"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
             Department *
           </label>
           <input
@@ -377,13 +518,13 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
             value={formData.department}
             onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
             placeholder="e.g., Computer Engineering"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-field"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
           Expected Graduation Year *
         </label>
         <input
@@ -393,45 +534,30 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
           onChange={(e) => setFormData(prev => ({ ...prev, graduationYear: parseInt(e.target.value) }))}
           min={new Date().getFullYear()}
           max={new Date().getFullYear() + 10}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="input-field"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Student ID Card *
-        </label>
-        <input
-          type="file"
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FileUploader
           id="studentId"
-          required
-          accept="image/*,.pdf"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          label="Student ID Card *"
+          description="Upload a clear photo of your student ID card (JPG, PNG, PDF). Max 10MB."
+          file={studentIdFile}
+          onChange={setStudentIdFile}
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Upload a clear photo of your student ID card (JPG, PNG, or PDF). Max 10MB.
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Government ID *
-        </label>
-        <input
-          type="file"
+        <FileUploader
           id="govtId"
-          required
-          accept="image/*,.pdf"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          label="Government ID *"
+          description="Aadhaar, Driver's License, Passport, or PAN Card. Max 10MB."
+          file={govtIdFile}
+          onChange={setGovtIdFile}
         />
-        <p className="text-xs text-gray-500 mt-1">
-          e.g., Adhaar Card, Driver's License, Passport, or PAN Card. Max 10MB.
-        </p>
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-900 mb-2">What we verify:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/30 p-4 rounded-xl">
+        <h4 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">What we verify:</h4>
+        <ul className="text-sm text-primary-700 dark:text-primary-400 space-y-1.5">
           <li>• Your college email matches your institution</li>
           <li>• Your student ID shows current enrollment</li>
           <li>• Your name matches across documents</li>
@@ -442,9 +568,20 @@ function VerificationForm({ formData, setFormData, onSubmit, isUploading }: Veri
       <button
         type="submit"
         disabled={isUploading}
-        className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2.5 ${
+          isUploading
+            ? "bg-primary-700 dark:bg-primary-800 text-white cursor-wait opacity-100"
+            : "btn-primary active:scale-[0.99]"
+        }`}
       >
-        {isUploading ? "Uploading..." : "Submit Verification Request"}
+        {isUploading ? (
+          <>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>Uploading & Submitting...</span>
+          </>
+        ) : (
+          "Submit Verification Request"
+        )}
       </button>
     </form>
   );

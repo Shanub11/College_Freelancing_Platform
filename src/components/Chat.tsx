@@ -150,8 +150,9 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent | React.KeyboardEvent) => {
     e.preventDefault();
     if (!newMessage.trim() && !selectedFile) return;
 
@@ -189,9 +190,24 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
     setIsUploading(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-resize height of textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [newMessage]);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-dark-bg w-full">
@@ -292,7 +308,7 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
       </div>
       
       {/* Input Area */}
-      <form onSubmit={handleSend} className="p-4 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border z-10">
+      <div className="p-4 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border z-10">
         {selectedFile && (
           <div className="mb-3 flex items-center gap-3 bg-gray-50 dark:bg-dark-surface-2 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border w-fit max-w-full">
             <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -302,47 +318,69 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
             <button type="button" onClick={() => setSelectedFile(null)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-white dark:hover:bg-dark-bg transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
         )}
-        <div className="flex items-end gap-3">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-3.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors flex-shrink-0"
-            title="Attach file"
-          >
-            <svg className="w-6 h-6 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
-            }}
-          />
-          <div className="flex-1 bg-gray-50 dark:bg-dark-surface-2 rounded-2xl border border-gray-200 dark:border-dark-border overflow-hidden flex items-center focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 transition-all">
+        <div className="flex items-end gap-2.5">
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-3 text-gray-500 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-dark-surface-2 rounded-full transition-colors flex-shrink-0"
+              title="Attach file"
+            >
+              <svg className="w-5 h-5 transform -rotate-45" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
             <input
-              type="text"
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
+              }}
+            />
+            <button
+              type="button"
+              className="p-3 text-gray-500 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-dark-surface-2 rounded-full transition-colors flex-shrink-0"
+              title="Add emoji"
+              onClick={() => toast.info("Emoji picker coming soon! You can use system emoji keyboard (Win + .)")}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 bg-gray-50 dark:bg-dark-surface-2 rounded-2xl border border-gray-200 dark:border-dark-border overflow-hidden flex items-end focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 transition-all max-h-[150px]">
+            <textarea
+              ref={textareaRef}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Type your message..."
-              className="flex-1 px-4 py-3.5 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              rows={1}
+              className="flex-1 px-4 py-3 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none max-h-[120px] overflow-y-auto leading-relaxed"
             />
           </div>
           <button 
-            type="submit"
+            onClick={(e) => handleSend(e)}
             disabled={(!newMessage.trim() && !selectedFile) || isUploading}
-            className="p-3 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-colors shadow-md flex-shrink-0 flex items-center justify-center h-12 w-12"
+            className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 flex items-center justify-center h-11 w-11 ${
+              isUploading
+                ? "bg-primary-600 opacity-100 cursor-wait"
+                : (!newMessage.trim() && !selectedFile)
+                  ? "bg-gray-400 dark:bg-gray-600 opacity-50 cursor-not-allowed"
+                  : "bg-primary-600 hover:bg-primary-700 active:scale-[0.97]"
+            }`}
           >
             {isUploading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <svg className="w-5 h-5 transform translate-x-0.5 -translate-y-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              <svg className="w-5 h-5 transform translate-x-[1px]" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
             )}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

@@ -198,31 +198,38 @@ export function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white dark:bg-dark-surface">
+      <section className="py-20 bg-white dark:bg-dark-surface border-t border-gray-100 dark:border-dark-border">
         <div className="section-container">
-          <div className="text-center mb-12">
-            <h2 className="text-heading-lg font-bold text-gray-900 dark:text-white mb-4">What Our Users Say</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">Real stories from students and clients</p>
+          <div className="text-center mb-16">
+            <h2 className="text-heading-lg font-bold text-gray-900 dark:text-white mb-4">What Our Community Says</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">Real success stories from student freelancers and startups</p>
           </div>
-          <div className="max-w-2xl mx-auto">
-            <div className="card p-8 md:p-10 text-center relative overflow-hidden">
-              <div className="absolute top-4 left-6 text-6xl text-primary-100 dark:text-primary-900 font-serif">"</div>
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-gray-50 dark:bg-dark-bg/60 border border-gray-100 dark:border-dark-border p-8 md:p-12 text-center relative overflow-hidden rounded-3xl shadow-sm">
+              <div className="absolute top-6 left-8 text-7xl text-primary-200/40 dark:text-primary-900/30 font-serif pointer-events-none">“</div>
               <div className="relative z-10">
-                <p className="text-lg text-gray-700 dark:text-gray-300 italic mb-6 leading-relaxed">
-                  {TESTIMONIALS[currentTestimonial].text}
+                <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 italic mb-8 leading-relaxed font-medium">
+                  "{TESTIMONIALS[currentTestimonial].text}"
                 </p>
-                <div className="flex items-center justify-center gap-1 mb-3">
+                <div className="flex items-center justify-center gap-1 mb-4">
                   {[...Array(TESTIMONIALS[currentTestimonial].rating)].map((_, i) => (
                     <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                   ))}
                 </div>
-                <p className="font-bold text-gray-900 dark:text-white">{TESTIMONIALS[currentTestimonial].name}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{TESTIMONIALS[currentTestimonial].college} · {TESTIMONIALS[currentTestimonial].role}</p>
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+                    {TESTIMONIALS[currentTestimonial].name[0]}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-gray-900 dark:text-white text-base leading-none mb-1">{TESTIMONIALS[currentTestimonial].name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{TESTIMONIALS[currentTestimonial].college} · {TESTIMONIALS[currentTestimonial].role}</p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex justify-center gap-2 mt-6">
               {TESTIMONIALS.map((_, i) => (
-                <button key={i} onClick={() => setCurrentTestimonial(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentTestimonial ? "bg-primary-600 w-8" : "bg-gray-300 dark:bg-gray-600 hover:bg-gray-400"}`} aria-label={`Testimonial ${i+1}`} />
+                <button key={i} onClick={() => setCurrentTestimonial(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentTestimonial ? "bg-primary-600 w-8" : "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400"}`} aria-label={`Testimonial ${i+1}`} />
               ))}
             </div>
           </div>
@@ -230,11 +237,11 @@ export function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section ref={howItWorksRef} className="py-20 bg-gray-50 dark:bg-dark-bg scroll-mt-16">
+      <section ref={howItWorksRef} className="py-20 bg-gray-50 dark:bg-dark-bg scroll-mt-16 border-t border-gray-100 dark:border-dark-border">
         <div className="section-container">
           <div className="text-center mb-16">
             <h2 className="text-heading-lg font-bold text-gray-900 dark:text-white mb-4">How It Works</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">A simple process for both clients and students</p>
+            <p className="text-lg text-gray-600 dark:text-gray-400">A simple, secure process built for Indian universities</p>
           </div>
           <div className="grid md:grid-cols-2 gap-16">
             {[
@@ -254,7 +261,7 @@ export function LandingPage() {
                 <div className="space-y-8">
                   {col.steps.map((s, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${col.color === "primary" ? "bg-primary-600" : "bg-success-600"}`}>{i+1}</div>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${col.color === "primary" ? "bg-primary-600" : "bg-emerald-600"}`}>{i+1}</div>
                       <div>
                         <h4 className="font-bold text-gray-900 dark:text-white text-lg">{s.t}</h4>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">{s.d}</p>
@@ -269,7 +276,7 @@ export function LandingPage() {
       </section>
 
       {/* Categories */}
-      <section ref={categoriesRef} className="py-20 bg-white dark:bg-dark-surface scroll-mt-16">
+      <section ref={categoriesRef} className="py-20 bg-white dark:bg-dark-surface scroll-mt-16 border-t border-gray-100 dark:border-dark-border">
         <div className="section-container">
           <div className="text-center mb-16">
             <h2 className="text-heading-lg font-bold text-gray-900 dark:text-white mb-4">Popular Categories</h2>
@@ -277,13 +284,94 @@ export function LandingPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {CATEGORIES.map(c => (
-              <div key={c.name} className="card-hover p-5 md:p-6 group" onClick={scrollTo(signInRef)}>
+              <div key={c.name} className="card-hover p-5 md:p-6 group cursor-pointer" onClick={scrollTo(signInRef)}>
                 <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{c.icon}</div>
                 <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{c.name}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{c.count} students</p>
                 <div className="mt-3 text-xs text-primary-600 dark:text-primary-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Browse →</div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trending Gigs Preview Section */}
+      <section className="py-20 bg-gray-50 dark:bg-dark-bg border-t border-gray-100 dark:border-dark-border">
+        <div className="section-container">
+          <div className="text-center mb-16">
+            <h2 className="text-heading-lg font-bold text-gray-900 dark:text-white mb-4">Trending Student Services</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">Preview high-quality gigs completed by verified university students</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Modern React & Next.js Web App Development",
+                description: "Build clean, pixel-perfect, responsive Next.js apps with custom components, Tailwind CSS styling, and serverless integration.",
+                freelancer: { name: "Aditya Verma", college: "IIT Bombay", avatar: "AV", isVerified: true },
+                price: 4999,
+                rating: 4.9,
+                deliveryTime: 5,
+                tags: ["Next.js", "React"]
+              },
+              {
+                title: "Premium Brand Identity & SaaS Product Design",
+                description: "Complete UI/UX design service including high-fidelity Figma prototypes, interactive wireframes, and design system creation.",
+                freelancer: { name: "Sneha Patel", college: "NID Ahmedabad", avatar: "SP", isVerified: true },
+                price: 3499,
+                rating: 5.0,
+                deliveryTime: 3,
+                tags: ["UI/UX", "Figma"]
+              },
+              {
+                title: "Engaging YouTube & Social Video Editing",
+                description: "Professional video editing, color grading, sound design, and custom text animations optimized for high-retention channels.",
+                freelancer: { name: "Rohan Sharma", college: "BITS Pilani", avatar: "RS", isVerified: true },
+                price: 1999,
+                rating: 4.8,
+                deliveryTime: 2,
+                tags: ["Premiere Pro", "Video"]
+              }
+            ].map((gig, idx) => (
+              <div key={idx} className="card bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border transition-all duration-300 hover:translate-y-[-4px] hover:shadow-lg rounded-2xl p-6 flex flex-col">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm">
+                    {gig.freelancer.avatar}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                      {gig.freelancer.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">🎓 {gig.freelancer.college}</p>
+                  </div>
+                  <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200/50 dark:border-emerald-800/30">Verified Student</span>
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug mb-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{gig.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-4">{gig.description}</p>
+                <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
+                  {gig.tags.map(tag => (
+                    <span key={tag} className="bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 text-xs px-2.5 py-1 rounded-full font-medium border border-primary-100/50 dark:border-primary-900/30">{tag}</span>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-dark-border">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Starting at</p>
+                    <p className="text-lg font-black text-gray-900 dark:text-white">₹{gig.price.toLocaleString("en-IN")}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 justify-end">
+                      <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                      <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{gig.rating.toFixed(1)}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 font-medium">{gig.deliveryTime} days delivery</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <button onClick={scrollTo(signInRef)} className="btn-primary !py-3.5 !px-8 text-sm font-semibold active:scale-[0.99] transition-transform shadow-sm">
+              Explore All Gigs & Projects
+            </button>
           </div>
         </div>
       </section>
