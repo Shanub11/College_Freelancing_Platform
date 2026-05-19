@@ -234,8 +234,8 @@ export function Dashboard({ profile }: DashboardProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a3 3 0 00-6 0v.083A6 6 0 002 11v3.159c0 .538-.214 1.055-.595 1.436L0 17h5m10 0v1a3 3 0 01-6 0v-1m6 0H9" />
                     </svg>
                     {unreadCount > 0 && (
-                      <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                        {unreadCount}
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
                   </button>
@@ -388,6 +388,26 @@ export function Dashboard({ profile }: DashboardProps) {
               </button>
             </div>
 
+            {/* Quick nav chips - mobile only */}
+            <div className="px-4 pt-3 pb-2 flex flex-wrap gap-1.5 md:hidden border-b border-gray-100">
+              {tabs.slice(0, 4).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
+
             <nav className="bg-white rounded-lg shadow-sm p-4 md:shadow-sm pb-safe-area-inset-bottom">
               <div className="space-y-2">
                 {tabs.map((tab) => (
@@ -397,16 +417,47 @@ export function Dashboard({ profile }: DashboardProps) {
                       setActiveTab(tab.id);
                       setIsSidebarOpen(false); // Close sidebar on mobile after selection
                     }}
-                    className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${
                       activeTab === tab.id
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-blue-600 text-white font-semibold shadow-sm"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                     }`}
                   >
-                    <span>{tab.icon}</span>
-                    <span>{tab.label}</span>
+                    <span className={`text-lg ${activeTab === tab.id ? "grayscale-0" : ""}`}>
+                      {tab.icon}
+                    </span>
+                    <span className="text-sm">{tab.label}</span>
                   </button>
                 ))}
+              </div>
+              {/* User info at bottom of sidebar */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-2 px-2 py-2 rounded-xl bg-gray-50 border border-gray-100">
+                  {profile.profilePictureUrl ? (
+                    <img 
+                      src={profile.profilePictureUrl} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0" 
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-xs font-bold">
+                        {profile.firstName?.[0]}{profile.lastName?.[0]}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 truncate">
+                      {profile.firstName} {profile.lastName}
+                    </p>
+                    <p className="text-[10px] text-gray-500 capitalize truncate">
+                      {profile.userType === "freelancer" 
+                        ? profile.isVerified ? "✓ Verified Student" : "Unverified"
+                        : profile.userType}
+                    </p>
+                  </div>
+                </div>
               </div>
             </nav>
           </div>

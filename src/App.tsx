@@ -188,13 +188,13 @@ function UnauthenticatedApp() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Empowering Students.<br />
-              <span className="text-blue-600">Connecting Talent to Opportunity.</span>
+              Hire Verified College Students.<br />
+              <span className="text-blue-600">Pay Only When Satisfied.</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              The exclusive freelancing platform where college students showcase their skills 
-              and clients discover fresh talent. From web development to tutoring, 
-              find verified student freelancers ready to bring your projects to life.
+              India's first student-verified freelance marketplace. Get web development, 
+              design, content, and tutoring from talented college students at 
+              startup-friendly prices.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -209,6 +209,66 @@ function UnauthenticatedApp() {
               >
                 Start Freelancing
               </button>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
+                <span>Verified students only</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                </div>
+                <span>Secure escrow payments</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                  </svg>
+                </div>
+                <span>UPI · Cards · NetBanking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                  </svg>
+                </div>
+                <span>Double-blind reviews</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section className="bg-white border-y border-gray-100 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <p className="text-3xl font-bold text-gray-900">1,000+</p>
+              <p className="text-sm text-gray-500 mt-1">Verified Students</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-gray-900">500+</p>
+              <p className="text-sm text-gray-500 mt-1">Projects Completed</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-gray-900">₹50L+</p>
+              <p className="text-sm text-gray-500 mt-1">Paid to Students</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-gray-900">4.8★</p>
+              <p className="text-sm text-gray-500 mt-1">Average Rating</p>
             </div>
           </div>
         </div>
@@ -323,10 +383,19 @@ function UnauthenticatedApp() {
               { name: "Data Analysis", icon: "📊", count: "80+ students" },
               { name: "Mobile Apps", icon: "📱", count: "100+ students" },
             ].map((category) => (
-              <div key={category.name} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <div className="text-3xl mb-2">{category.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-1">{category.name}</h3>
-                <p className="text-sm text-gray-600">{category.count}</p>
+              <div 
+                key={category.name} 
+                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                onClick={handleLoginClick}
+              >
+                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">
+                  {category.icon}
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm mb-1">{category.name}</h3>
+                <p className="text-xs text-gray-500">{category.count}</p>
+                <div className="mt-3 text-xs text-blue-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                  Browse →
+                </div>
               </div>
             ))}
           </div>
@@ -336,8 +405,20 @@ function UnauthenticatedApp() {
       {/* CTA Section */}
       <section ref={signInRef} className="py-20 bg-blue-600 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
-          <p className="text-xl text-blue-100 mb-8">Join thousands of students and clients already using CollegeSkills</p>
+          <h2 className="text-3xl font-bold text-white mb-4">Join 1,000+ Students & Clients on CollegeGig</h2>
+          <p className="text-xl text-blue-100 mb-8">Verified students earn ₹5,000–₹50,000/month. Clients get quality work at 60% less than agency rates.</p>
+          
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <div className="bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/20">
+              🎓 Free for students
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/20">
+              ⚡ Post a project in 2 mins
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/20">
+              🔒 Escrow protected
+            </div>
+          </div>
           
           <div className="max-w-md mx-auto">
             <SignInForm />
@@ -387,8 +468,13 @@ function UnauthenticatedApp() {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 CollegeGig. All rights reserved.</p>
+          <div className="border-t border-gray-800 mt-8 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-gray-400 text-sm">&copy; 2025 CollegeGig. All rights reserved.</p>
+              <p className="text-gray-500 text-xs flex items-center gap-1">
+                Made with ❤️ for Indian college students
+              </p>
+            </div>
           </div>
         </div>
       </footer>

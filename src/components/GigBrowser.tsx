@@ -76,10 +76,20 @@ export function GigBrowser({
       )}
 
       {/* Search + Filters */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm sticky top-20 z-10">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
             <input
               type="text"
               placeholder={`Search ${
@@ -87,7 +97,7 @@ export function GigBrowser({
               }...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition-all"
+              className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 pl-9 pr-4 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
             />
           </div>
 
@@ -110,31 +120,68 @@ export function GigBrowser({
         </div>
       </div>
 
+      {searchResults.length > 0 && (
+        <div className="flex items-center justify-between px-1">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-semibold text-gray-800">
+              {searchResults.length}
+            </span> {activeView === "gigs" ? "services" : "projects"}
+            {searchTerm && (
+              <span> for "<span className="text-blue-600">{searchTerm}</span>"</span>
+            )}
+          </p>
+          {selectedCategory && (
+            <button
+              onClick={() => setSelectedCategory("")}
+              className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              Clear filter
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Results */}
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
         {searchResults.length === 0 ? (
-          <div className="col-span-full py-20 text-center">
-            <div className="text-6xl mb-4">
+          <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center text-4xl mb-4">
               {activeView === "gigs" ? "💼" : "📋"}
             </div>
-
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No {activeView === "gigs" ? "services" : "projects"} found
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {searchTerm || selectedCategory 
+                ? "No results found" 
+                : `No ${activeView === "gigs" ? "services" : "projects"} yet`}
             </h3>
-
-            <p className="text-gray-500">
+            <p className="text-gray-500 text-sm max-w-xs">
               {searchTerm || selectedCategory
-                ? "Try adjusting your search or filters"
-                : `No ${
-                    activeView === "gigs" ? "services" : "projects"
-                  } available yet`}
+                ? "Try different keywords or clear your filters"
+                : activeView === "gigs" 
+                  ? "Be the first to list a service!"
+                  : "Post a project to get proposals from students"}
             </p>
+            {(searchTerm || selectedCategory) && (
+              <button
+                onClick={() => { setSearchTerm(""); setSelectedCategory(""); }}
+                className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+              >
+                Clear all filters
+              </button>
+            )}
           </div>
         ) : (
           searchResults.map((item: any) => (
             <div
               key={item._id}
-              className="group bg-white border border-gray-100 rounded-2xl p-6 hover:border-emerald-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+              className="group bg-white border border-gray-100 rounded-2xl p-6 hover:border-blue-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
             >
               {activeView === "gigs" ? (
                 <GigCard
@@ -167,63 +214,75 @@ function GigCard({
 
   return (
     <>
-      {/* Top */}
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 leading-snug">
-          {gig.title}
-        </h3>
-
-        <span className="text-emerald-600 font-bold text-lg ml-3 whitespace-nowrap">
-          ₹{gig.basePrice}
-        </span>
+      {/* Freelancer info header */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+          {gig.freelancer?.firstName?.[0] || "F"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            {gig.freelancer ? 
+              `${gig.freelancer.firstName} ${gig.freelancer.lastName}` 
+              : "Freelancer"}
+          </p>
+          {gig.freelancer?.collegeName && (
+            <p className="text-[11px] text-gray-500 truncate">
+              🎓 {gig.freelancer.collegeName}
+            </p>
+          )}
+        </div>
+        {gig.freelancer?.isVerified && (
+          <div className="flex-shrink-0 bg-green-50 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-green-100">
+            ✓ Verified
+          </div>
+        )}
       </div>
 
+      {/* Gig title */}
+      <h3 className="text-base font-semibold text-gray-900 line-clamp-2 leading-snug mb-2 group-hover:text-blue-600 transition-colors">
+        {gig.title}
+      </h3>
+
       {/* Description */}
-      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-5">
+      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-3">
         {gig.description}
       </p>
 
       {/* Tags */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {gig.tags?.slice(0, 3).map((tag: string) => (
-          <span
-            key={tag}
-            className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium"
-          >
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {gig.tags?.slice(0, 2).map((tag: string) => (
+          <span key={tag} className="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-md text-[11px] font-medium">
             {tag}
           </span>
         ))}
-
-        {gig.tags?.length > 3 && (
-          <span className="text-xs text-gray-500 self-center">
-            +{gig.tags.length - 3} more
+        {gig.category && (
+          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[11px] font-medium">
+            {gig.category}
           </span>
         )}
       </div>
 
-      {/* Bottom */}
+      {/* Bottom: price, rating, CTA */}
       <div className="mt-auto">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-5">
-          <div className="flex items-center gap-1">
-            <span>⭐</span>
-            <span>
-              {gig.averageRating
-                ? gig.averageRating.toFixed(1)
-                : "New Freelancer"}
-            </span>
+        <div className="flex items-center justify-between mb-3 pt-3 border-t border-gray-100">
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Starting at</p>
+            <p className="text-xl font-bold text-gray-900">
+              ₹{gig.basePrice.toLocaleString("en-IN")}
+            </p>
           </div>
-
-          <div className="flex items-center gap-1">
-            <span>🚚</span>
-            <span>{gig.deliveryTime} days</span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <span>🔥</span>
-            <span>Quick Delivery</span>
+          <div className="text-right">
+            <div className="flex items-center gap-1 justify-end">
+              <svg className="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+              <span className="text-sm font-semibold text-gray-800">
+                {gig.averageRating ? gig.averageRating.toFixed(1) : "New"}
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-400">{gig.deliveryTime}d delivery</p>
           </div>
         </div>
-
         <button
           onClick={() => {
             if (onViewProfile) {
@@ -232,7 +291,7 @@ function GigCard({
               navigate(`/profile/${gig.freelancerId}`);
             }
           }}
-          className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
+          className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
         >
           View Details
         </button>
@@ -258,79 +317,70 @@ function ProjectCard({ project }: { project: any }) {
 
   return (
     <>
-      {/* Top */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 leading-snug line-clamp-2">
-            {project.title}
-          </h3>
-        </div>
-
+      {/* Header: title + NEW badge */}
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <h3 className="text-base font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors flex-1">
+          {project.title}
+        </h3>
         {hoursAgo <= 24 && (
-          <span className="ml-3 bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-1 rounded-full whitespace-nowrap">
+          <span className="flex-shrink-0 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200">
             NEW
           </span>
         )}
       </div>
 
       {/* Description */}
-      <p className="text-gray-600 text-sm leading-relaxed line-clamp-2 mb-5">
+      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-3">
         {project.description}
       </p>
 
       {/* Skills */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-1.5 mb-4">
         {project.skills?.slice(0, 3).map((skill: string) => (
-          <span
-            key={skill}
-            className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-medium"
-          >
+          <span key={skill} className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded-md text-[11px] font-medium">
             {skill}
           </span>
         ))}
-
         {project.skills?.length > 3 && (
-          <span className="text-xs text-gray-500 self-center">
-            +{project.skills.length - 3} more
+          <span className="text-[11px] text-gray-400 self-center">
+            +{project.skills.length - 3}
           </span>
         )}
       </div>
 
-      {/* Bottom */}
+      {/* Meta row */}
       <div className="mt-auto">
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-5">
-          {/* Posted */}
-          <div className="flex items-center gap-1">
-            <span>📅</span>
-
-            <span>
-              {hoursAgo <= 1
-                ? "Posted recently"
-                : hoursAgo < 24
-                ? `Posted ${hoursAgo}h ago`
-                : `Posted ${daysAgo}d ago`}
-            </span>
-          </div>
-
-          {/* Verified */}
-          <div className="flex items-center gap-1">
-            <span>⭐</span>
-            <span>Verified Client</span>
-          </div>
-
-          {/* Hiring */}
-          <div className="flex items-center gap-1">
-            <span>⚡</span>
-            <span>Quick Hiring</span>
-          </div>
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-3 text-[11px] text-gray-500">
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {hoursAgo <= 1 ? "Just posted"
+              : hoursAgo < 24 ? `${hoursAgo}h ago`
+              : `${daysAgo}d ago`}
+          </span>
+          <span className="flex items-center gap-1 text-green-600 font-medium">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Verified Client
+          </span>
         </div>
-
-        {/* CTA */}
         <Link
           to={`/projects/${project._id}`}
-          className="block w-full text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
+          className="block w-full text-center bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
         >
-          Apply Now
+          Apply Now →
         </Link>
       </div>
     </>

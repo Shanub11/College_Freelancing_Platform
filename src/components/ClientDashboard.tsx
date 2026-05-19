@@ -730,29 +730,82 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column: Basic Info & Avatar */}
           <div className="md:w-1/3 flex flex-col items-center text-center">
-            <img 
-              src={getProfilePictureUrl(undefined, profile.profilePicture)} 
-              alt="Freelancer" 
-              className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md mb-4" 
-              onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
-            />
-            <h1 className="text-2xl font-bold text-gray-900">{profile.firstName} {profile.lastName}</h1>
-            <p className="text-gray-600 font-medium">{profile.tagline || "Student Freelancer"}</p>
-            
-            <div className="mt-2 text-sm text-gray-500">
-              <p>{profile.collegeName || "College not specified"}</p>
-              {profile.graduationYear && <p>Class of {profile.graduationYear}</p>}
+            {/* Profile picture with verified ring */}
+            <div className="relative mb-4">
+              <img 
+                src={getProfilePictureUrl(undefined, profile.profilePicture)} 
+                alt={`${profile.firstName} ${profile.lastName}`}
+                className="w-36 h-36 rounded-2xl object-cover border-4 border-white shadow-lg" 
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+              />
+              {profile.isVerified && (
+                <div
+                  className="absolute -bottom-2 -right-2 bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md border-2 border-white"
+                  title="Verified Student"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
+              )}
             </div>
 
-            {profile.isVerified && (
-              <div className="mt-4 bg-green-100 border border-transparent text-green-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                <span>✓</span> Verified Student
+            <h1 className="text-2xl font-bold text-gray-900 mb-0.5">
+              {profile.firstName} {profile.lastName}
+            </h1>
+            <p className="text-gray-500 font-medium mb-3">
+              {profile.tagline || "Student Freelancer"}
+            </p>
+            
+            {/* Rating stars inline */}
+            {profile.averageRating && (
+              <div className="flex items-center gap-1 mb-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg key={i} className={`w-4 h-4 ${i < Math.round(profile.averageRating) ? 'text-yellow-400' : 'text-gray-200'} fill-current`} viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                ))}
+                <span className="text-sm font-semibold text-gray-700 ml-1">
+                  {profile.averageRating.toFixed(1)}
+                </span>
+                <span className="text-xs text-gray-400">
+                  ({profile.totalReviews} reviews)
+                </span>
               </div>
             )}
             
-            <div className="mt-4 bg-blue-50 border border-blue-100 text-blue-800 px-4 py-2 rounded-lg w-full">
-              <p className="text-sm font-semibold mb-1">Freelancer Tier</p>
-              <p className="text-lg font-bold">{level}</p>
+            {/* College info */}
+            {profile.collegeName && (
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-1">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                </svg>
+                <span className="truncate">{profile.collegeName}</span>
+              </div>
+            )}
+            {profile.graduationYear && (
+              <p className="text-xs text-gray-400 mb-4">Class of {profile.graduationYear}</p>
+            )}
+
+            {/* Tier badge */}
+            <div className={`w-full px-4 py-3 rounded-xl text-center mb-3 ${
+              level === "Top Talent" 
+                ? "bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200" 
+                : level === "Rising Star" 
+                ? "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200"
+                : "bg-gray-50 border border-gray-200"
+            }`}>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">
+                Freelancer Tier
+              </p>
+              <p className={`text-lg font-bold ${
+                level === "Top Talent" ? "text-amber-600" 
+                : level === "Rising Star" ? "text-blue-600" 
+                : "text-gray-600"
+              }`}>
+                {level === "Top Talent" ? "🏆 " : level === "Rising Star" ? "⭐ " : ""}
+                {level}
+              </p>
             </div>
           </div>
 
@@ -773,22 +826,22 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
             </div>
 
             {/* Core Metrics */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Rating</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
                   <span className="text-yellow-400 text-lg">★</span>
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Completed</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{completedProjects.length}</span>
                   <span className="text-gray-400 text-lg">💼</span>
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
@@ -811,7 +864,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               <h3 className="text-lg font-bold text-gray-900 mb-2">Skills</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.skills?.length ? profile.skills.map((skill: string) => (
-                  <span key={skill} className="bg-gray-100 border border-gray-200 text-gray-800 px-3 py-1 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors">
+                  <span key={skill} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-xs font-medium hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm">
                     {skill}
                   </span>
                 )) : <span className="text-gray-500 text-sm">No skills listed.</span>}
@@ -994,15 +1047,19 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                     <button
                       onClick={() => {
                         if (!profile.isPayoutReady) {
-                          toast.error("This freelancer is still completing Razorpay payout verification.");
+                          toast.error("This freelancer is still completing payout verification.");
                           return;
                         }
                         setHireGig(gig);
                       }}
                       disabled={!profile.isPayoutReady}
-                      className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm ${
+                        profile.isPayoutReady 
+                          ? "bg-blue-600 text-white hover:bg-blue-700" 
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
                     >
-                      {profile.isPayoutReady ? "Hire Me" : "Payout Pending"}
+                      {profile.isPayoutReady ? "Hire Now" : "Coming Soon"}
                     </button>
                   </div>
                 </div>
@@ -1013,7 +1070,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
         {/* Completed Projects Catalog */}
         <div className="border-t border-gray-200 pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Completed Projects</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-900">Completed Projects</h3>
+            <span className="text-sm text-gray-500">
+              {completedProjects.length} project{completedProjects.length !== 1 ? "s" : ""}
+            </span>
+          </div>
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
