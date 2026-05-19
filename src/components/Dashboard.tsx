@@ -5,6 +5,20 @@ import { SignOutButton } from "../SignOutButton";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
+import { useTheme } from "../hooks/useTheme";
+
+function ThemeToggleBtn() {
+  const { resolvedTheme, toggleTheme } = useTheme();
+  return (
+    <button onClick={toggleTheme} className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-dark-surface-2" aria-label="Toggle dark mode">
+      {resolvedTheme === "dark" ? (
+        <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/></svg>
+      ) : (
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+      )}
+    </button>
+  );
+}
 
 const GigBrowser = lazy(() => import("./GigBrowser").then(m => ({ default: m.GigBrowser })));
 const FreelancerDashboard = lazy(() => import("./FreelancerDashboard").then(m => ({ default: m.FreelancerDashboard })));
@@ -151,9 +165,9 @@ export function Dashboard({ profile }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       {/* Header */}
-      <header className={`sticky top-0 z-50 transition-all duration-200 border-b ${isScrolled ? 'bg-white/80 backdrop-blur-md shadow-md border-gray-200' : 'bg-white shadow-sm border-gray-100'}`}>
+      <header className={`sticky top-0 z-50 transition-all duration-200 border-b ${isScrolled ? 'bg-white/80 dark:bg-dark-bg/80 backdrop-blur-xl shadow-md border-gray-200 dark:border-dark-border' : 'bg-white dark:bg-dark-surface shadow-sm border-gray-100 dark:border-dark-border'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -212,7 +226,8 @@ export function Dashboard({ profile }: DashboardProps) {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="relative flex gap-4 mr-2">
+              <div className="relative flex gap-2 mr-2">
+                <ThemeToggleBtn />
                 <button onClick={() => { setChatInitData(null); setIsChatOpen(true); }} className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />

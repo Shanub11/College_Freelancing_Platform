@@ -1,5 +1,3 @@
-import React from "react";
-
 interface ErrorStateProps {
   title?: string;
   message?: string;
@@ -12,16 +10,16 @@ export default function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="py-12 text-center flex flex-col items-center justify-center">
-      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-3xl">
-        ⚠
+    <div className="py-16 text-center flex flex-col items-center justify-center animate-fade-in">
+      <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-3xl mb-4">
+        ⚠️
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mt-4">{title}</h3>
-      <p className="text-gray-600 mt-2 text-sm">{message}</p>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+      <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm max-w-xs">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg mt-4 hover:bg-red-700 transition-colors"
+          className="btn-primary !bg-red-600 hover:!bg-red-700 mt-6 text-sm"
         >
           Try Again
         </button>

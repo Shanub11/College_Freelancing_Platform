@@ -6,6 +6,7 @@ import App from "./App";
 import { HelmetProvider } from 'react-helmet-async';
 import * as Sentry from "@sentry/react";
 import posthog from "posthog-js";
+import { ThemeProvider } from "./hooks/useTheme";
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -53,15 +54,17 @@ const convex = new ConvexReactClient(convexUrl);
 
 createRoot(document.getElementById("root")!).render(
   <ConvexAuthProvider client={convex}>
-    <HelmetProvider>
-      <Sentry.ErrorBoundary fallback={
-        <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Oops! Something went wrong.</h2>
-          <p className="text-gray-600">Our engineering team has been notified and is looking into it.</p>
-        </div>
-      }>
-        <App />
-      </Sentry.ErrorBoundary>
-    </HelmetProvider>
+    <ThemeProvider>
+      <HelmetProvider>
+        <Sentry.ErrorBoundary fallback={
+          <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-dark-bg">
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Oops! Something went wrong.</h2>
+            <p className="text-gray-600 dark:text-gray-400">Our engineering team has been notified and is looking into it.</p>
+          </div>
+        }>
+          <App />
+        </Sentry.ErrorBoundary>
+      </HelmetProvider>
+    </ThemeProvider>
   </ConvexAuthProvider>,
 );
