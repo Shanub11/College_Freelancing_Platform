@@ -1292,10 +1292,10 @@ function PostProjectForm() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="bg-white dark:bg-dark-surface border border-transparent rounded-lg shadow-sm p-6">
+    <div className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-2xl shadow-sm p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Project Title *
             </label>
             <input
@@ -1304,19 +1304,19 @@ function PostProjectForm() {
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g., Build a responsive website for my startup"
-              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Category *
             </label>
             <select
               required
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="input-field"
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
@@ -1328,7 +1328,7 @@ function PostProjectForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Project Description *
             </label>
             <textarea
@@ -1337,12 +1337,12 @@ function PostProjectForm() {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={6}
               placeholder="Describe your project in detail. Include requirements, deliverables, and any specific preferences..."
-              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="input-field min-h-[120px] resize-y"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Project Deadline *
             </label>
             <input
@@ -1351,25 +1351,25 @@ function PostProjectForm() {
               min={today}
               value={formData.deadline}
               onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Required Skills
             </label>
-            <div className="flex flex-wrap gap-2 mb-2">
+            <div className="flex flex-wrap gap-2 mb-2.5">
               {formData.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="bg-primary-100 dark:bg-primary-900/20 border border-transparent text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
+                  className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1 rounded-full text-sm flex items-center space-x-1.5 border border-primary-100 dark:border-primary-800/40"
                 >
                   <span>{skill}</span>
                   <button
                     type="button"
                     onClick={() => removeSkill(skill)}
-                    className="text-primary-600 dark:text-primary-400 hover:text-blue-800"
+                    className="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-200 transition-colors font-bold"
                   >
                     ×
                   </button>
@@ -1386,13 +1386,13 @@ function PostProjectForm() {
                   e.currentTarget.value = "";
                 }
               }}
-              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="input-field"
             />
           </div>
 
-          <div className="bg-primary-50 dark:bg-primary-900/10 border border-transparent p-4 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">Tips for a successful project:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/30 p-4 rounded-xl">
+            <h4 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">Tips for a successful project:</h4>
+            <ul className="text-sm text-primary-700 dark:text-primary-400 space-y-1.5">
               <li>• Be specific about your requirements and deliverables</li>
               <li>• Set a realistic budget and timeline</li>
               <li>• Include examples or references if possible</li>
@@ -1402,7 +1402,7 @@ function PostProjectForm() {
 
           <button
             type="submit"
-            className="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-sm"
+            className="w-full btn-primary py-3 active:scale-[0.99] transition-transform"
           >
             Post Project
           </button>

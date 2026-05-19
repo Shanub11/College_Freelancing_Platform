@@ -305,6 +305,7 @@ export const getProposalsForProject = query({
           freelancerName: freelancerProfile
             ? `${freelancerProfile.firstName} ${freelancerProfile.lastName}`
             : "Unknown Freelancer",
+          freelancerIsPayoutReady: freelancerProfile?.isPayoutReady === true,
         };
       })
     );

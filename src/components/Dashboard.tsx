@@ -379,6 +379,7 @@ export function Dashboard({ profile }: DashboardProps) {
               md:translate-x-0
               md:sticky md:top-24 md:self-start
               overflow-y-auto md:overflow-visible
+              flex flex-col h-full md:h-auto
             `}
           >
             {/* Mobile sidebar header with close button */}
@@ -421,28 +422,44 @@ export function Dashboard({ profile }: DashboardProps) {
               ))}
             </div>
 
-            <nav className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-4 md:shadow-sm pb-safe-area-inset-bottom">
-              <div className="space-y-2">
-                {tabs.map((tab) => (
+            <nav className="bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border p-4 shadow-sm md:h-[calc(100vh-8rem)] md:min-h-[500px] flex flex-col justify-between overflow-y-auto no-scrollbar flex-1 md:flex-initial pb-safe-area-inset-bottom">
+              <div className="space-y-1.5">
+                {tabs.filter(t => t.id !== "profile" && t.id !== "support").map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => {
                       setActiveTab(tab.id);
-                      setIsSidebarOpen(false); // Close sidebar on mobile after selection
+                      setIsSidebarOpen(false);
                     }}
-                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${activeTab === tab.id
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-150 group ${activeTab === tab.id
                       ? "bg-primary-600 text-white font-semibold shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-dark-surface-2 hover:text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-surface-2 hover:text-gray-900 dark:hover:text-white"
                       }`}
                   >
-                    <span className={`text-lg ${activeTab === tab.id ? "grayscale-0" : ""}`}>
-                      {tab.icon}
-                    </span>
+                    <span className="text-lg">{tab.icon}</span>
                     <span className="text-sm">{tab.label}</span>
                   </button>
                 ))}
               </div>
 
+              <div className="space-y-1.5 pt-4 border-t border-gray-100 dark:border-dark-border mt-auto">
+                {tabs.filter(t => t.id === "profile" || t.id === "support").map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-150 group ${activeTab === tab.id
+                      ? "bg-primary-600 text-white font-semibold shadow-sm"
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-surface-2 hover:text-gray-900 dark:hover:text-white"
+                      }`}
+                  >
+                    <span className="text-lg">{tab.icon}</span>
+                    <span className="text-sm">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
             </nav>
           </div>
 
@@ -564,18 +581,18 @@ function SupportTicketForm({ initialOrderId, initialProjectId }: { initialOrderI
   };
 
   return (
-    <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 max-w-2xl mx-auto mt-4">
+    <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-2xl shadow-sm p-8 max-w-2xl mx-auto mt-4">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Help & Support</h2>
 
       {(initialOrderId || initialProjectId) && (
-        <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-blue-800 p-4 rounded-lg mb-6 text-sm">
+        <div className="bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 p-4 rounded-xl mb-6 text-sm">
           <strong>Note:</strong> You are submitting a ticket regarding a specific {initialOrderId ? "Order" : "Project"}. The details have been attached automatically.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             How can we help you?
           </label>
           <textarea
@@ -584,14 +601,14 @@ function SupportTicketForm({ initialOrderId, initialProjectId }: { initialOrderI
             onChange={(e) => setReason(e.target.value)}
             rows={6}
             placeholder="Describe your issue in detail..."
-            className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
+            className="input-field min-h-[120px] resize-y"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-primary-600 text-white font-medium py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+          className="w-full btn-primary py-3 active:scale-[0.99] transition-transform"
         >
           {isSubmitting ? "Submitting..." : "Submit Ticket"}
         </button>
@@ -765,35 +782,35 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
           type="text"
           value={bankAccountHolderName}
           onChange={(e) => setBankAccountHolderName(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          className="input-field !py-2.5 !px-3"
           placeholder="Account holder name"
         />
         <input
           type="text"
           value={bankIfsc}
           onChange={(e) => setBankIfsc(e.target.value.toUpperCase())}
-          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm uppercase"
+          className="input-field !py-2.5 !px-3 uppercase"
           placeholder="IFSC code"
         />
         <input
           type="password"
           value={bankAccountNumber}
           onChange={(e) => setBankAccountNumber(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          className="input-field !py-2.5 !px-3"
           placeholder={profile.bankAccountLast4 ? "Re-enter to update" : "Account number"}
         />
         <input
           type="tel"
           value={stakeholderPhone}
           onChange={(e) => setStakeholderPhone(e.target.value)}
-          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm"
+          className="input-field !py-2.5 !px-3"
           placeholder="Phone without country code"
         />
         <input
           type="password"
           value={stakeholderPan}
           onChange={(e) => setStakeholderPan(e.target.value.toUpperCase())}
-          className="px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm uppercase"
+          className="input-field !py-2.5 !px-3 uppercase"
           placeholder="PAN"
         />
       </div>
@@ -801,7 +818,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
         <button
           onClick={handleSaveBankDetails}
           disabled={isSavingBankDetails || !bankAccountHolderName || !bankIfsc || !bankAccountNumber || !stakeholderPhone || !stakeholderPan}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm"
+          className="btn-primary mt-6"
         >
           {isSavingBankDetails ? "Submitting..." : "Start Razorpay KYC"}
         </button>
@@ -931,7 +948,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface shadow-sm min-h-[100px]"
+                className="input-field min-h-[100px] resize-y"
                 placeholder="Tell us about yourself..."
               />
             </div>
@@ -941,11 +958,11 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
             {/* Skills */}
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Skills</h3>
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className="flex flex-wrap gap-2 mb-2.5">
                 {skills.map((skill: string) => (
-                  <span key={skill} className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                  <span key={skill} className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 px-3 py-1 rounded-full text-sm flex items-center space-x-1.5 border border-primary-100 dark:border-primary-800/40">
                     <span>{skill}</span>
-                    <button type="button" onClick={() => removeSkill(skill)} className="text-primary-600 dark:text-primary-400 hover:text-blue-800">×</button>
+                    <button type="button" onClick={() => removeSkill(skill)} className="text-primary-500 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-200 transition-colors font-bold">×</button>
                   </span>
                 ))}
               </div>
@@ -959,7 +976,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                     e.currentTarget.value = "";
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="input-field"
               />
             </div>
 
@@ -983,13 +1000,13 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                       placeholder="Project Title *"
                       value={newPortfolioItem.title}
                       onChange={e => setNewPortfolioItem({ ...newPortfolioItem, title: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                      className="input-field !py-2.5 !px-3"
                     />
                     <textarea
                       placeholder="Description *"
                       value={newPortfolioItem.description}
                       onChange={e => setNewPortfolioItem({ ...newPortfolioItem, description: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                      className="input-field min-h-[80px] resize-y"
                       rows={3}
                     />
                     <input
@@ -997,7 +1014,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                       placeholder="Link (e.g. GitHub or Live Demo)"
                       value={newPortfolioItem.link}
                       onChange={e => setNewPortfolioItem({ ...newPortfolioItem, link: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+                      className="input-field !py-2.5 !px-3"
                     />
                     <div className="flex items-center gap-3">
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface border px-3 py-2 rounded-md cursor-pointer hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors">
@@ -1378,7 +1395,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface shadow-sm min-h-[100px]"
+              className="input-field min-h-[100px] resize-y"
               placeholder="Tell us about yourself..."
             />
           </div>
@@ -1393,7 +1410,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                   type="text"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface shadow-sm"
+                  className="input-field"
                   placeholder="Your company name"
                 />
               </div>
@@ -1403,7 +1420,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 <select
                   value={identity}
                   onChange={(e) => setIdentity(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface shadow-sm"
+                  className="input-field"
                 >
                   <option value="">Select identity</option>
                   <option value="Startup Founder">Startup Founder</option>
@@ -1419,7 +1436,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Hiring Preferences</h3>
                 <div className="flex flex-wrap gap-2">
                   {['Project-based', 'Long-term', 'Quick tasks', 'Ongoing support'].map(pref => (
-                    <label key={pref} className="flex items-center space-x-2 bg-gray-50 dark:bg-dark-surface-2 px-3 py-2 rounded border">
+                    <label key={pref} className="flex items-center space-x-2 bg-gray-50 dark:bg-dark-surface-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-dark-border cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-surface transition-colors">
                       <input
                         type="checkbox"
                         checked={hiringPreferences.includes(pref)}
@@ -1427,9 +1444,9 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                           if (e.target.checked) setHiringPreferences([...hiringPreferences, pref]);
                           else setHiringPreferences(hiringPreferences.filter((p: string) => p !== pref));
                         }}
-                        className="rounded text-primary-600 dark:text-primary-400 focus:ring-blue-500"
+                        className="rounded text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{pref}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{pref}</span>
                     </label>
                   ))}
                 </div>
@@ -1440,7 +1457,7 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
                 <select
                   value={preferredCommunication}
                   onChange={(e) => setPreferredCommunication(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-surface shadow-sm"
+                  className="input-field"
                 >
                   <option value="">Select preference</option>
                   <option value="In-app chat">In-app chat</option>
@@ -1452,19 +1469,19 @@ function UserProfile({ profile, onEditPhoto }: { profile: any, onEditPhoto: () =
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Website</h3>
-                  <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="https://..." />
+                  <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="input-field !py-2.5 !px-3" placeholder="https://..." />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">LinkedIn</h3>
-                  <input type="url" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="https://linkedin.com/..." />
+                  <input type="url" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} className="input-field !py-2.5 !px-3" placeholder="https://linkedin.com/..." />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Industry</h3>
-                  <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm" placeholder="e.g., SaaS, EdTech" />
+                  <input type="text" value={industry} onChange={(e) => setIndustry(e.target.value)} className="input-field !py-2.5 !px-3" placeholder="e.g., SaaS, EdTech" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Team Size</h3>
-                  <select value={teamSize} onChange={(e) => setTeamSize(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 text-sm">
+                  <select value={teamSize} onChange={(e) => setTeamSize(e.target.value)} className="input-field !py-2.5 !px-3">
                     <option value="">Select size</option>
                     <option value="1-10">1-10</option>
                     <option value="11-50">11-50</option>

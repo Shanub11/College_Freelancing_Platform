@@ -61,49 +61,54 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
   const selectedConversation = conversations.find(c => c._id === selectedConversationId);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[80vh] flex overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-1/3 border-r bg-gray-50 flex flex-col">
-          <div className="p-4 border-b bg-white flex items-center gap-3">
-            <button onClick={onClose} className="text-gray-500 hover:text-blue-600 transition-colors" title="Back">
+        <div className="w-1/3 border-r border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface/40 flex flex-col">
+          <div className="p-5 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface flex items-center gap-3">
+            <button onClick={onClose} className="p-2 -ml-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-dark-surface-2 rounded-full transition-colors" title="Back">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-            <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Messages</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
             {!conversations || conversations.length === 0 ? (
-              <p className="p-4 text-gray-500 text-center">No conversations yet.</p>
+              <div className="flex flex-col items-center justify-center h-full p-6 text-center text-gray-500 dark:text-gray-400">
+                <span className="text-4xl mb-3 opacity-50">📭</span>
+                <p>No conversations yet.</p>
+              </div>
             ) : (
               <>
                 {conversations.map(c => (
                 <div 
                   key={c._id}
                   onClick={() => setSelectedConversationId(c._id)}
-                  className={`p-4 border-b cursor-pointer hover:bg-gray-100 transition-colors ${selectedConversationId === c._id ? 'bg-blue-50' : ''}`}
+                  className={`p-4 border-b border-gray-100 dark:border-dark-border cursor-pointer transition-colors ${selectedConversationId === c._id ? 'bg-primary-50 dark:bg-primary-900/30' : 'hover:bg-white dark:hover:bg-dark-surface/60'}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <h3 className={`font-semibold ${c.unreadCount > 0 ? 'text-black' : 'text-gray-700'}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className={`font-semibold truncate pr-2 ${c.unreadCount > 0 ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {c.otherUserName}
                     </h3>
                     {c.unreadCount > 0 && (
-                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                      <span className="bg-primary-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">
                         {c.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 truncate mt-1">
-                    {c.lastMessage || "No messages yet"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(c.updatedAt).toLocaleDateString()}
-                  </p>
+                  <div className="flex justify-between items-baseline gap-2">
+                    <p className={`text-sm truncate flex-1 ${c.unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {c.lastMessage || "No messages yet"}
+                    </p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
+                      {new Date(c.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
                 ))}
                 {status === "CanLoadMore" && (
                   <button 
                     onClick={() => loadMore(20)}
-                    className="w-full p-4 text-blue-600 hover:bg-gray-100 text-sm font-medium transition-colors"
+                    className="w-full p-4 text-primary-600 dark:text-primary-400 hover:bg-white dark:hover:bg-dark-surface text-sm font-medium transition-colors"
                   >
                     Load More
                   </button>
@@ -114,7 +119,7 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white dark:bg-dark-bg relative">
           {selectedConversationId ? (
             <ChatWindow 
               conversationId={selectedConversationId} 
@@ -123,10 +128,9 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
               onClose={onClose}
             />
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-              <span className="text-6xl mb-4">💬</span>
-              <p>Select a conversation to start chatting</p>
-              <button onClick={onClose} className="mt-4 text-blue-600 hover:underline">Close</button>
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+              <span className="text-6xl mb-6 opacity-30">💬</span>
+              <p className="text-lg font-medium text-gray-600 dark:text-gray-300">Select a conversation to start chatting</p>
             </div>
           )}
         </div>
@@ -190,25 +194,30 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-[80vh] md:h-[600px] bg-gray-50 dark:bg-dark-bg rounded-t-2xl md:rounded-2xl overflow-hidden relative shadow-2xl border border-gray-200 dark:border-dark-border">
+    <div className="flex flex-col h-full bg-white dark:bg-dark-bg w-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center bg-white dark:bg-dark-surface shadow-sm z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center font-bold text-lg">
+      <div className="p-4 border-b border-gray-200 dark:border-dark-border flex justify-between items-center bg-white dark:bg-dark-surface z-10">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center font-bold text-xl shadow-inner border border-primary-100 dark:border-primary-800/50">
             {recipientName?.[0] || "U"}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 dark:text-white leading-tight">{recipientName}</h3>
-            <p className="text-xs text-green-600 dark:text-green-400 font-medium">● Online</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-0.5">{recipientName}</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Online</p>
+            </div>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-gray-50 dark:bg-dark-surface-2 rounded-full transition-colors">
+        <button onClick={onClose} className="md:hidden p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-gray-50 dark:bg-dark-surface-2 rounded-full transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
       
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5] dark:bg-dark-bg relative" style={{ backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgb3BhY2l0eT0iMC4wNSI+CjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iIzAwMCIvPgo8L3N2Zz4=')" }}>
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gray-50 dark:bg-dark-bg relative">
+        {/* Subtle patterned background for professional feel */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+CjxwYXRoIGQ9Ik0wIDBoNDB2NDBIMHoiIGZpbGw9Im5vbmUiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0iIzAwMCIvPgo8L3N2Zz4=')" }}></div>
         {messages?.map((msg, index) => {
           const isMe = msg.senderId === currentUserId;
 
@@ -235,42 +244,41 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
             <Fragment key={msg._id}>
               {showDate && (
                 <div className="flex justify-center my-4 sticky top-2 z-10">
-                  <span className="bg-white/90 dark:bg-dark-surface/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 text-[11px] uppercase tracking-wider px-3 py-1 rounded-full shadow-sm font-semibold">
+                  <span className="bg-white/95 dark:bg-dark-surface/95 backdrop-blur-sm text-gray-500 dark:text-gray-300 text-[11px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow-sm font-semibold border border-gray-100 dark:border-dark-border">
                     {dateString}
                   </span>
                 </div>
               )}
-              <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`relative max-w-[85%] md:max-w-[70%] rounded-2xl px-3.5 py-2 shadow-sm ${
-                  isMe ? "bg-[#dcf8c6] dark:bg-primary-900/40 text-gray-900 dark:text-white rounded-tr-none" 
-                       : "bg-white dark:bg-dark-surface text-gray-900 dark:text-white border border-gray-100 dark:border-dark-border rounded-tl-none"
+              <div className={`flex relative z-10 ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`relative max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                  isMe ? "bg-primary-600 text-white rounded-tr-none dark:bg-primary-950/40 dark:text-gray-100 dark:border dark:border-primary-800/30" 
+                       : "bg-white dark:bg-dark-surface text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-dark-border rounded-tl-none"
                 }`}>
-                  {/* Tail indicator */}
-                  <div className={`absolute top-0 w-3 h-4 ${isMe ? "-right-2 text-[#dcf8c6] dark:text-primary-900/40" : "-left-2 text-white dark:text-dark-surface"}`}>
-                    <svg viewBox="0 0 8 13" fill="currentColor"><path d={isMe ? "M0 0h8v13L0 0z" : "M8 0H0v13L8 0z"}/></svg>
-                  </div>
 
                   {msg.attachmentUrl && (
-                    <div className="mb-2">
+                    <div className="mb-3">
                       {msg.attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                        <div className="rounded-xl overflow-hidden border border-black/5">
+                        <div className="rounded-xl overflow-hidden border border-black/5 dark:border-white/5">
                           <img src={msg.attachmentUrl} alt="Attachment" className="max-w-full max-h-64 object-cover hover:opacity-90 transition-opacity cursor-pointer" />
                         </div>
                       ) : (
-                        <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-black/5 dark:bg-white/5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-                          <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center text-primary-600 dark:text-primary-400">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                          isMe ? 'bg-primary-700/40 dark:bg-primary-900/30 hover:bg-primary-700/60 text-white' 
+                               : 'bg-gray-50 dark:bg-dark-surface-2 hover:bg-gray-100 dark:hover:bg-dark-border text-gray-800 dark:text-gray-200 border border-gray-200/50 dark:border-dark-border'
+                        }`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isMe ? 'bg-white/20 text-white' : 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'}`}>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                           </div>
-                          <span className="text-sm font-medium underline">Document Attached</span>
+                          <span className="text-sm font-medium underline decoration-white/30 hover:decoration-white truncate max-w-[200px]">Document Attached</span>
                         </a>
                       )}
                     </div>
                   )}
                   <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
-                  <p className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? "text-gray-500 dark:text-gray-400" : "text-gray-400"}`}>
+                  <p className={`text-[10px] mt-1.5 flex items-center justify-end gap-1 ${isMe ? "text-primary-100/90 dark:text-primary-400/80" : "text-gray-400 dark:text-gray-500"}`}>
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {isMe && (
-                      <span className={msg.seen ? "text-blue-500" : "text-gray-400"}>
+                      <span className={msg.seen ? "text-white dark:text-primary-400" : "text-primary-300/80"}>
                         <svg className="w-3.5 h-3.5" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4.5l-8 8-4-4" strokeLinecap="round" strokeLinejoin="round"/><path d="M17.5 4.5l-8 8-1.5-1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </span>
                     )}
@@ -284,21 +292,21 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
       </div>
       
       {/* Input Area */}
-      <form onSubmit={handleSend} className="p-3 bg-gray-100 dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border">
+      <form onSubmit={handleSend} className="p-4 bg-white dark:bg-dark-surface border-t border-gray-200 dark:border-dark-border z-10">
         {selectedFile && (
-          <div className="mb-2 mx-2 flex items-center gap-2 bg-white dark:bg-dark-surface-2 p-2 rounded-xl shadow-sm border border-gray-200 dark:border-dark-border w-fit max-w-full">
-            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+          <div className="mb-3 flex items-center gap-3 bg-gray-50 dark:bg-dark-surface-2 p-3 rounded-xl shadow-sm border border-gray-100 dark:border-dark-border w-fit max-w-full">
+            <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
             </div>
             <span className="truncate text-sm font-medium text-gray-700 dark:text-gray-300 flex-1">{selectedFile.name}</span>
-            <button type="button" onClick={() => setSelectedFile(null)} className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-dark-bg transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+            <button type="button" onClick={() => setSelectedFile(null)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-full hover:bg-white dark:hover:bg-dark-bg transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-3">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-200 dark:hover:bg-dark-surface-2 rounded-full transition-colors flex-shrink-0"
+            className="p-3.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors flex-shrink-0"
             title="Attach file"
           >
             <svg className="w-6 h-6 transform -rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,13 +321,13 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
               if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
             }}
           />
-          <div className="flex-1 bg-white dark:bg-dark-surface-2 rounded-2xl border border-gray-200 dark:border-dark-border shadow-sm overflow-hidden flex items-center">
+          <div className="flex-1 bg-gray-50 dark:bg-dark-surface-2 rounded-2xl border border-gray-200 dark:border-dark-border overflow-hidden flex items-center focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 transition-all">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 px-4 py-3 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              placeholder="Type your message..."
+              className="flex-1 px-4 py-3.5 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
           <button 
