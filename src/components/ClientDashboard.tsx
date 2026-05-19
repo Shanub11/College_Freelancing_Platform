@@ -130,14 +130,14 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {activeTab === "projects" && "My Projects"}
             {activeTab === "orders" && "My Orders"}
             {activeTab === "post-project" && "Post a Project"}
             {activeTab === "browse-services" && "Browse Services"}
             {activeTab !== "projects" && activeTab !== "post-project" && activeTab !== "orders" && activeTab !== "browse-services" && "Dashboard"}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
             {activeTab === "projects" && "Manage your posted project requests"}
             {activeTab === "orders" && "Track your ongoing and completed projects"}
             {activeTab === "post-project" && "Describe your project and receive proposals from talented students"}
@@ -151,19 +151,19 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
           <div className="relative">
             
             {showNotifications && (
-              <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
-                <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <h3 className="font-bold text-gray-800">Notifications</h3>
-                  <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+              <div className="absolute right-0 top-12 w-80 bg-white dark:bg-dark-surface rounded-lg shadow-xl border border-gray-200 dark:border-dark-border z-50 overflow-hidden">
+                <div className="p-3 border-b border-gray-200 dark:border-dark-border bg-gray-50 dark:bg-dark-surface-2 flex justify-between items-center">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
+                  <button onClick={() => setShowNotifications(false)} className="text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">No notifications</div>
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500">No notifications</div>
                   ) : (
                     notifications.map((n: any) => (
-                      <div key={n._id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
-                        <p className="text-sm text-gray-800">{n.message}</p>
-                        <span className="text-xs text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
+                      <div key={n._id} className={`p-4 border-b border-gray-100 dark:border-dark-border hover:bg-gray-50 dark:bg-dark-surface-2 cursor-pointer transition-colors ${!n.isRead ? 'bg-blue-50' : ''}`} onClick={() => { if (!n.isRead) markAsRead({ notificationId: n._id }); }}>
+                        <p className="text-sm text-gray-800 dark:text-gray-200">{n.message}</p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1 block">{new Date(n._creationTime).toLocaleDateString()}</span>
                       </div>
                     ))
                   )}
@@ -192,8 +192,8 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
               <div className="flex justify-center mt-6">
                 <button
                   onClick={() => loadMoreOrders(20)}
-                  className="bg-white border border-gray-300 text-gray-700 px-6 py-2 
-                             rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  className="bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 px-6 py-2 
+                             rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
                 >
                   Load More Orders
                 </button>
@@ -228,19 +228,19 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setShowProfilePhotoModal(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
             >
               ✕
             </button>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Photo</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profile Photo</h3>
             <div className="mb-6 flex justify-center">
               <img 
                 src={getProfilePictureUrl(profile.profilePictureUrl, profile.profilePicture)} 
                 alt="Profile" 
-                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100 shadow-sm"
+                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100 dark:border-dark-border shadow-sm"
                 onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
               />
             </div>
@@ -250,13 +250,13 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
                   fileInputRef.current?.click();
                   setShowProfilePhotoModal(false);
                 }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
               >
                 Change Photo
               </button>
               <button
                 onClick={() => setShowProfilePhotoModal(false)}
-                className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="bg-white dark:bg-dark-surface text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-dark-border px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
               >
                 Close
               </button>
@@ -282,7 +282,7 @@ export function ClientDashboard({ profile, activeTab, onOpenChat, onOpenSupport 
 
 function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
   return (
-    <div className="flex items-center space-x-2 text-sm text-gray-600">
+    <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">
       <img 
         src={getProfilePictureUrl(freelancer.profilePictureUrl, freelancer.profilePicture)} 
         alt="Freelancer" 
@@ -316,10 +316,10 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
 
   if (orders.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <div className="text-gray-400 text-6xl mb-4">📦</div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
-        <p className="text-gray-600">When you accept a proposal, your project will appear here.</p>
+      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+        <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📦</div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No orders yet</h3>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">When you accept a proposal, your project will appear here.</p>
       </div>
     );
   }
@@ -328,7 +328,7 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
     switch (status) {
       case 'in_progress':
       case 'active':
-        return <span className="bg-blue-100 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
+        return <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
       case 'completed':
         return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
       case 'delivered':
@@ -338,27 +338,27 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
       case 'disputed':
         return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold">Disputed</span>;
       default:
-        return <span className="bg-gray-100 text-gray-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
+        return <span className="bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
     }
   };
 
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <div key={order._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
+        <div key={order._id} className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{order.title}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{order.title}</h3>
               {order.freelancer && (
                 <OrderFreelancerAvatar freelancer={order.freelancer} />
               )}
             </div>
             <div className="text-right">
               {getStatusChip(order.status)}
-              <p className="text-sm text-gray-500 mt-1 font-medium">Price: ₹{order.price}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1 font-medium">Price: ₹{order.price}</p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border flex justify-end gap-3">
             {order.status === 'pending_payment' && (
               <div className="mr-auto">
                 <PayButton orderId={order._id} amount={order.price} />
@@ -366,7 +366,7 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
             )}
             <button 
               onClick={() => setViewOrder(order)}
-              className="bg-blue-50 text-blue-700 border-transparent px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+              className="bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-400 border-transparent px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-100 dark:bg-primary-900/20 transition-colors"
             >
               View Details
             </button>
@@ -381,7 +381,7 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
             {order.status === 'completed' && !order.hasReviewed && order.orderId && (
               <button 
                 onClick={() => setReviewOrderId(order.orderId)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm transition-colors"
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors"
               >
                 Leave Review
               </button>
@@ -400,29 +400,29 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
       )}
       {viewOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
-            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Order Details</h2>
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Order Details</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Title</h3>
-                <p className="text-gray-900 font-semibold">{viewOrder.title}</p>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Title</h3>
+                <p className="text-gray-900 dark:text-white font-semibold">{viewOrder.title}</p>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{viewOrder.description}</p>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Description</h3>
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{viewOrder.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Price</h3>
-                  <p className="text-gray-900 font-semibold">₹{viewOrder.price}</p>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Price</h3>
+                  <p className="text-gray-900 dark:text-white font-semibold">₹{viewOrder.price}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Delivery Time</h3>
-                  <p className="text-gray-900 font-semibold">{viewOrder.deliveryTime} days</p>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Delivery Time</h3>
+                  <p className="text-gray-900 dark:text-white font-semibold">{viewOrder.deliveryTime} days</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Status</h3>
                   <div className="mt-1">{getStatusChip(viewOrder.status)}</div>
                 </div>
               </div>
@@ -456,15 +456,15 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Leave a Review</h2>
-        <div className="bg-blue-50 border border-blue-100 text-blue-800 p-3 rounded-lg text-sm mb-6">
+      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Leave a Review</h2>
+        <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-blue-800 p-3 rounded-lg text-sm mb-6">
           <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button type="button" key={star} onClick={() => setRating(star)} className={`text-3xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none`}>★</button>
@@ -472,10 +472,10 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback</label>
-            <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Feedback</label>
+            <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
           </div>
-          <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 shadow-sm disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={isSubmitting} className="w-full bg-primary-600 text-white font-medium py-3 rounded-lg hover:bg-primary-700 shadow-sm disabled:opacity-50 transition-colors">
             {isSubmitting ? "Submitting..." : "Submit Review"}
           </button>
         </form>
@@ -488,10 +488,10 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
 function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: any[], onSelectProject: (id: Id<"projectRequests">) => void, onReleaseFunds: (orderId: Id<"orders">) => void }) {
   if (projects.length === 0) {
     return (
-      <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8 text-center">
-        <div className="text-gray-400 text-6xl mb-4">📋</div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
-        <p className="text-gray-600">Post your first project to start receiving proposals</p>
+      <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-8 text-center">
+        <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📋</div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No projects yet</h3>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Post your first project to start receiving proposals</p>
       </div>
     );
   }
@@ -499,16 +499,16 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
   return (
     <div className="space-y-4">
       {projects.map((project) => (
-        <div key={project._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
+        <div key={project._id} className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
-              <p className="text-gray-600 mb-3">{project.description}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{project.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-3">{project.description}</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {project.skills.map((skill: string) => (
                   <span
                     key={skill}
-                    className="bg-blue-50 border border-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs"
+                    className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 px-2 py-1 rounded-full text-xs"
                   >
                     {skill}
                   </span>
@@ -516,11 +516,11 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
               </div>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <p className="font-medium text-gray-600">{project.proposalCount} proposals</p>
+              <p className="font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500">{project.proposalCount} proposals</p>
               {project.status === 'in_progress' && project.orderId && project.orderStatus !== 'completed' ? (
                 <button
                   onClick={() => onReleaseFunds(project.orderId)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-colors whitespace-nowrap"
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors whitespace-nowrap"
                 >
                   ✓ Release Funds
                 </button>
@@ -530,7 +530,7 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
                 <button
                   onClick={() => onSelectProject(project._id)}
                   disabled={project.status !== 'open'}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm transition-colors disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none disabled:cursor-not-allowed whitespace-nowrap"
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors disabled:bg-gray-200 disabled:text-gray-500 dark:text-gray-400 dark:text-gray-500 disabled:shadow-none disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   {project.status === 'open' ? 'View Proposals' : `Project ${project.status.replace('_', ' ')}`}
                 </button>
@@ -563,43 +563,43 @@ function ProjectProposals({
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium">
+      <button onClick={onBack} className="flex items-center text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:text-primary-400 transition-colors font-medium">
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Back to Projects
       </button>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Proposals for {project?.title}</h1>
-        <p className="text-gray-600">Review proposals from freelancers for your project.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Proposals for {project?.title}</h1>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Review proposals from freelancers for your project.</p>
       </div>
       {proposals.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8 text-center">
-          <div className="text-gray-400 text-6xl mb-4">📬</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No proposals yet</h3>
-          <p className="text-gray-600">You will be notified when freelancers submit proposals for this project.</p>
+        <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-8 text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📬</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No proposals yet</h3>
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">You will be notified when freelancers submit proposals for this project.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {proposals.map((p) => (
-            <div key={p._id} className="bg-white border border-gray-100 rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
+            <div key={p._id} className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-6 group hover:shadow-md transition-colors">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="font-semibold text-lg text-gray-900">{p.freelancerName}</p>
-                  <p className="text-gray-600">Proposed Price: <span className="font-medium text-blue-600">₹{p.proposedPrice}</span></p>
+                  <p className="font-semibold text-lg text-gray-900 dark:text-white">{p.freelancerName}</p>
+                  <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Proposed Price: <span className="font-medium text-primary-600 dark:text-primary-400">₹{p.proposedPrice}</span></p>
                 </div>
                 <div className="text-right">
                   <p className={`text-sm font-semibold px-2 py-1 border rounded-full ${
                     p.status === 'accepted' ? 'bg-green-100 text-green-800 border-transparent' : 
                     p.status === 'payment_pending' ? 'bg-yellow-100 text-yellow-800 border-transparent' :
-                    'bg-gray-100 text-gray-800 border-transparent'
+                    'bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent'
                   }`}>
                     {p.status === 'payment_pending' ? 'Payment Pending' : p.status}
                   </p>
                 </div>
               </div>
-              <div className="mt-4 border-t border-gray-100 pt-4">
-                <p className="text-sm text-gray-700 mb-2">{p.coverLetter}</p>
+              <div className="mt-4 border-t border-gray-100 dark:border-dark-border pt-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{p.coverLetter}</p>
               </div>
-              <div className="mt-4 border-t border-gray-100 pt-4">
+              <div className="mt-4 border-t border-gray-100 dark:border-dark-border pt-4">
                 {project?.status === 'open' && p.status !== 'accepted' && p.status !== 'rejected' && (
                   <div className="mb-4">
                     <ProposalActions 
@@ -615,10 +615,10 @@ function ProjectProposals({
                   </div>
                 )}
                 <div className="flex items-center space-x-3">
-                  <button onClick={() => onChat(p.freelancerId)} className="bg-blue-50 border border-blue-100 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-100 transition-colors flex items-center gap-2">
+                  <button onClick={() => onChat(p.freelancerId)} className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-primary-100 dark:bg-primary-900/20 transition-colors flex items-center gap-2">
                     <span>💬 Chat</span>
                   </button>
-                  <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-50 border border-gray-200 text-gray-700 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-100 transition-colors">
+                  <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-100 dark:bg-dark-surface-2 transition-colors">
                     View Profile
                   </button>
                 </div>
@@ -630,18 +630,18 @@ function ProjectProposals({
 
       {/* AI Recommendations Section */}
       {project?.status === 'open' && (
-        <div className="mt-12 border-t border-gray-200 pt-8">
+        <div className="mt-12 border-t border-gray-200 dark:border-dark-border pt-8">
           <div className="flex items-center gap-2 mb-6">
             <span className="text-2xl">✨</span>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Recommended Freelancers</h2>
-              <p className="text-gray-600 text-sm">Top matches based on skills, rating, and college.</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recommended Freelancers</h2>
+              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm">Top matches based on skills, rating, and college.</p>
             </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             {recommendations.map((freelancer) => (
-              <div key={freelancer._id} className="bg-white border border-gray-100 rounded-lg p-6 shadow-sm hover:shadow-md transition-colors">
+              <div key={freelancer._id} className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg p-6 shadow-sm hover:shadow-md transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <img 
@@ -650,24 +650,24 @@ function ProjectProposals({
                       onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                     />
                     <div>
-                      <h3 className="font-semibold text-gray-900">{freelancer.firstName} {freelancer.lastName}</h3>
-                      <p className="text-xs text-blue-600 font-medium">{Math.round(freelancer.score)}% Match Score</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{freelancer.firstName} {freelancer.lastName}</h3>
+                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">{Math.round(freelancer.score)}% Match Score</p>
                     </div>
                   </div>
-                  <button onClick={() => onViewProfile(freelancer.userId)} className="text-sm text-gray-600 hover:text-blue-600 transition-colors">View Profile</button>
+                  <button onClick={() => onViewProfile(freelancer.userId)} className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:text-primary-400 transition-colors">View Profile</button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {freelancer.skills?.slice(0, 3).map((s: string) => (
-                    <span key={s} className="text-xs bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md">{s}</span>
+                    <span key={s} className="text-xs bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded-md">{s}</span>
                   ))}
                 </div>
-                <button onClick={() => onChat(freelancer.userId)} className="w-full mt-4 bg-blue-50 border border-blue-100 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+                <button onClick={() => onChat(freelancer.userId)} className="w-full mt-4 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 py-2 rounded-lg text-sm font-medium hover:bg-primary-100 dark:bg-primary-900/20 transition-colors">
                   Message Freelancer
                 </button>
               </div>
             ))}
             {recommendations.length === 0 && (
-              <p className="text-gray-500 italic col-span-2">No specific recommendations found for this project yet.</p>
+              <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 italic col-span-2">No specific recommendations found for this project yet.</p>
             )}
           </div>
         </div>
@@ -721,12 +721,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         <meta name="description" content={`Hire ${profile.firstName} ${profile.lastName}, a verified student freelancer from ${profile.collegeName || 'India'}. ${profile.bio?.substring(0, 150) || 'Check out my portfolio and hire me for your next project.'}`} />
         <meta name="keywords" content={`hire ${profile.firstName}, college students freelancing India, student web developer India`} />
       </Helmet>
-      <button onClick={onBack} className="flex items-center text-gray-600 hover:text-blue-600 transition-colors font-medium mb-4">
+      <button onClick={onBack} className="flex items-center text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:text-primary-400 transition-colors font-medium mb-4">
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Back
       </button>
       
-      <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-8">
+      <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-8">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left Column: Basic Info & Avatar */}
           <div className="md:w-1/3 flex flex-col items-center text-center">
@@ -750,10 +750,10 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               )}
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-0.5">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">
               {profile.firstName} {profile.lastName}
             </h1>
-            <p className="text-gray-500 font-medium mb-3">
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium mb-3">
               {profile.tagline || "Student Freelancer"}
             </p>
             
@@ -765,10 +765,10 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                   </svg>
                 ))}
-                <span className="text-sm font-semibold text-gray-700 ml-1">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-1">
                   {profile.averageRating.toFixed(1)}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   ({profile.totalReviews} reviews)
                 </span>
               </div>
@@ -776,15 +776,15 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
             
             {/* College info */}
             {profile.collegeName && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-1">
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-1">
+                <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
                 </svg>
                 <span className="truncate">{profile.collegeName}</span>
               </div>
             )}
             {profile.graduationYear && (
-              <p className="text-xs text-gray-400 mb-4">Class of {profile.graduationYear}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Class of {profile.graduationYear}</p>
             )}
 
             {/* Tier badge */}
@@ -793,15 +793,15 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                 ? "bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200" 
                 : level === "Rising Star" 
                 ? "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200"
-                : "bg-gray-50 border border-gray-200"
+                : "bg-gray-50 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border"
             }`}>
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider mb-0.5">
                 Freelancer Tier
               </p>
               <p className={`text-lg font-bold ${
                 level === "Top Talent" ? "text-amber-600" 
-                : level === "Rising Star" ? "text-blue-600" 
-                : "text-gray-600"
+                : level === "Rising Star" ? "text-primary-600 dark:text-primary-400" 
+                : "text-gray-600 dark:text-gray-400 dark:text-gray-500"
               }`}>
                 {level === "Top Talent" ? "🏆 " : level === "Rising Star" ? "⭐ " : ""}
                 {level}
@@ -812,76 +812,76 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
           {/* Right Column: Stats & LeetCode Style Progress */}
           <div className="md:w-2/3 space-y-6">
             {/* Gamification & Progress */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="bg-gray-50 dark:bg-dark-surface-2 p-4 rounded-lg border border-gray-200 dark:border-dark-border">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold text-gray-700">Profile Completeness</span>
-                <span className="text-sm font-bold text-blue-600">{completeness}%</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Profile Completeness</span>
+                <span className="text-sm font-bold text-primary-600 dark:text-primary-400">{completeness}%</span>
               </div>
               <div className="w-full bg-gray-200 border border-transparent rounded-full h-2.5 overflow-hidden">
-                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${completeness}%` }}></div>
+                <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${completeness}%` }}></div>
               </div>
               {completeness < 100 && (
-                <p className="text-xs text-gray-500 mt-2">Add more details like a bio or profile picture to reach 100%.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">Add more details like a bio or profile picture to reach 100%.</p>
               )}
             </div>
 
             {/* Core Metrics */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
-                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Rating</p>
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Rating</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-bold text-gray-900">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
                   <span className="text-yellow-400 text-lg">★</span>
                 </div>
               </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
-                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Completed</p>
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Completed</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-bold text-gray-900">{completedProjects.length}</span>
-                  <span className="text-gray-400 text-lg">💼</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{completedProjects.length}</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-lg">💼</span>
                 </div>
               </div>
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-center">
-                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-xl font-bold text-gray-900">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
+                  <span className="text-xl font-bold text-gray-900 dark:text-white">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
                   <span className="text-green-500 text-lg">📈</span>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">On-Time Delivery</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">On-Time Delivery</p>
               </div>
             </div>
 
             {/* About Me */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">About Me</h3>
-              <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed bg-white border border-gray-200 p-4 rounded-lg shadow-sm">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">About Me</h3>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border p-4 rounded-lg shadow-sm">
                 {profile.bio || "No bio provided."}
               </p>
             </div>
 
             {/* Skills */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Skills</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Skills</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.skills?.length ? profile.skills.map((skill: string) => (
-                  <span key={skill} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full text-xs font-medium hover:border-blue-300 hover:text-blue-600 transition-colors shadow-sm">
+                  <span key={skill} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-xs font-medium hover:border-blue-300 hover:text-primary-600 dark:text-primary-400 transition-colors shadow-sm">
                     {skill}
                   </span>
-                )) : <span className="text-gray-500 text-sm">No skills listed.</span>}
+                )) : <span className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">No skills listed.</span>}
               </div>
             </div>
           </div>
         </div>
 
         {/* LeetCode Style Activity Graph (Mocked for visual representation) */}
-        <div className="border-t border-gray-200 pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Activity Map</h3>
-          <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+        <div className="border-t border-gray-200 dark:border-dark-border pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Activity Map</h3>
+          <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border p-6 rounded-lg">
             <div className="flex items-center justify-between mb-6">
               <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <h4 className="font-semibold text-gray-800 text-lg">
+              <h4 className="font-semibold text-gray-800 dark:text-gray-200 text-lg">
                 {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
               </h4>
               <button 
@@ -889,14 +889,14 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                 disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
                 className="p-2 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
 
             <div className="w-full">
               <div className="grid grid-cols-7 gap-2 mb-2">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider py-1">{day}</div>
+                  <div key={day} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider py-1">{day}</div>
                 ))}
               </div>
               
@@ -930,12 +930,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                   else if (count > 5 && count <= 10) intensity = 3;
                   else if (count > 10) intensity = 4;
 
-                  const colors = ["bg-white border-gray-200", "bg-green-100 border-green-200", "bg-green-300 border-green-400", "bg-green-500 border-green-600", "bg-green-700 border-green-800"];
+                  const colors = ["bg-white dark:bg-dark-surface border-gray-200 dark:border-dark-border", "bg-green-100 border-green-200", "bg-green-300 border-green-400", "bg-green-500 border-green-600", "bg-green-700 border-green-800"];
                   
                   return (
                     <div 
                       key={dateStr} 
-                      className={`h-10 sm:h-12 rounded-md flex items-center justify-center text-xs font-medium border transition-all hover:scale-105 cursor-default ${colors[intensity]} ${intensity > 2 ? 'text-white' : 'text-gray-700'} shadow-sm`}
+                      className={`h-10 sm:h-12 rounded-md flex items-center justify-center text-xs font-medium border transition-all hover:scale-105 cursor-default ${colors[intensity]} ${intensity > 2 ? 'text-white' : 'text-gray-700 dark:text-gray-300'} shadow-sm`}
                       title={`${count} activities on ${date.toLocaleDateString()}`}
                     >
                       {date.getDate()}
@@ -946,10 +946,10 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-xs text-gray-500 mt-6 pt-4 border-t border-gray-200">
+            <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-6 pt-4 border-t border-gray-200 dark:border-dark-border">
               <span>Less Activity</span>
               <div className="flex gap-2">
-                <div className="w-4 h-4 rounded shadow-sm border border-gray-200 bg-white"></div>
+                <div className="w-4 h-4 rounded shadow-sm border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface"></div>
                 <div className="w-4 h-4 rounded shadow-sm border border-green-200 bg-green-100"></div>
                 <div className="w-4 h-4 rounded shadow-sm border border-green-400 bg-green-300"></div>
                 <div className="w-4 h-4 rounded shadow-sm border border-green-600 bg-green-500"></div>
@@ -961,18 +961,18 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         </div>
 
         {/* Client Reviews */}
-        <div className="border-t border-gray-200 pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Client Reviews ({reviews?.length || 0})</h3>
+        <div className="border-t border-gray-200 dark:border-dark-border pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Client Reviews ({reviews?.length || 0})</h3>
           {reviews && reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review: any) => (
-                <div key={review._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                <div key={review._id} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg p-5 shadow-sm">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-700 border border-transparent rounded-full flex items-center justify-center font-bold text-sm">
+                      <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border border-transparent rounded-full flex items-center justify-center font-bold text-sm">
                         {review.reviewerName.charAt(0)}
                       </div>
-                      <span className="font-bold text-gray-900">{review.reviewerName}</span>
+                      <span className="font-bold text-gray-900 dark:text-white">{review.reviewerName}</span>
                     </div>
                     <div className="flex text-yellow-400">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -980,24 +980,24 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                       ))}
                     </div>
                   </div>
-                  <p className="text-gray-700 text-sm mt-2">{review.comment}</p>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm mt-2">{review.comment}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-dark-surface-2 p-6 rounded-lg text-center border border-dashed border-gray-200 dark:border-dark-border">
               No reviews yet. Be the first to hire and review!
             </p>
           )}
         </div>
 
         {/* Portfolio Section */}
-        <div className="border-t border-gray-200 pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Portfolio</h3>
+        <div className="border-t border-gray-200 dark:border-dark-border pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Portfolio</h3>
           {profile.portfolioItems && profile.portfolioItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {profile.portfolioItems.map((item: any) => (
-                <div key={item.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow group">
+                <div key={item.id} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg overflow-hidden shadow-sm flex flex-col hover:shadow-md transition-shadow group">
                   {item.imageUrl ? (
                     <img 
                       src={item.imageUrl} 
@@ -1006,15 +1006,15 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                       onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                     />
                   ) : (
-                    <div className="w-full h-40 bg-gray-100 border-b border-gray-200 flex items-center justify-center">
+                    <div className="w-full h-40 bg-gray-100 dark:bg-dark-surface-2 border-b border-gray-200 dark:border-dark-border flex items-center justify-center">
                       <span className="text-4xl text-gray-300">🖼️</span>
                     </div>
                   )}
                   <div className="p-4 flex-1 flex flex-col">
-                    <h4 className="font-bold text-gray-900">{item.title}</h4>
-                    <p className="text-sm text-gray-600 mt-2 line-clamp-3 flex-1">{item.description}</p>
+                    <h4 className="font-bold text-gray-900 dark:text-white">{item.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 mt-2 line-clamp-3 flex-1">{item.description}</p>
                     {item.link && (
-                      <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline transition-colors mt-4 flex items-center gap-1 font-medium">
+                      <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 text-sm hover:underline transition-colors mt-4 flex items-center gap-1 font-medium">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         View Project
                       </a>
@@ -1024,7 +1024,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-dark-surface-2 p-6 rounded-lg text-center border border-dashed border-gray-200 dark:border-dark-border">
               No portfolio items added yet.
             </p>
           )}
@@ -1032,17 +1032,17 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
         {/* Services Offered (Gigs) */}
         {gigs && gigs.length > 0 && (
-          <div className="border-t border-gray-200 pt-8 mt-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Services Offered</h3>
+          <div className="border-t border-gray-200 dark:border-dark-border pt-8 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Services Offered</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {gigs.map((gig: any) => (
-                <div key={gig._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div key={gig._id} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-gray-800 line-clamp-1">{gig.title}</h4>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 line-clamp-1">{gig.title}</h4>
                     <span className="text-green-600 font-bold">₹{gig.basePrice}</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2">{gig.description}</p>
-                  <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-gray-500">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 mt-2 line-clamp-2">{gig.description}</p>
+                  <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
                     <span>⏱️ {gig.deliveryTime} days</span>
                     <button
                       onClick={() => {
@@ -1055,8 +1055,8 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                       disabled={!profile.isPayoutReady}
                       className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-sm ${
                         profile.isPayoutReady 
-                          ? "bg-blue-600 text-white hover:bg-blue-700" 
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          ? "bg-primary-600 text-white hover:bg-primary-700" 
+                          : "bg-gray-100 dark:bg-dark-surface-2 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                       }`}
                     >
                       {profile.isPayoutReady ? "Hire Now" : "Coming Soon"}
@@ -1069,43 +1069,43 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
         )}
 
         {/* Completed Projects Catalog */}
-        <div className="border-t border-gray-200 pt-8 mt-8">
+        <div className="border-t border-gray-200 dark:border-dark-border pt-8 mt-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900">Completed Projects</h3>
-            <span className="text-sm text-gray-500">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Completed Projects</h3>
+            <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
               {completedProjects.length} project{completedProjects.length !== 1 ? "s" : ""}
             </span>
           </div>
           {completedProjects.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {completedProjects.map((project: any) => (
-                <div key={project._id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                <div key={project._id} className="bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-gray-800 line-clamp-1">{project.title}</h4>
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 line-clamp-1">{project.title}</h4>
                     <span className="bg-green-100 border border-transparent text-green-800 text-xs px-2 py-1 rounded-full font-semibold">Completed</span>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2 flex-1">{project.description}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 mt-2 line-clamp-2 flex-1">{project.description}</p>
                   
                   {project.review && (
-                    <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div className="mt-4 bg-gray-50 dark:bg-dark-surface-2 p-3 rounded-lg border border-gray-100 dark:border-dark-border">
                       <div className="flex items-center gap-1 mb-1">
                         <span className="text-yellow-400 text-sm">
                           {'★'.repeat(project.review.rating)}{'☆'.repeat(5 - project.review.rating)}
                         </span>
-                        <span className="text-xs font-semibold text-gray-700 ml-1">Client Review</span>
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-1">Client Review</span>
                       </div>
-                      <p className="text-sm text-gray-600 italic">"{project.review.comment}"</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 italic">"{project.review.comment}"</p>
                     </div>
                   )}
 
-                <div className="mt-4 flex justify-end border-t border-gray-200 pt-3">
-                  <span className="text-xs bg-gray-100 border border-transparent text-gray-600 px-2 py-1 rounded-lg">{project.category}</span>
+                <div className="mt-4 flex justify-end border-t border-gray-200 dark:border-dark-border pt-3">
+                  <span className="text-xs bg-gray-100 dark:bg-dark-surface-2 border border-transparent text-gray-600 dark:text-gray-400 dark:text-gray-500 px-2 py-1 rounded-lg">{project.category}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 bg-gray-50 p-6 rounded-lg text-center border border-dashed border-gray-200">
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-dark-surface-2 p-6 rounded-lg text-center border border-dashed border-gray-200 dark:border-dark-border">
               This freelancer hasn't completed any platform projects yet.
             </p>
           )}
@@ -1180,29 +1180,29 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white border border-transparent rounded-lg shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Hire for: {gig.title}</h2>
+      <div className="bg-white dark:bg-dark-surface border border-transparent rounded-lg shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Hire for: {gig.title}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Order Title</label>
-            <input required type="text" value={formData.title} onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Order Title</label>
+            <input required type="text" value={formData.title} onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Requirements & Instructions</label>
-            <textarea required rows={4} value={formData.description} onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Requirements & Instructions</label>
+            <textarea required rows={4} value={formData.description} onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))} className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
-              <input required type="number" min="5" value={formData.price} onChange={(e) => setFormData(prev => ({...prev, price: parseInt(e.target.value) || 0}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (₹)</label>
+              <input required type="number" min="5" value={formData.price} onChange={(e) => setFormData(prev => ({...prev, price: parseInt(e.target.value) || 0}))} className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Delivery (Days)</label>
-              <input required type="number" min="1" value={formData.deliveryTime} onChange={(e) => setFormData(prev => ({...prev, deliveryTime: parseInt(e.target.value) || 1}))} className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Delivery (Days)</label>
+              <input required type="number" min="1" value={formData.deliveryTime} onChange={(e) => setFormData(prev => ({...prev, deliveryTime: parseInt(e.target.value) || 1}))} className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors" />
             </div>
           </div>
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-sm flex gap-3">
+          <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 p-4 rounded-lg text-sm flex gap-3">
             <span className="text-xl">🔒</span>
             <div>
               <p className="font-semibold text-blue-900 mb-1">Secure Escrow Payment</p>
@@ -1292,10 +1292,10 @@ function PostProjectForm() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="bg-white border border-transparent rounded-lg shadow-sm p-6">
+    <div className="bg-white dark:bg-dark-surface border border-transparent rounded-lg shadow-sm p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Project Title *
             </label>
             <input
@@ -1304,19 +1304,19 @@ function PostProjectForm() {
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="e.g., Build a responsive website for my startup"
-              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Category *
             </label>
             <select
               required
               value={formData.category}
               onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
@@ -1328,7 +1328,7 @@ function PostProjectForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Project Description *
             </label>
             <textarea
@@ -1337,12 +1337,12 @@ function PostProjectForm() {
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               rows={6}
               placeholder="Describe your project in detail. Include requirements, deliverables, and any specific preferences..."
-              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Project Deadline *
             </label>
             <input
@@ -1351,25 +1351,25 @@ function PostProjectForm() {
               min={today}
               value={formData.deadline}
               onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Required Skills
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="bg-blue-100 border border-transparent text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
+                  className="bg-primary-100 dark:bg-primary-900/20 border border-transparent text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
                 >
                   <span>{skill}</span>
                   <button
                     type="button"
                     onClick={() => removeSkill(skill)}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary-600 dark:text-primary-400 hover:text-blue-800"
                   >
                     ×
                   </button>
@@ -1386,11 +1386,11 @@ function PostProjectForm() {
                   e.currentTarget.value = "";
                 }
               }}
-              className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className="w-full px-3 py-2 bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
             />
           </div>
 
-          <div className="bg-blue-50 border border-transparent p-4 rounded-lg">
+          <div className="bg-primary-50 dark:bg-primary-900/10 border border-transparent p-4 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Tips for a successful project:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Be specific about your requirements and deliverables</li>
@@ -1402,7 +1402,7 @@ function PostProjectForm() {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
+            className="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-sm"
           >
             Post Project
           </button>

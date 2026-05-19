@@ -76,13 +76,14 @@ export function ProfileSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-white md:flex">
-      <div className="hidden md:flex md:w-1/2 min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex-col items-center justify-center p-12 relative">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-xl border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <span className="text-white font-bold text-xl">CG</span>
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg md:flex transition-colors">
+      <div className="hidden md:flex md:w-1/2 min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-accent flex-col items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
+        <div className="relative z-10 text-center">
+          <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <span className="text-white font-bold text-2xl">CG</span>
           </div>
-          <h2 className="text-2xl font-bold text-white">India's Student Freelancing Platform</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">India's Student Freelancing Platform</h2>
           <div className="mt-8 space-y-4 text-left">
             {[
               "Get verified as a college student",
@@ -98,33 +99,33 @@ export function ProfileSetup() {
             ))}
           </div>
         </div>
-        <p className="absolute bottom-12 text-sm text-blue-200">Join 1,000+ students already earning</p>
+        <p className="absolute bottom-12 text-sm text-primary-100 font-medium z-10">Join 1,000+ students already earning</p>
       </div>
 
-      <div className="w-full md:w-1/2 min-h-screen bg-white flex items-center justify-center p-8">
+      <div className="w-full md:w-1/2 min-h-screen bg-gray-50 dark:bg-dark-bg flex items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-md">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-8 relative">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="flex items-center gap-1.5">
-                <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center">1</div>
-                <div className={`h-0.5 w-12 ${step === 2 ? "bg-blue-600" : "bg-gray-200"}`}></div>
-                <div className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center ${step === 2 ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>2</div>
+          <div className="card p-6 md:p-8 relative">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary-600 text-white text-sm font-bold flex items-center justify-center shadow-md">1</div>
+                <div className={`h-1 w-12 rounded-full ${step === 2 ? "bg-primary-600" : "bg-gray-200 dark:bg-dark-surface-2"}`}></div>
+                <div className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center shadow-sm transition-colors ${step === 2 ? "bg-primary-600 text-white" : "bg-gray-100 dark:bg-dark-surface-2 text-gray-400 dark:text-gray-500"}`}>2</div>
               </div>
-              <span className="text-sm text-gray-500 ml-2">Profile Setup</span>
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profile Setup</span>
             </div>
 
             <div className="text-center mb-8">
-              <div className="md:hidden w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <span className="text-white font-bold text-xl">CG</span>
+              <div className="md:hidden w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <span className="text-white font-bold text-2xl">CG</span>
               </div>
               
-              <h1 className="text-2xl font-bold text-gray-900">Welcome to CollegeGig</h1>
-              <p className="text-gray-500 mt-2">Let's set up your profile</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Welcome to CollegeGig</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Let's set up your profile</p>
             </div>
 
             {step === 1 && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-center text-gray-900">I want to...</h2>
+              <div className="space-y-6 animate-fade-in">
+                <h2 className="text-xl font-bold text-center text-gray-900 dark:text-white">I want to...</h2>
                 
                 <div className="space-y-4">
                   <button
@@ -132,7 +133,7 @@ export function ProfileSetup() {
                       setUserType("freelancer");
                       setStep(2);
                     }}
-                    className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:border-l-4 hover:border-l-green-500 hover:bg-blue-50 transition-all duration-200 text-left group"
+                    className="w-full p-5 border-2 border-gray-200 dark:border-dark-border rounded-2xl hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all duration-300 text-left group card-hover relative overflow-hidden"
                   >
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -142,9 +143,12 @@ export function ProfileSetup() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Offer my services</h3>
-                        <p className="text-gray-500 text-sm">I'm a college student looking to freelance</p>
-                        <span className="text-xs text-green-600 font-medium mt-1 block">← Most popular choice</span>
+                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors text-lg">Offer my services</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I'm a college student looking to freelance</p>
+                        <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-semibold mt-3 bg-green-50 dark:bg-green-900/30 px-2.5 py-1 rounded-full">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          Most popular choice
+                        </span>
                       </div>
                     </div>
                   </button>
@@ -154,11 +158,11 @@ export function ProfileSetup() {
                       setUserType("client");
                       setStep(2);
                     }}
-                    className="w-full p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
+                    className="w-full p-5 border-2 border-gray-200 dark:border-dark-border rounded-2xl hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 transition-all duration-300 text-left group card-hover"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-sm">
-                        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -168,8 +172,8 @@ export function ProfileSetup() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">Hire students</h3>
-                        <p className="text-gray-500 text-sm">I want to find talented student freelancers</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-lg">Hire students</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">I want to find talented student freelancers</p>
                       </div>
                     </div>
                   </button>
@@ -178,27 +182,28 @@ export function ProfileSetup() {
             )}
 
             {step === 2 && (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-right">
                 <div>
-                  <div className="flex space-x-4 mb-4">
+                  <div className="flex items-center mb-6">
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="text-blue-600 hover:text-blue-700 transition-colors"
+                      className="p-2 -ml-2 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-dark-surface-2"
+                      aria-label="Go back"
                     >
-                      ← Back
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <h2 className="text-xl font-semibold flex-1 text-center text-gray-900">
+                    <h2 className="text-xl font-bold flex-1 text-center text-gray-900 dark:text-white mr-6">
                       {userType === "freelancer" ? "Student Profile" : "Client Profile"}
                     </h2>
                   </div>
 
                   {userType === "freelancer" ? (
-                    <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                    <div className="inline-flex items-center gap-2 badge-primary !px-4 !py-2 mb-6">
                       🎓 Setting up as Student Freelancer
                     </div>
                   ) : (
-                    <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                    <div className="inline-flex items-center gap-2 badge !bg-emerald-50 dark:!bg-emerald-900/30 !text-emerald-700 dark:!text-emerald-400 !border-emerald-200 dark:!border-emerald-800 !px-4 !py-2 mb-6">
                       💼 Setting up as Client
                     </div>
                   )}
@@ -206,7 +211,7 @@ export function ProfileSetup() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       First Name *
                     </label>
                     <input
@@ -214,11 +219,11 @@ export function ProfileSetup() {
                       required
                       value={formData.firstName}
                       onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      className="input-field"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Last Name *
                     </label>
                     <input
@@ -226,20 +231,20 @@ export function ProfileSetup() {
                       required
                       value={formData.lastName}
                       onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      className="input-field"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Bio
                   </label>
                   <textarea
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={3}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="input-field min-h-[100px] resize-y"
                     placeholder={userType === "freelancer" ? "Tell clients about yourself and your skills..." : "e.g., Building SaaS products and hiring student developers for frontend work."}
                   />
                 </div>
@@ -247,14 +252,14 @@ export function ProfileSetup() {
                 {userType === "client" && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         I am a... (Identity) *
                       </label>
                       <select
                         required
                         value={formData.identity}
                         onChange={(e) => setFormData(prev => ({ ...prev, identity: e.target.value }))}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="input-field"
                       >
                         <option value="">Select identity</option>
                         <option value="Startup Founder">Startup Founder</option>
@@ -267,14 +272,14 @@ export function ProfileSetup() {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Company / Brand Name <span className="text-gray-500 font-normal">(Optional)</span>
                       </label>
                       <input
                         type="text"
                         value={formData.company}
                         onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="input-field"
                         placeholder="e.g., PixelForge Labs"
                       />
                     </div>
@@ -283,7 +288,7 @@ export function ProfileSetup() {
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                  className="btn-primary w-full !py-3.5 mt-8 flex items-center justify-center gap-2"
                 >
                   Create My Profile
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

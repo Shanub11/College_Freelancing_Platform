@@ -78,7 +78,7 @@ export default function LoadingState({
         <div className={`absolute inset-0 ${sizeClasses[size]} rounded-xl border-2 border-primary-300 dark:border-primary-700 animate-ping opacity-20`} />
       </div>
       {message && (
-        <p className={`text-gray-400 dark:text-gray-500 ${textSize[size]} font-medium`}>{message}</p>
+        <p className={`text-gray-400 dark:text-gray-500 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 ${textSize[size]} font-medium`}>{message}</p>
       )}
     </div>
   );

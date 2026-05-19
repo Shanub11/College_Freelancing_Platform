@@ -64,8 +64,8 @@ export default function ConfirmModal({
     <div className="modal-overlay" onClick={onCancel} role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
       <div className="modal-content w-full max-w-md p-6 relative" onClick={(e) => e.stopPropagation()}>
         {variantIcon[confirmVariant]}
-        <h2 id="confirm-modal-title" className="text-lg font-bold text-gray-900 dark:text-white text-center">{title}</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2 text-center text-sm">{message}</p>
+        <h2 id="confirm-modal-title" className="text-lg font-bold text-gray-900 dark:text-white dark:text-white text-center">{title}</h2>
+        <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2 text-center text-sm">{message}</p>
         <div className="mt-6 flex gap-3">
           <button
             onClick={onCancel}

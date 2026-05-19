@@ -122,13 +122,13 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {activeTab === "gigs" && "My Gigs"}
             {activeTab === "orders" && "Orders"}
             {activeTab === "find-work" && "Find Work"}
             {activeTab === "earnings" && "Earnings"}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
             {activeTab === "gigs" && "Manage your service offerings"}
             {activeTab === "orders" && "Track your active and completed orders"}
             {activeTab === "find-work" && "Projects recommended for you based on your skills"}
@@ -141,7 +141,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
           {activeTab === "gigs" && profile.isVerified && (
             <button
               onClick={() => setShowCreateGig(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
             >
               Create New Gig
             </button>
@@ -170,9 +170,9 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               </div>
             ) : myGigs.length === 0 ? (
               <div className="col-span-full text-center py-12">
-                <div className="text-gray-400 text-6xl mb-4">💼</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No gigs yet</h3>
-                <p className="text-gray-600">
+                <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">💼</div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No gigs yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
                   {profile.isVerified 
                     ? "Create your first gig to start earning"
                     : "Complete verification to start creating gigs"
@@ -181,44 +181,44 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               </div>
             ) : (
               myGigs.map((gig) => (
-                <div key={gig._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div key={gig._id} className="bg-white dark:bg-dark-surface rounded-lg shadow-sm overflow-hidden">
                   {/* Gig image or placeholder */}
                   {gig.images && gig.images.length > 0 ? (
-                    <div className="w-full h-36 bg-gray-100 flex items-center justify-center">
-                      <span className="text-gray-400 text-sm">Image</span>
+                    <div className="w-full h-36 bg-gray-100 dark:bg-dark-surface-2 flex items-center justify-center">
+                      <span className="text-gray-400 dark:text-gray-500 text-sm">Image</span>
                     </div>
                   ) : (
                     <div className="w-full h-36 bg-gradient-to-br from-blue-50 to-indigo-100 
                                     flex flex-col items-center justify-center">
                       <span className="text-3xl mb-1">💼</span>
-                      <span className="text-xs text-gray-500">No image added</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">No image added</span>
                     </div>
                   )}
                   <div className="p-6">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-gray-900">{gig.title}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{gig.title}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       gig.isActive 
                         ? "bg-green-100 text-green-800" 
-                        : "bg-gray-100 text-gray-800"
+                        : "bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200"
                     }`}>
                       {gig.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">{gig.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm mb-4 line-clamp-3">{gig.description}</p>
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Price:</span>
+                      <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Price:</span>
                       <span className="font-medium">₹{gig.basePrice}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Orders:</span>
+                      <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders:</span>
                       <span className="font-medium">{gig.totalOrders}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Delivery:</span>
+                      <span className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Delivery:</span>
                       <span className="font-medium">{gig.deliveryTime} days</span>
                     </div>
                   </div>
@@ -226,11 +226,11 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                   <div className="flex space-x-2 mt-4">
                     <button
                       onClick={() => setEditingGig(gig)}
-                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                      className="flex-1 bg-primary-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                     >
                       Edit
                     </button>
-                    <button className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                    <button className="flex-1 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors">
                       {gig.isActive ? "Pause" : "Activate"}
                     </button>
                   </div>
@@ -246,33 +246,33 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
         ordersStatus === "LoadingFirstPage" ? (
           <LoadingState message="Loading your orders..." />
         ) : myOrders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <div className="text-gray-400 text-6xl mb-4">📋</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
-            <p className="text-gray-600">Orders will appear here when clients hire you</p>
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+            <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📋</div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No orders yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders will appear here when clients hire you</p>
           </div>
         ) : (
           <>
             <div className="space-y-4">
             {myOrders.map((order: any) => (
-              <div key={order._id} className="bg-white rounded-lg shadow-sm p-6">
+              <div key={order._id} className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{order.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{order.title}</h3>
                     {order.client && (
-                      <p className="text-sm text-gray-600">Client: {order.client.firstName} {order.client.lastName}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Client: {order.client.firstName} {order.client.lastName}</p>
                     )}
                   </div>
                   <div className="text-right">
                     <span className={`px-2 py-1 border rounded-full text-xs font-medium ${order.status === 'completed' ? 'bg-green-100 text-green-800' : order.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{order.status}</span>
-                    <p className="text-sm text-gray-500 mt-2">Price: ₹{order.price}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2">Price: ₹{order.price}</p>
                     <p className="text-sm font-semibold text-green-600 mt-1">Payout: ₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-border flex justify-end gap-3">
                   <button 
                     onClick={() => setViewOrder(order)}
-                    className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                    className="bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-100 dark:bg-primary-900/20 transition-colors"
                   >
                     View Details
                   </button>
@@ -284,7 +284,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                   {order.status === 'completed' && !order.hasReviewed && order.orderId && (
                     <button 
                       onClick={() => setReviewOrderId(order.orderId)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                      className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                     >
                       Leave Review
                     </button>
@@ -303,8 +303,8 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
             <div className="flex justify-center mt-6">
               <button
                 onClick={() => loadMoreOrders(20)}
-                className="bg-white border border-gray-300 text-gray-700 px-6 py-2 
-                           rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 px-6 py-2 
+                           rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
               >
                 Load More Orders
               </button>
@@ -328,10 +328,10 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                 placeholder="Search projects by keywords or skills..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
+                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -343,7 +343,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               disabled={categories === undefined}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white min-w-[200px]"
+              className="px-4 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-dark-surface min-w-[200px]"
             >
               <option value="">All Categories</option>
               {(categories || []).map((category: any) => (
@@ -361,20 +361,20 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               <ProjectSkeleton />
             </div>
           ) : filteredProjects.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-              <div className="text-gray-400 text-6xl mb-4">🔍</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No matches found yet</h3>
-              <p className="text-gray-600">Try adjusting your search or add more skills to your profile.</p>
+            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+              <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">🔍</div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No matches found yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Try adjusting your search or add more skills to your profile.</p>
             </div>
           ) : (
             <div className="grid gap-6">
               {filteredProjects.map((project) => (
-                <div key={project._id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow">
+                <div key={project._id} className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 border-l-4 border-blue-500 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">{project.title}</h3>
-                      <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{project.title}</h3>
+                      <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                        <span className="bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-400 px-2 py-1 rounded text-xs font-medium">
                           {Math.round(project.score)}% Match
                         </span>
                         <span>• Posted {new Date(project._creationTime).toLocaleDateString()}</span>
@@ -382,15 +382,15 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                     </div>
                     <button 
                       onClick={() => navigate(`/projects/${project._id}/propose`)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+                      className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700"
                     >
                       Apply Now
                     </button>
                   </div>
-                  <p className="mt-3 text-gray-600 line-clamp-2">{project.description}</p>
+                  <p className="mt-3 text-gray-600 dark:text-gray-400 dark:text-gray-500 line-clamp-2">{project.description}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {project.skills.map((skill: string) => (
-                      <span key={skill} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{skill}</span>
+                      <span key={skill} className="bg-gray-100 dark:bg-dark-surface-2 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs">{skill}</span>
                     ))}
                   </div>
                 </div>
@@ -403,39 +403,39 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
       {activeTab === "earnings" && (
         <>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Total Earnings</h3>
-              <p className="text-2xl font-bold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
+            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-2">Total Earnings</h3>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{totalEarnings.toLocaleString()}</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">This Month</h3>
-              <p className="text-2xl font-bold text-gray-900">₹{thisMonthEarnings.toLocaleString()}</p>
+            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-2">This Month</h3>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{thisMonthEarnings.toLocaleString()}</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-sm font-medium text-gray-600 mb-2">Available for Withdrawal</h3>
-              <p className="text-2xl font-bold text-gray-900">₹{totalEarnings.toLocaleString()}</p>
+            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
+              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-500 mb-2">Available for Withdrawal</h3>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{totalEarnings.toLocaleString()}</p>
             </div>
           </div>
 
           {totalEarnings === 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center mt-6">
-              <div className="text-gray-400 text-6xl mb-4">💰</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No earnings yet</h3>
-              <p className="text-gray-600">Complete orders to start earning money</p>
+            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center mt-6">
+              <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">💰</div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No earnings yet</h3>
+              <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Complete orders to start earning money</p>
             </div>
           )}
 
           {totalEarnings > 0 && (
-            <div className="mt-8 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900">Transaction History</h3>
+            <div className="mt-8 bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-lg shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-200 dark:border-dark-border">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Transaction History</h3>
               </div>
               <div className="divide-y divide-gray-100">
                 {completedOrders.map((order: any) => (
-                  <div key={order._id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div key={order._id} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors">
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-1">{order.title}</h4>
-                      <div className="flex items-center text-sm text-gray-500 gap-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{order.title}</h4>
+                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 gap-4">
                         <span>{new Date(order.completedAt || order._creationTime).toLocaleDateString()}</span>
                         {order.client && (
                           <span>Client: {order.client.firstName} {order.client.lastName}</span>
@@ -444,7 +444,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-green-600">+₹{order.freelancerPayout || Math.round(order.price * 0.9)}</p>
-                      <p className="text-xs text-gray-500">Order: ₹{order.price}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Order: ₹{order.price}</p>
                     </div>
                   </div>
                 ))}
@@ -457,10 +457,10 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
       {/* Profile Photo Modal */}
       {showProfilePhotoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" onClick={() => setShowProfilePhotoModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-dark-surface rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setShowProfilePhotoModal(false)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
             >
               ✕
             </button>
@@ -469,7 +469,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               <img 
                 src={profile.profilePictureUrl || useStorage(profile.profilePicture) || '/default-avatar.png'} 
                 alt="Profile" 
-                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100"
+                className="w-48 h-48 rounded-full object-cover border-4 border-gray-100 dark:border-dark-border"
               />
             </div>
             <div className="flex gap-3 justify-center">
@@ -478,13 +478,13 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                   fileInputRef.current?.click();
                   setShowProfilePhotoModal(false);
                 }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
               >
                 Change Photo
               </button>
               <button
                 onClick={() => setShowProfilePhotoModal(false)}
-                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
               >
                 Close
               </button>
@@ -499,44 +499,44 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
 
       {viewOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
-            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Order Details</h2>
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">✕</button>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Order Details</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Title</h3>
-                <p className="text-gray-900 font-semibold">{viewOrder.title}</p>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Title</h3>
+                <p className="text-gray-900 dark:text-white font-semibold">{viewOrder.title}</p>
               </div>
               {viewOrder.client && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Client</h3>
-                  <p className="text-gray-900">{viewOrder.client.firstName} {viewOrder.client.lastName}</p>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Client</h3>
+                  <p className="text-gray-900 dark:text-white">{viewOrder.client.firstName} {viewOrder.client.lastName}</p>
                 </div>
               )}
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{viewOrder.description}</p>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Description</h3>
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{viewOrder.description}</p>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 border border-gray-200 p-4 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border p-4 rounded-lg">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Total Price</h3>
-                  <p className="text-gray-900 font-semibold">₹{viewOrder.price}</p>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Total Price</h3>
+                  <p className="text-gray-900 dark:text-white font-semibold">₹{viewOrder.price}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Platform Fee (10%)</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Platform Fee (10%)</h3>
                   <p className="text-red-600 font-semibold">-₹{viewOrder.platformFee || Math.round(viewOrder.price * 0.1)}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Your Payout</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Your Payout</h3>
                   <p className="text-green-600 font-semibold">₹{viewOrder.freelancerPayout || Math.round(viewOrder.price * 0.9)}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Delivery Time</h3>
-                  <p className="text-gray-900 font-semibold">{viewOrder.deliveryTime} days</p>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Delivery Time</h3>
+                  <p className="text-gray-900 dark:text-white font-semibold">{viewOrder.deliveryTime} days</p>
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Status</h3>
                 <div className="mt-1">
                   <span className={`px-2 py-1 border rounded-full text-xs font-medium ${viewOrder.status === 'completed' ? 'bg-green-100 text-green-800' : viewOrder.status === 'disputed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{viewOrder.status}</span>
                 </div>
@@ -551,7 +551,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
 
 function GigSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+    <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 animate-pulse">
       <div className="flex justify-between items-start mb-3">
         <div className="h-5 bg-gray-200 rounded w-1/2"></div>
         <div className="h-5 bg-gray-200 rounded-full w-16"></div>
@@ -583,7 +583,7 @@ function GigSkeleton() {
 
 function OrderSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+    <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 animate-pulse">
       <div className="flex justify-between items-start mb-4">
         <div className="w-1/2">
           <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -600,7 +600,7 @@ function OrderSkeleton() {
 
 function ProjectSkeleton() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-gray-200 animate-pulse">
+    <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 border-l-4 border-gray-200 dark:border-dark-border animate-pulse">
       <div className="flex justify-between items-start">
         <div className="w-2/3">
           <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
@@ -645,15 +645,15 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Leave a Review</h2>
-        <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-6">
+      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Leave a Review</h2>
+        <div className="bg-primary-50 dark:bg-primary-900/10 text-blue-800 p-3 rounded-lg text-sm mb-6">
           <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button type="button" key={star} onClick={() => setRating(star)} className={`text-3xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none`}>★</button>
@@ -661,10 +661,10 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Feedback</label>
             <textarea required value={comment} onChange={(e) => setComment(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" rows={4} placeholder="Share your experience..." />
           </div>
-          <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={isSubmitting} className="w-full bg-primary-600 text-white font-medium py-3 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors">
             {isSubmitting ? "Submitting..." : "Submit Review"}
           </button>
         </form>
@@ -739,15 +739,15 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-dark-surface rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               {isEditMode ? "Edit Gig" : "Create New Gig"}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
             >
               ✕
             </button>
@@ -755,7 +755,7 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Gig Title *
               </label>
               <input
@@ -764,19 +764,19 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="I will create a responsive website for your business"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Category *
               </label>
               <select
                 required
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
@@ -788,7 +788,7 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Description *
               </label>
               <textarea
@@ -797,30 +797,30 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
                 placeholder="Describe what you'll deliver, your process, and what makes your service unique..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Starting Price *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-gray-500">₹</span>
+                  <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400 dark:text-gray-500">₹</span>
                   <input
                     type="number"
                     required
                     min="5"
                     value={formData.basePrice}
                     onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) }))}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Delivery Time (days) *
                 </label>
                 <input
@@ -830,26 +830,26 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                   max="30"
                   value={formData.deliveryTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {formData.tags.map((tag: string) => (
                   <span
                     key={tag}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
+                    className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
                   >
                     <span>{tag}</span>
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-primary-600 dark:text-primary-400 hover:text-blue-800"
                     >
                       ×
                     </button>
@@ -866,7 +866,7 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                     e.currentTarget.value = "";
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -874,13 +874,13 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
               >
                 {isEditMode ? "Save Changes" : "Create Gig"}
               </button>
@@ -900,7 +900,7 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
     switch (status) {
       case 'active':
       case 'in_progress':
-        return <span className="bg-blue-100 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> Active</span>;
+        return <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> Active</span>;
       case 'submitted':
         return <span className="bg-purple-100 text-purple-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 In Review</span>;
       case 'revision_requested':
@@ -908,17 +908,17 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
       case 'completed':
         return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
       default:
-        return <span className="bg-gray-100 text-gray-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
+        return <span className="bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
     }
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${isLate ? 'border-red-500' : order.status === 'active' ? 'border-blue-500' : 'border-gray-200'}`}>
+    <div className={`bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 border-l-4 ${isLate ? 'border-red-500' : order.status === 'active' ? 'border-blue-500' : 'border-gray-200 dark:border-dark-border'}`}>
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{order.title}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{order.title}</h3>
           {order.client && (
-            <p className="text-sm text-gray-600">Client: {order.client.firstName} {order.client.lastName}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500">Client: {order.client.firstName} {order.client.lastName}</p>
           )}
         </div>
         <div className="text-right">
@@ -928,9 +928,9 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
       </div>
 
       {order.deadline && (order.status === 'active' || order.status === 'revision_requested') && (
-        <div className="mb-4 bg-gray-50 p-3 rounded-lg flex justify-between items-center text-sm border border-gray-100">
-          <span className="font-medium text-gray-700">Deadline: {new Date(order.deadline).toLocaleString()}</span>
-          <span className={`font-bold ${isLate ? 'text-red-600' : 'text-blue-600'}`}>
+        <div className="mb-4 bg-gray-50 dark:bg-dark-surface-2 p-3 rounded-lg flex justify-between items-center text-sm border border-gray-100 dark:border-dark-border">
+          <span className="font-medium text-gray-700 dark:text-gray-300">Deadline: {new Date(order.deadline).toLocaleString()}</span>
+          <span className={`font-bold ${isLate ? 'text-red-600' : 'text-primary-600 dark:text-primary-400'}`}>
             {isLate ? "Overdue" : `${Math.max(0, Math.floor((order.deadline - Date.now()) / (1000 * 60 * 60)))} hours left`}
           </span>
         </div>
@@ -942,10 +942,10 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
         </div>
       )}
 
-      <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 flex-wrap">
+      <div className="pt-4 border-t border-gray-100 dark:border-dark-border flex justify-end gap-3 flex-wrap">
         <button 
           onClick={onViewDetails}
-          className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+          className="bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-100 dark:bg-primary-900/20 transition-colors"
         >
           View Details
         </button>
@@ -967,7 +967,7 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
         {order.status === 'completed' && !order.hasReviewed && order.orderId && (
           <button 
             onClick={onLeaveReview}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
           >
             Leave Review
           </button>
@@ -999,16 +999,16 @@ function SubmitWorkModal({ order, onClose }: { order: any, onClose: () => void }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Submit Work</h2>
+      <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Submit Work</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Message *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Delivery Message *</label>
             <textarea required value={message} onChange={e => setMessage(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500" rows={4} placeholder="Describe what you have delivered..." />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Link to Work (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link to Work (Optional)</label>
             <input type="url" value={link} onChange={e => setLink(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500" placeholder="https://github.com/..." />
           </div>
           <button type="submit" disabled={isSubmitting || !message.trim()} className="w-full bg-green-600 text-white font-medium py-3 rounded-lg hover:bg-green-700 disabled:opacity-50">
