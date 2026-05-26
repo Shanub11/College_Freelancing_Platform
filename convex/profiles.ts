@@ -303,8 +303,18 @@ export const updateProfile = mutation({
     if (args.identity !== undefined) updates.identity = args.identity;
     if (args.hiringPreferences !== undefined) updates.hiringPreferences = args.hiringPreferences;
     if (args.preferredCommunication !== undefined) updates.preferredCommunication = args.preferredCommunication;
-    if (args.website !== undefined) updates.website = args.website;
-    if (args.linkedin !== undefined) updates.linkedin = args.linkedin;
+    if (args.website !== undefined) {
+      if (args.website && !/^https?:\/\/.+/.test(args.website.trim())) {
+        throw new Error("Website must be a valid URL starting with http:// or https://");
+      }
+      updates.website = args.website.trim();
+    }
+    if (args.linkedin !== undefined) {
+      if (args.linkedin && !/^https?:\/\/.+/.test(args.linkedin.trim())) {
+        throw new Error("LinkedIn URL must start with http:// or https://");
+      }
+      updates.linkedin = args.linkedin.trim();
+    }
     if (args.industry !== undefined) updates.industry = args.industry;
     if (args.teamSize !== undefined) updates.teamSize = args.teamSize;
 
@@ -560,6 +570,11 @@ export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
+    // SECURITY: Only authenticated users may generate upload URLs.
+    // Without this check any anonymous caller could dump files into
+    // Convex storage (billed to the project owner).
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
     return await ctx.storage.generateUploadUrl();
   }
 });

@@ -414,7 +414,7 @@ export function LandingPage() {
             ))}
           </div>
           <div className="border-t border-gray-800 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-gray-400 text-sm">&copy; 2025 CollegeGig. All rights reserved.</p>
+            <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} CollegeGig. All rights reserved.</p>
             <p className="text-gray-500 text-xs">Made with ❤️ for Indian college students</p>
           </div>
         </div>

@@ -242,7 +242,7 @@ export const sendOtpEmail = action({
           "accept": "application/json"
         },
         body: JSON.stringify({
-          sender: { name: "CollegeGig", email: "verify@collegeskills.com" }, // You should verify this email/domain in Brevo
+          sender: { name: "CollegeGig", email: "verify@collegegig.in" }, // Must be a verified sender in Brevo
           to: [{ email: args.email }],
           subject: "CollegeGig Verification OTP",
           htmlContent: `<p>Your verification code is: <strong style="font-size: 24px;">${otp}</strong></p><p>This code will expire in 10 minutes.</p>`,

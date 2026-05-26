@@ -102,8 +102,6 @@ export const getMyProjects = query({
   },
 });
 
-// NOTE: This is a placeholder. You should have a getProjects and searchProjects
-// query for your GigBrowser component to work.
 export const getProjects = query({
   args: {
     category: v.optional(v.string()),
@@ -151,7 +149,6 @@ export const getProjectById = query({
       return null;
     }
 
-    // Fetch client profile
     const clientProfile = await ctx.db
       .query("profiles")
       .withIndex("by_user", (q) => q.eq("userId", project.clientId))
@@ -161,7 +158,6 @@ export const getProjectById = query({
       throw new Error("Client profile not found for this project");
     }
 
-    // Fetch proposal count for this project
     const proposals = await ctx.db
       .query("proposals")
       .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
@@ -200,7 +196,6 @@ export const getProposalsForProject = query({
           ...p,
           freelancerName: `${freelancerProfile?.firstName || ''} ${freelancerProfile?.lastName || ''}`.trim() || "A Freelancer",
           freelancerIsPayoutReady: freelancerProfile?.isPayoutReady === true,
-          // You can add more freelancer details here if needed
         };
       })
     );
@@ -338,8 +333,7 @@ export const getFreelancerPublicProfile = query({
     }
     const onTimeRate = completedCount > 0 ? Math.round((onTimeCount / completedCount) * 100) : 100;
 
-    // Limit to 20 most recent completed orders to prevent unbounded 
-    // N+1 queries (each order triggers project/gig/review lookups).
+    // Limit to 20 most recent completed orders to prevent unbounded N+1 queries
     const completedOrders = await ctx.db
       .query("orders")
       .withIndex("by_freelancer_and_status", (q) =>
@@ -500,6 +494,8 @@ export const markOrderPaid = internalMutation({
         await ctx.db.patch(proposal._id, { status: "rejected" });
       }
     }
+
+    return null;
   },
 });
 
@@ -507,8 +503,16 @@ export const completeOrderAndReleaseFunds = mutation({
   args: { orderId: v.id("orders") },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
+
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
+
+    // Only the client who placed the order can release funds.
+    if (order.clientId !== userId) {
+      throw new Error("Unauthorized: only the client can release funds.");
+    }
 
     const freelancerProfile = await ctx.db
       .query("profiles")
@@ -517,7 +521,7 @@ export const completeOrderAndReleaseFunds = mutation({
     if (!freelancerProfile?.isPayoutReady) {
       throw new Error("Freelancer payout account is still pending Razorpay approval.");
     }
-    
+
     if (order.autoCompleteJobId) {
       try { await ctx.scheduler.cancel(order.autoCompleteJobId); } catch (e) {}
     }
@@ -534,9 +538,17 @@ export const completeOrderAndReleaseFunds = mutation({
     await ctx.db.insert("notifications", {
       userId: order.freelancerId,
       type: "funds_released",
-      message: `Client has approved your work for "${order.title}". Funds have been released!`,
+      message: `Client has approved your work for "${order.title}". Funds are being released!`,
       isRead: false,
     });
+
+    // FIX C5: Trigger the actual Razorpay escrow transfer to the freelancer.
+    // Without this the DB shows "completed" but Razorpay never pays the freelancer.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.paymentActions.releaseEscrowForDispute,
+      { orderId: args.orderId }
+    );
 
     return null;
   },
@@ -587,7 +599,7 @@ export const createDirectOrder = mutation({
 
     await ctx.db.insert("activityLogs", {
       action: "Direct Order Created",
-      details: `Direct order created for gig. Price: ₹${args.price}`,
+      details: `Direct order created for gig. Price: \u20b9${args.price}`,
       userId: clientId,
       timestamp: Date.now(),
       relatedId: orderId,

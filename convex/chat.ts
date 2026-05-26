@@ -337,6 +337,9 @@ export const generateUploadUrl = mutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
+    // SECURITY: Only authenticated users may generate upload URLs.
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthorized");
     return await ctx.storage.generateUploadUrl();
   }
 });

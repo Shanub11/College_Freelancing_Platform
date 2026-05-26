@@ -31,12 +31,14 @@ function AuthenticatedApp() {
   const profile = useQuery(api.profiles.getCurrentProfile);
   const isAdmin = useQuery(api.profiles.checkIsAdmin);
 
-  if (isAdmin) {
-    return <AdminDashboard />;
+  // Wait for both queries to settle before deciding which view to render.
+  // `undefined` means still loading — show loader to prevent flash of wrong view.
+  if (profile === undefined || isAdmin === undefined) {
+    return <BrandedLoader />;
   }
 
-  if (profile === undefined) {
-    return <BrandedLoader />;
+  if (isAdmin) {
+    return <AdminDashboard />;
   }
 
   if (!profile) {

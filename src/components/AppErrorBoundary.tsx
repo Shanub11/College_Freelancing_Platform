@@ -1,4 +1,5 @@
 import React, { Component, ReactNode, ErrorInfo } from "react";
+import * as Sentry from "@sentry/react";
 
 interface Props {
   children: ReactNode;
@@ -20,6 +21,8 @@ export default class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught app error:", error, errorInfo);
+    // Report to Sentry so errors don't get lost silently
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
   handleReload = () => {

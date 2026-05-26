@@ -107,7 +107,7 @@ function baseTemplate(title: string, bodyHtml: string, ctaUrl?: string, ctaLabel
               <td style="padding:24px 32px;border-top:1px solid #e5e7eb;margin-top:32px;">
                 <p style="margin:0;font-size:12px;color:#9ca3af;">
                   You received this email because you have an account on CollegeGig.<br>
-                  &copy; 2025 CollegeGig. All rights reserved.
+                  &copy; ${new Date().getFullYear()} CollegeGig. All rights reserved.
                 </p>
               </td>
             </tr>

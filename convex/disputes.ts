@@ -18,6 +18,11 @@ export const openDispute = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
+    // L4 fix: Prevent empty or trivially short dispute reasons
+    if (!args.reason || args.reason.trim().length < 10) {
+      throw new Error("Please provide a reason of at least 10 characters.");
+    }
+
     await enforceRateLimit(
       ctx,
       userId as Id<"users">,

@@ -14,7 +14,7 @@ Sentry.init({
     Sentry.browserTracingIntegration(),
     Sentry.replayIntegration(),
   ],
-  tracesSampleRate: 1.0, // Capture 100% of transactions for performance monitoring
+  tracesSampleRate: 0.1, // 10% of transactions — 100% will exhaust quota at production traffic
   replaysSessionSampleRate: 0.1, // Record 10% of standard user sessions
   replaysOnErrorSampleRate: 1.0, // Record 100% of sessions that end in an error
 });
