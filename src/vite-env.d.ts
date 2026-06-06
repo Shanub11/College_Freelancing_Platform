@@ -21,6 +21,7 @@ interface RazorpayCheckoutOptions {
 
 interface RazorpayCheckout {
   open: () => void;
+  on: (event: string, callback: (response: any) => void) => void;
 }
 
 interface Window {
