@@ -3,8 +3,15 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { encrypt, decrypt } from "./lib/encryption";
 import { internal as internalApi } from "./_generated/api";
+import type * as encryptionMessages from "./encryptionMessages";
+import type { InternalReference } from "./lib/functionRefs";
 
-const internal = internalApi as any;
+const internal = internalApi as unknown as {
+  encryptionMessages: {
+    getMessage: InternalReference<typeof encryptionMessages.getMessage>;
+    updateMessageText: InternalReference<typeof encryptionMessages.updateMessageText>;
+  };
+};
 
 export const encryptText = internalAction({
   args: { text: v.string() },

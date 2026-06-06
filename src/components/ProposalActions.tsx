@@ -6,15 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { PaymentMethodBadges } from "./PaymentMethodBadges";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-      on: (event: string, handler: () => void) => void;
-    };
-  }
-}
-
 function useRazorpayScript(): boolean {
   const [isLoaded, setIsLoaded] = useState(
     typeof window !== "undefined" && !!window.Razorpay

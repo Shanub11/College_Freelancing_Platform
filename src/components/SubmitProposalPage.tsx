@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { useState } from "react";
+import { ArrowLeft, CheckCircle2, Info } from "lucide-react";
 
 interface ProposalFormData {
   coverLetter: string;
@@ -40,7 +41,8 @@ export function SubmitProposalPage() {
       toast.success("Proposal submitted successfully!");
       setSubmittedProposalId(newProposalId);
     } catch (error) {
-      toast.error("Failed to submit proposal.");
+      const message = error instanceof Error ? error.message : "Failed to submit proposal.";
+      toast.error(message);
       console.error(error);
     }
   };
@@ -63,9 +65,9 @@ export function SubmitProposalPage() {
       <header className="bg-white/80 dark:bg-dark-surface/80 backdrop-blur-xl shadow-sm border-b border-gray-100 dark:border-dark-border sticky top-0 z-10 px-4 py-4 flex items-center">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+          className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
         >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <ArrowLeft className="w-5 h-5" />
           <span className="font-semibold text-sm uppercase tracking-wider">Back</span>
         </button>
       </header>
@@ -78,7 +80,7 @@ export function SubmitProposalPage() {
           {submittedProposalId ? (
             <div className="mt-10 text-center animate-scale-in">
               <div className="w-24 h-24 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-green-50/50 dark:ring-green-900/10">
-                <span className="text-5xl">🎉</span>
+                <CheckCircle2 className="w-12 h-12 text-green-650" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Proposal Submitted!</h2>
               <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">The client has been notified. You can track your proposals on your dashboard.</p>
@@ -95,7 +97,17 @@ export function SubmitProposalPage() {
                 <label htmlFor="coverLetter" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Cover Letter</label>
                 <textarea
                   id="coverLetter"
-                  {...register("coverLetter", { required: "Cover letter is required." })}
+                  {...register("coverLetter", { 
+                    required: "Cover letter is required.",
+                    minLength: {
+                      value: 50,
+                      message: "Cover letter must be at least 50 characters."
+                    },
+                    maxLength: {
+                      value: 3000,
+                      message: "Cover letter must be less than 3000 characters."
+                    }
+                  })}
                   rows={6}
                   className="input-field min-h-[150px] resize-y"
                   placeholder="Introduce yourself and explain why you're a great fit for this project..."
@@ -109,7 +121,14 @@ export function SubmitProposalPage() {
                   <input
                     type="number"
                     id="proposedPrice"
-                    {...register("proposedPrice", { required: "Price is required.", valueAsNumber: true })}
+                    {...register("proposedPrice", { 
+                      required: "Price is required.", 
+                      valueAsNumber: true,
+                      min: {
+                        value: 50,
+                        message: "Minimum proposal price is ₹50."
+                      }
+                    })}
                     className="input-field"
                     placeholder="e.g., 500"
                   />
@@ -129,8 +148,8 @@ export function SubmitProposalPage() {
                         <span>You'll Receive:</span>
                         <span className="text-green-600 dark:text-green-400">₹{payout}</span>
                       </div>
-                      <p className="text-xs text-primary-600 dark:text-primary-400 mt-4 flex items-start gap-1.5 font-medium bg-primary-100/50 dark:bg-primary-900/30 p-2 rounded-lg">
-                        <span className="shrink-0">ℹ️</span> Platform fee helps us maintain secure payments and student support.
+                      <p className="text-xs text-primary-600 dark:text-primary-400 mt-4 flex items-start gap-1.5 font-medium bg-primary-105/50 dark:bg-primary-900/30 p-2.5 rounded-lg">
+                        <Info className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" /> Platform fee helps us maintain secure payments and student support.
                       </p>
                     </div>
                   )}
@@ -140,7 +159,18 @@ export function SubmitProposalPage() {
                   <input
                     type="number"
                     id="deliveryTime"
-                    {...register("deliveryTime", { required: "Delivery time is required.", valueAsNumber: true })}
+                    {...register("deliveryTime", { 
+                      required: "Delivery time is required.", 
+                      valueAsNumber: true,
+                      min: {
+                        value: 1,
+                        message: "Delivery time must be at least 1 day."
+                      },
+                      max: {
+                        value: 365,
+                        message: "Delivery time must be under 365 days."
+                      }
+                    })}
                     className="input-field"
                     placeholder="e.g., 7"
                   />

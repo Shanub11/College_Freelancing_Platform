@@ -13,6 +13,31 @@ import { getProfilePictureUrl, getStorageUrl } from "@/lib/storageHelpers";
 import LoadingState from "./LoadingState";
 import ConfirmModal from "./ConfirmModal";
 import { PaymentMethodBadges } from "./PaymentMethodBadges";
+import { 
+  Clock, 
+  CheckCircle2, 
+  AlertTriangle, 
+  X, 
+  Star, 
+  ClipboardList, 
+  Inbox, 
+  MessageSquare, 
+  Trophy, 
+  Briefcase, 
+  TrendingUp, 
+  Sparkles, 
+  Lock, 
+  Package, 
+  Eye, 
+  CreditCard, 
+  ArrowLeft, 
+  GraduationCap, 
+  ChevronLeft, 
+  ChevronRight,
+  ImageIcon,
+  ExternalLink,
+  XCircle
+} from "lucide-react";
 
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
 
@@ -298,7 +323,7 @@ function OrderFreelancerAvatar({ freelancer }: { freelancer: any }) {
 
 // Component to display the list of orders
 function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (orderId?: string, projectId?: string) => void }) {
-  const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+  const [reviewOrderId, setReviewOrderId] = useState<Id<"orders"> | null>(null);
   const [viewOrder, setViewOrder] = useState<any | null>(null);
 
   const handleDispute = (orderId: string, projectId?: string) => {
@@ -317,7 +342,7 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
   if (orders.length === 0) {
     return (
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
-        <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📦</div>
+        <Package className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No orders yet</h3>
         <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">When you accept a proposal, your project will appear here.</p>
       </div>
@@ -328,17 +353,41 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
     switch (status) {
       case 'in_progress':
       case 'active':
-        return <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> In Progress</span>;
+        return (
+          <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+            <Clock className="w-3.5 h-3.5 text-blue-600 animate-pulse" /> In Progress
+          </span>
+        );
       case 'completed':
-        return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
+        return (
+          <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> Completed
+          </span>
+        );
       case 'delivered':
-        return <span className="bg-yellow-100 text-yellow-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 Awaiting Approval</span>;
+        return (
+          <span className="bg-yellow-100 text-yellow-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+            <Eye className="w-3.5 h-3.5 text-yellow-600" /> Awaiting Approval
+          </span>
+        );
       case 'cancelled':
-        return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold">Cancelled</span>;
+        return (
+          <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+            <XCircle className="w-3.5 h-3.5 text-red-600" /> Cancelled
+          </span>
+        );
       case 'disputed':
-        return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold">Disputed</span>;
+        return (
+          <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> Disputed
+          </span>
+        );
       default:
-        return <span className="bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
+        return (
+          <span className="bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent px-3 py-1.5 rounded-full text-xs font-bold capitalize w-fit">
+            {status.replace('_', ' ')}
+          </span>
+        );
     }
   };
 
@@ -380,15 +429,15 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
             )}
             {order.status === 'completed' && !order.hasReviewed && order.orderId && (
               <button 
-                onClick={() => setReviewOrderId(order.orderId)}
+                onClick={() => setReviewOrderId(order.orderId as Id<"orders">)}
                 className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors"
               >
                 Leave Review
               </button>
             )}
             {order.status === 'completed' && order.hasReviewed && (
-              <span className="text-green-800 text-sm font-medium flex items-center gap-1 bg-green-100 border-transparent px-4 py-2 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              <span className="text-green-800 text-sm font-medium flex items-center gap-1.5 bg-green-100 border-transparent px-4 py-2 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
                 Review Submitted
               </span>
             )}
@@ -401,7 +450,9 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
       {viewOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-lg p-6 relative">
-            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Order Details</h2>
             <div className="space-y-4">
               <div>
@@ -434,11 +485,11 @@ function OrderList({ orders, onOpenSupport }: { orders: any[], onOpenSupport?: (
   );
 }
 
-function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => void }) {
+function ReviewModal({ orderId, onClose }: { orderId: Id<"orders">, onClose: () => void }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const submitReview = useMutation((api as any).reviews?.submitReview);
+  const submitReview = useMutation(api.reviews.submitReview);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -457,7 +508,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Leave a Review</h2>
         <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-blue-800 p-3 rounded-lg text-sm mb-6">
           <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
@@ -467,7 +520,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button type="button" key={star} onClick={() => setRating(star)} className={`text-3xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none`}>★</button>
+                <button type="button" key={star} onClick={() => setRating(star)} className="focus:outline-none transition-transform hover:scale-110">
+                  <Star className={`w-8 h-8 ${rating >= star ? 'text-yellow-400 fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
+                </button>
               ))}
             </div>
           </div>
@@ -489,7 +544,7 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
   if (projects.length === 0) {
     return (
       <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-8 text-center">
-        <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📋</div>
+        <ClipboardList className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No projects yet</h3>
         <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Post your first project to start receiving proposals</p>
       </div>
@@ -520,12 +575,14 @@ function ProjectList({ projects, onSelectProject, onReleaseFunds }: { projects: 
               {project.status === 'in_progress' && project.orderId && project.orderStatus !== 'completed' ? (
                 <button
                   onClick={() => onReleaseFunds(project.orderId)}
-                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors whitespace-nowrap"
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary-700 shadow-sm transition-colors whitespace-nowrap flex items-center gap-1.5"
                 >
-                  ✓ Release Funds
+                  <CheckCircle2 className="w-4 h-4" /> Release Funds
                 </button>
               ) : project.status === 'completed' ? (
-                <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">🎉 Completed</span>
+                <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> Completed
+                </span>
               ) : (
                 <button
                   onClick={() => onSelectProject(project._id)}
@@ -564,7 +621,7 @@ function ProjectProposals({
   return (
     <div className="space-y-6">
       <button onClick={onBack} className="flex items-center text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:text-primary-400 transition-colors font-medium">
-        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Projects
       </button>
       <div>
@@ -573,7 +630,7 @@ function ProjectProposals({
       </div>
       {proposals.length === 0 ? (
         <div className="bg-white dark:bg-dark-surface border border-gray-100 dark:border-dark-border rounded-lg shadow-sm p-8 text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📬</div>
+          <Inbox className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No proposals yet</h3>
           <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">You will be notified when freelancers submit proposals for this project.</p>
         </div>
@@ -616,7 +673,7 @@ function ProjectProposals({
                 )}
                 <div className="flex items-center space-x-3">
                   <button onClick={() => onChat(p.freelancerId)} className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 text-primary-700 dark:text-primary-400 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-primary-100 dark:bg-primary-900/20 transition-colors flex items-center gap-2">
-                    <span>💬 Chat</span>
+                    <MessageSquare className="w-4 h-4" /> Chat
                   </button>
                   <button onClick={() => onViewProfile(p.freelancerId)} className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-100 dark:bg-dark-surface-2 transition-colors">
                     View Profile
@@ -632,7 +689,7 @@ function ProjectProposals({
       {project?.status === 'open' && (
         <div className="mt-12 border-t border-gray-200 dark:border-dark-border pt-8">
           <div className="flex items-center gap-2 mb-6">
-            <span className="text-2xl">✨</span>
+            <Sparkles className="w-6 h-6 text-yellow-500 animate-pulse" />
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recommended Freelancers</h2>
               <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500 text-sm">Top matches based on skills, rating, and college.</p>
@@ -803,7 +860,8 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                 : level === "Rising Star" ? "text-primary-600 dark:text-primary-400" 
                 : "text-gray-600 dark:text-gray-400 dark:text-gray-500"
               }`}>
-                {level === "Top Talent" ? "🏆 " : level === "Rising Star" ? "⭐ " : ""}
+                {level === "Top Talent" && <Trophy className="w-5 h-5 inline-block mr-1.5 text-amber-500" />}
+                {level === "Rising Star" && <Star className="w-5 h-5 inline-block mr-1.5 text-yellow-500 fill-current" />}
                 {level}
               </p>
             </div>
@@ -827,25 +885,25 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
 
             {/* Core Metrics */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 flex flex-col justify-between items-center">
                 <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Rating</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{profile.averageRating ? profile.averageRating.toFixed(1) : "New"}</span>
-                  <span className="text-yellow-400 text-lg">★</span>
+                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 flex flex-col justify-between items-center">
                 <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Completed</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{completedProjects.length}</span>
-                  <span className="text-gray-400 dark:text-gray-500 text-lg">💼</span>
+                  <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 text-center">
+              <div className="bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4 flex flex-col justify-between items-center">
                 <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Success</p>
                 <div className="flex items-center justify-center gap-1">
                   <span className="text-xl font-bold text-gray-900 dark:text-white">{profileData?.onTimeRate !== undefined ? profileData.onTimeRate + '%' : 'N/A'}</span>
-                  <span className="text-green-500 text-lg">📈</span>
+                  <TrendingUp className="w-4 h-4 text-green-500" />
                 </div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">On-Time Delivery</p>
               </div>
@@ -974,9 +1032,9 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                       </div>
                       <span className="font-bold text-gray-900 dark:text-white">{review.reviewerName}</span>
                     </div>
-                    <div className="flex text-yellow-400">
+                    <div className="flex gap-0.5">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <span key={i}>{i < review.rating ? '★' : '☆'}</span>
+                        <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
                       ))}
                     </div>
                   </div>
@@ -1007,7 +1065,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                     />
                   ) : (
                     <div className="w-full h-40 bg-gray-100 dark:bg-dark-surface-2 border-b border-gray-200 dark:border-dark-border flex items-center justify-center">
-                      <span className="text-4xl text-gray-300">🖼️</span>
+                      <ImageIcon className="w-10 h-10 text-gray-300 dark:text-gray-650" />
                     </div>
                   )}
                   <div className="p-4 flex-1 flex flex-col">
@@ -1015,7 +1073,7 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                     <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 mt-2 line-clamp-3 flex-1">{item.description}</p>
                     {item.link && (
                       <a href={item.link.startsWith('http') ? item.link : `https://${item.link}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 text-sm hover:underline transition-colors mt-4 flex items-center gap-1 font-medium">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        <ExternalLink className="w-4 h-4" />
                         View Project
                       </a>
                     )}
@@ -1088,10 +1146,12 @@ function FreelancerProfile({ userId, onBack }: { userId: Id<"users">, onBack: ()
                   
                   {project.review && (
                     <div className="mt-4 bg-gray-50 dark:bg-dark-surface-2 p-3 rounded-lg border border-gray-100 dark:border-dark-border">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-yellow-400 text-sm">
-                          {'★'.repeat(project.review.rating)}{'☆'.repeat(5 - project.review.rating)}
-                        </span>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < project.review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
+                          ))}
+                        </div>
                         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-1">Client Review</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 italic">"{project.review.comment}"</p>
@@ -1181,7 +1241,9 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-dark-surface border border-transparent rounded-lg shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Hire for: {gig.title}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -1203,7 +1265,7 @@ function DirectHireModal({ gig, onClose }: { gig: any, onClose: () => void }) {
             </div>
           </div>
           <div className="bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 p-4 rounded-lg text-sm flex gap-3">
-            <span className="text-xl">🔒</span>
+            <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-blue-900 mb-1">Secure Escrow Payment</p>
               <p className="text-blue-800">Your ₹{formData.price} payment will be held securely in escrow and released to the freelancer only after you approve the delivered work.</p>

@@ -1,6 +1,35 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { mutation, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+
+export const claimRazorpayWebhookEvent = internalMutation({
+  args: {
+    eventId: v.string(),
+    eventType: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const existingEvent = await ctx.db
+      .query("razorpayWebhookEvents")
+      .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
+      .unique();
+
+    if (existingEvent) {
+      console.log(
+        `[Webhook] Duplicate Razorpay event ${args.eventId} (${args.eventType}). Skipping.`
+      );
+      return false;
+    }
+
+    await ctx.db.insert("razorpayWebhookEvents", {
+      eventId: args.eventId,
+      eventType: args.eventType,
+      processedAt: Date.now(),
+    });
+
+    return true;
+  },
+});
 
 /**
  * INTERNAL: Marks a payment as funded.
@@ -325,4 +354,20 @@ export const markAsRefunded = internalMutation({
     });
     return null;
   },
+});
+
+export const devSetFreelancerPayoutReady = mutation({
+  args: { userId: v.id("users"), isPayoutReady: v.boolean() },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+    await ctx.db.patch(profile._id, {
+      isPayoutReady: args.isPayoutReady,
+      payoutOnboardingStatus: args.isPayoutReady ? "activated" : "failed",
+    });
+    return null;
+  }
 });

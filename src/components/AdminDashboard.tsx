@@ -4,8 +4,9 @@ import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
 import { SignOutButton } from "../SignOutButton";
+import type { ChatOpenData } from "@/lib/profileTypes";
 
-export function AdminDashboard({ adminId, onOpenChat }: { adminId?: string, onOpenChat?: (data?: any) => void }) {
+export function AdminDashboard({ adminId, onOpenChat }: { adminId?: Id<"users">, onOpenChat?: (data: ChatOpenData) => void }) {
   const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "tickets">("verifications");
   const [expandedRequestId, setExpandedRequestId] = useState<Id<"verificationRequests"> | null>(null);
   const pendingVerifications = useQuery(api.profiles.getPendingVerifications) || [];
@@ -177,9 +178,9 @@ export function AdminDashboard({ adminId, onOpenChat }: { adminId?: string, onOp
   );
 }
 
-function TicketsList({ adminId, onOpenChat }: { adminId?: string, onOpenChat?: (data?: any) => void }) {
-  const disputes = useQuery((api as any).disputes?.getOpenDisputes) || [];
-  const resolveDispute = useMutation((api as any).disputes?.resolveDispute);
+function TicketsList({ adminId, onOpenChat }: { adminId?: Id<"users">, onOpenChat?: (data: ChatOpenData) => void }) {
+  const disputes = useQuery(api.disputes.getOpenDisputes) || [];
+  const resolveDispute = useMutation(api.disputes.resolveDispute);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
 
@@ -271,8 +272,7 @@ function ActivityLogList() {
   const [filterDate, setFilterDate] = useState("");
   const [filterPerformerName, setFilterPerformerName] = useState("");
 
-  // Cast api to any to avoid type errors before codegen runs
-  const logs = useQuery((api as any).logs?.getLogs, {
+  const logs = useQuery(api.logs.getLogs, {
     action: filterAction || undefined,
     date: filterDate || undefined,
     performerName: filterPerformerName || undefined,

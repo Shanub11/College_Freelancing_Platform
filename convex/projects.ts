@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import { enforceRateLimit } from "./rateLimiter";
 import { enforceModerationOnFields } from "./moderation";
 import { paginationOptsValidator } from "convex/server";
+
+type ProfilePortfolioItem = NonNullable<Doc<"profiles">["portfolioItems"]>[number];
 
 // Status helper: orders may have legacy "in_progress" status which maps
 // to the current "active" status. Use this when displaying order status.
@@ -86,7 +88,7 @@ export const getMyProjects = query({
       .query("projectRequests")
       .withIndex("by_client", (q) => q.eq("clientId", clientId))
       .order("desc")
-      .collect();
+      .take(100);
 
     return Promise.all(projects.map(async (p) => {
       if (p.status !== "open") {
@@ -108,15 +110,31 @@ export const getProjects = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // FIX H4: Require auth so unauthenticated scrapers cannot enumerate all projects.
+    // Also filter to "open" status only — completed/cancelled/disputed records
+    // contain sensitive requirement details that should not be publicly browsable.
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const cap = Math.min(args.limit || 20, 50); // hard cap at 50
+
     if (args.category) {
       return await ctx.db
         .query("projectRequests")
-        .filter((q) => q.eq(q.field("category"), args.category))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("category"), args.category),
+            q.eq(q.field("status"), "open")
+          )
+        )
         .order("desc")
-        .take(args.limit || 20);
+        .take(cap);
     }
-    const projects = await ctx.db.query("projectRequests").order("desc").take(args.limit || 20);
-    return projects;
+    return await ctx.db
+      .query("projectRequests")
+      .filter((q) => q.eq(q.field("status"), "open"))
+      .order("desc")
+      .take(cap);
   },
 });
 
@@ -126,10 +144,13 @@ export const searchProjects = query({
     category: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
     const projects = await ctx.db
       .query("projectRequests")
       .withSearchIndex("search_projects", (q) => {
-        const search = q.search("title", args.searchTerm);
+        const search = q.search("title", args.searchTerm).eq("status", "open");
         if (args.category) {
           return search.eq("category", args.category);
         }
@@ -158,11 +179,6 @@ export const getProjectById = query({
       throw new Error("Client profile not found for this project");
     }
 
-    const proposals = await ctx.db
-      .query("proposals")
-      .withIndex("by_projectId", (q) => q.eq("projectId", project._id))
-      .collect();
-
     let profilePictureUrl = null;
     if (clientProfile.profilePicture) {
       profilePictureUrl = await ctx.storage.getUrl(clientProfile.profilePicture);
@@ -171,7 +187,7 @@ export const getProjectById = query({
     return {
       ...project,
       client: { ...clientProfile, profilePictureUrl },
-      proposalCount: proposals.length,
+      proposalCount: project.proposalCount,
     };
   },
 });
@@ -183,7 +199,7 @@ export const getProposalsForProject = query({
       .query("proposals")
       .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
       .order("desc")
-      .collect();
+      .take(100);
 
     const proposalsWithFreelancer = await Promise.all(
       proposals.map(async (p) => {
@@ -306,7 +322,7 @@ export const getFreelancerPublicProfile = query({
       return null;
     }
 
-    const portfolioItems = profile.portfolioItems ? await Promise.all(profile.portfolioItems.map(async (item: any) => ({
+    const portfolioItems = profile.portfolioItems ? await Promise.all(profile.portfolioItems.map(async (item: ProfilePortfolioItem) => ({
       ...item,
       imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
     }))) : [];
@@ -316,19 +332,21 @@ export const getFreelancerPublicProfile = query({
       portfolioItems,
     };
 
-    const allOrders = await ctx.db
+    // FIX H3: Use the by_freelancer_and_status index to count completed orders
+    // instead of fetching ALL orders with an unbounded .collect().
+    const completedOrdersForStats = await ctx.db
       .query("orders")
-      .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
-      .collect();
+      .withIndex("by_freelancer_and_status", (q) =>
+        q.eq("freelancerId", args.userId).eq("status", "completed")
+      )
+      .order("desc")
+      .take(200); // Hard cap — enough for accurate stats without risk of timeout
 
-    let completedCount = 0;
+    let completedCount = completedOrdersForStats.length;
     let onTimeCount = 0;
-    for (const o of allOrders) {
-      if (o.status === "completed") {
-        completedCount++;
-        if ((o.deadline && o.submittedAt && o.submittedAt <= o.deadline) || !o.deadline) {
-          onTimeCount++;
-        }
+    for (const o of completedOrdersForStats) {
+      if ((o.deadline && o.submittedAt && o.submittedAt <= o.deadline) || !o.deadline) {
+        onTimeCount++;
       }
     }
     const onTimeRate = completedCount > 0 ? Math.round((onTimeCount / completedCount) * 100) : 100;
@@ -369,7 +387,8 @@ export const getFreelancerPublicProfile = query({
     const publicReviews = await ctx.db
       .query("reviews")
       .withIndex("by_reviewee", (q) => q.eq("revieweeId", args.userId))
-      .collect();
+      .order("desc")
+      .take(50);
       
     const reviewsWithReviewer = await Promise.all(
       publicReviews.map(async (r) => {
@@ -384,11 +403,14 @@ export const getFreelancerPublicProfile = query({
       })
     );
 
-    // Get activity logs to build the activity map
+    // FIX H3: Cap activity log scan at 365 entries.
+    // An unbounded .collect() on activityLogs can time out for power users
+    // who have thousands of log entries. We only need recent activity for the heatmap.
     const activityLogs = await ctx.db
       .query("activityLogs")
       .filter((q) => q.eq(q.field("userId"), args.userId))
-      .collect();
+      .order("desc")
+      .take(365);
       
     const activityMap: Record<string, number> = {};
     for (const log of activityLogs) {
@@ -401,7 +423,7 @@ export const getFreelancerPublicProfile = query({
       .query("gigs")
       .withIndex("by_freelancer", (q) => q.eq("freelancerId", args.userId))
       .filter((q) => q.eq(q.field("isActive"), true))
-      .collect();
+      .take(20);
 
     return { profile: profileWithPortfolio, completedProjects, reviews: reviewsWithReviewer, activityMap, gigs, onTimeRate };
   },
@@ -420,19 +442,20 @@ export const getClientPublicProfile = query({
     const postedProjects = await ctx.db
       .query("projectRequests")
       .withIndex("by_client", (q) => q.eq("clientId", args.userId))
-      .collect();
+      .take(500);
 
     const completedOrders = await ctx.db
       .query("orders")
       .withIndex("by_client_and_status", (q) => 
         q.eq("clientId", args.userId).eq("status", "completed")
       )
-      .collect();
+      .take(500);
 
     const publicReviews = await ctx.db
       .query("reviews")
       .withIndex("by_reviewee", (q) => q.eq("revieweeId", args.userId))
-      .collect();
+      .order("desc")
+      .take(50);
       
     const reviewsWithReviewer = await Promise.all(
       publicReviews.map(async (r) => {
@@ -773,7 +796,17 @@ export const cancelLateOrder = mutation({
     }
 
     await ctx.db.patch(args.orderId, { status: "cancelled" });
-    if (order.projectId) await ctx.db.patch(order.projectId, { status: "cancelled" as any });
+    if (order.projectId) await ctx.db.patch(order.projectId, { status: "cancelled" });
+
+    // FIX H9: Trigger Razorpay refund so the client's escrow funds are returned.
+    // Previously the order was marked "cancelled" in the DB but the money stayed
+    // locked in Razorpay indefinitely. Now we schedule the same refund path used
+    // by admin dispute resolution (resolved_refund).
+    await ctx.scheduler.runAfter(
+      0,
+      internal.paymentActions.refundPaymentForDispute,
+      { orderId: args.orderId }
+    );
 
     return null;
   }
@@ -784,19 +817,27 @@ export const autoCompleteOrder = internalMutation({
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.orderId);
     if (order?.status === "submitted") {
-      await ctx.db.patch(args.orderId, { 
+      await ctx.db.patch(args.orderId, {
         status: "completed",
-        completedAt: Date.now()
+        completedAt: Date.now(),
       });
       if (order.projectId) {
-        await ctx.db.patch(order.projectId, { status: "completed" as any });
+        await ctx.db.patch(order.projectId, { status: "completed" });
       }
       await ctx.db.insert("notifications", {
         userId: order.freelancerId,
         type: "funds_released",
-        message: `Order "${order.title}" was auto-completed. Funds have been released!`,
+        message: `Order "${order.title}" was auto-completed. Funds are being released to your account!`,
         isRead: false,
       });
+
+      // FIX C1: Actually trigger the Razorpay transfer so funds reach the freelancer.
+      // Without this call the DB showed "completed" but Razorpay never paid anyone.
+      await ctx.scheduler.runAfter(
+        0,
+        internal.paymentActions.releaseEscrowForDispute,
+        { orderId: args.orderId }
+      );
     }
-  }
+  },
 });

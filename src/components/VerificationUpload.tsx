@@ -5,9 +5,10 @@ import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
+import type { AppProfile } from "@/lib/profileTypes";
 
 interface VerificationUploadProps {
-  profile: any;
+  profile: AppProfile;
 }
 
 export function VerificationUpload({ profile }: VerificationUploadProps) {

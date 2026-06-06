@@ -4,6 +4,8 @@ import { api } from "../../convex/_generated/api";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Id } from "../../convex/_generated/dataModel";
 import { Helmet } from "react-helmet-async";
+import { sanitizeText } from "@/lib/sanitize";
+import { ArrowLeft, Star, CheckCircle2, CreditCard } from "lucide-react";
 
 export function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: Id<"projectRequests"> }>();
@@ -46,7 +48,7 @@ export function ProjectDetailsPage() {
           onClick={() => navigate(-1)}
           className="flex items-center text-gray-600 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:text-primary-400 transition-colors"
         >
-          <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          <ArrowLeft className="w-5 h-5 mr-1" />
           <span className="font-medium text-lg">Back</span>
         </button>
       </header>
@@ -63,7 +65,7 @@ export function ProjectDetailsPage() {
                 
                 <div className="mt-8 border-t border-gray-100 dark:border-dark-border pt-8">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Project Description</h2>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{sanitizeText(project.description)}</p>
                 </div>
 
                 <div className="mt-8 max-w-xs">
@@ -106,7 +108,7 @@ export function ProjectDetailsPage() {
                   <div className="flex justify-between gap-4 items-center">
                     <span>Average Rating</span>
                     <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 bg-gray-50 dark:bg-dark-surface-2 px-2.5 py-1 rounded-lg">
-                      {project.client.averageRating ? project.client.averageRating.toFixed(1) : "New"} <span className="text-yellow-400 text-lg">★</span>
+                      {project.client.averageRating ? project.client.averageRating.toFixed(1) : "New"} <Star className="w-4 h-4 text-yellow-405 fill-current" />
                       {project.client.totalReviews > 0 && <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">({project.client.totalReviews})</span>}
                     </span>
                   </div>
@@ -173,7 +175,7 @@ export function ProjectDetailsPage() {
 
                   {project.client.paymentVerified && (
                     <div className="flex items-center justify-center gap-2 text-green-700 bg-green-50 p-2 rounded-lg font-medium mt-4">
-                      <span>💳</span> Payment Verified
+                      <CreditCard className="w-4 h-4" /> Payment Verified
                     </div>
                   )}
                 </div>
@@ -194,13 +196,13 @@ export function ProjectDetailsPage() {
                       <div key={review._id} className="border-b border-gray-100 dark:border-dark-border last:border-0 pb-4 last:pb-0">
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-semibold text-gray-900 dark:text-white text-sm">{review.reviewerName}</span>
-                          <div className="flex text-yellow-400 text-xs">
+                          <div className="flex text-yellow-400 gap-0.5 mt-0.5">
                             {Array.from({ length: 5 }).map((_, i) => (
-                              <span key={i}>{i < review.rating ? '★' : '☆'}</span>
+                              <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? 'fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
                             ))}
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 line-clamp-3 mt-1">{review.comment}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 dark:text-gray-500 line-clamp-3 mt-1">{sanitizeText(review.comment)}</p>
                       </div>
                     ))}
                   </div>

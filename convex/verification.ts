@@ -110,7 +110,7 @@ export const getPendingVerifications = query({
     const requests = await ctx.db
       .query("verificationRequests")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
-      .collect();
+      .take(100);
 
     // Get user profiles for each request
     const requestsWithProfiles = await Promise.all(

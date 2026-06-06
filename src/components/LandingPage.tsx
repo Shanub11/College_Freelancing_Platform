@@ -2,6 +2,28 @@ import { useRef, useState, useEffect } from "react";
 import { SignInForm } from "../SignInForm";
 import { Helmet } from "react-helmet-async";
 import { useTheme } from "../hooks/useTheme";
+import { 
+  Code, 
+  Paintbrush, 
+  PenTool, 
+  Video, 
+  BookOpen, 
+  TrendingUp, 
+  BarChart3, 
+  Smartphone,
+  Sparkles,
+  ShieldCheck,
+  Lock,
+  CreditCard,
+  Star,
+  GraduationCap,
+  IndianRupee,
+  Clock,
+  Heart,
+  ArrowRight,
+  Menu,
+  X
+} from "lucide-react";
 
 const TESTIMONIALS = [
   { name: "Arjun S.", college: "IIT Delhi", role: "Freelancer", text: "Earned ₹40K in my first month while studying. CollegeGig changed my college life!", rating: 5 },
@@ -10,17 +32,17 @@ const TESTIMONIALS = [
 ];
 
 const CATEGORIES = [
-  { name: "Web Development", icon: "💻", count: "150+" },
-  { name: "Design", icon: "🎨", count: "200+" },
-  { name: "Writing", icon: "✍️", count: "180+" },
-  { name: "Video Editing", icon: "🎬", count: "120+" },
-  { name: "Tutoring", icon: "📚", count: "300+" },
-  { name: "Marketing", icon: "📈", count: "90+" },
-  { name: "Data Analysis", icon: "📊", count: "80+" },
-  { name: "Mobile Apps", icon: "📱", count: "100+" },
+  { name: "Web Development", icon: Code, count: "150+" },
+  { name: "Design", icon: Paintbrush, count: "200+" },
+  { name: "Writing", icon: PenTool, count: "180+" },
+  { name: "Video Editing", icon: Video, count: "120+" },
+  { name: "Tutoring", icon: BookOpen, count: "300+" },
+  { name: "Marketing", icon: TrendingUp, count: "90+" },
+  { name: "Data Analysis", icon: BarChart3, count: "80+" },
+  { name: "Mobile Apps", icon: Smartphone, count: "100+" },
 ];
 
-function AnimatedStat({ value, label }: { value: string; label: string }) {
+function AnimatedStat({ value, label, showStar }: { value: string; label: string; showStar?: boolean }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -29,8 +51,11 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={ref} className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-      <p className="text-3xl md:text-4xl font-extrabold gradient-text">{value}</p>
+    <div ref={ref} className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"} flex flex-col items-center justify-center`}>
+      <div className="flex items-center gap-1.5 justify-center">
+        <p className="text-3xl md:text-4xl font-extrabold gradient-text">{value}</p>
+        {showStar && <Star className="w-6 h-6 text-amber-500 fill-current" />}
+      </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">{label}</p>
     </div>
   );
@@ -98,8 +123,8 @@ export function LandingPage() {
             </nav>
             <div className="flex items-center gap-2 md:hidden">
               <ThemeToggle />
-              <button className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-surface-2" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Open menu" aria-expanded={mobileMenuOpen}>
-                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+              <button className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-surface-2 flex items-center justify-center" onClick={() => setMobileMenuOpen(o => !o)} aria-label="Open menu" aria-expanded={mobileMenuOpen}>
+                <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               </button>
             </div>
           </div>
@@ -112,7 +137,9 @@ export function LandingPage() {
           <div className="bg-white dark:bg-dark-surface w-72 h-full p-6 flex flex-col gap-4 shadow-2xl animate-slide-in-left" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2"><div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-xs">CG</span></div><span className="font-bold text-gray-900 dark:text-white">CollegeGig</span></div>
-              <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg" aria-label="Close menu">✕</button>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg flex items-center justify-center" aria-label="Close menu">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <a href="#categories" onClick={e => { setMobileMenuOpen(false); scrollTo(categoriesRef)(e); }} className="text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium py-2">Browse Services</a>
             <a href="#how-it-works" onClick={e => { setMobileMenuOpen(false); scrollTo(howItWorksRef)(e); }} className="text-gray-700 dark:text-gray-200 hover:text-primary-600 font-medium py-2">How It Works</a>
@@ -128,7 +155,10 @@ export function LandingPage() {
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
         <div className="section-container relative z-10">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="badge-primary mb-6 animate-fade-in-down">🚀 India's #1 Student Freelance Marketplace</div>
+            <div className="badge-primary mb-6 animate-fade-in-down flex items-center gap-1.5 mx-auto w-fit">
+              <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400 animate-pulse" />
+              <span>India's #1 Student Freelance Marketplace</span>
+            </div>
             <h1 className="text-4xl md:text-display-lg font-extrabold text-gray-900 dark:text-white mb-6 animate-fade-in-up text-balance">
               Hire Verified College Students.{" "}
               <span className="gradient-text">Pay Only When Satisfied.</span>
@@ -137,8 +167,9 @@ export function LandingPage() {
               Get web development, design, content & tutoring from talented students at startup-friendly prices. Secured with escrow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-              <button onClick={scrollTo(signInRef)} className="btn-accent !text-base !py-4 !px-10 group">
-                Hire a Student <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
+              <button onClick={scrollTo(signInRef)} className="btn-accent !text-base !py-4 !px-10 group flex items-center justify-center gap-2 mx-auto sm:mx-0">
+                <span>Hire a Student</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
               <button onClick={scrollTo(signInRef)} className="btn-secondary !text-base !py-4 !px-10 dark:!bg-dark-surface dark:!text-white dark:!border-dark-border">
                 Start Freelancing
@@ -146,13 +177,13 @@ export function LandingPage() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 mt-12 text-sm">
               {[
-                { icon: "🛡️", text: "Verified students", color: "text-green-600" },
-                { icon: "🔒", text: "Escrow payments", color: "text-blue-600" },
-                { icon: "💳", text: "UPI · Cards · NetBanking", color: "text-purple-600" },
-                { icon: "⭐", text: "Double-blind reviews", color: "text-amber-600" },
+                { icon: <ShieldCheck className="w-5 h-5 text-green-600" />, text: "Verified students" },
+                { icon: <Lock className="w-5 h-5 text-blue-600" />, text: "Escrow payments" },
+                { icon: <CreditCard className="w-5 h-5 text-purple-600" />, text: "UPI · Cards · NetBanking" },
+                { icon: <Star className="w-5 h-5 text-amber-600" />, text: "Double-blind reviews" },
               ].map(t => (
-                <div key={t.text} className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                  <span className="text-lg">{t.icon}</span><span>{t.text}</span>
+                <div key={t.text} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 font-medium">
+                  {t.icon}<span>{t.text}</span>
                 </div>
               ))}
             </div>
@@ -167,7 +198,7 @@ export function LandingPage() {
             <AnimatedStat value="1,000+" label="Verified Students" />
             <AnimatedStat value="500+" label="Projects Completed" />
             <AnimatedStat value="₹50L+" label="Paid to Students" />
-            <AnimatedStat value="4.8★" label="Average Rating" />
+            <AnimatedStat value="4.8" label="Average Rating" showStar />
           </div>
         </div>
       </section>
@@ -181,13 +212,13 @@ export function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { icon: "🎓", title: "Verified Students Only", desc: "All freelancers are verified college students with valid .edu emails or student IDs", color: "from-blue-500 to-indigo-600" },
-              { icon: "💰", title: "Competitive Rates", desc: "Get quality work at student-friendly prices while supporting their education", color: "from-emerald-500 to-teal-600" },
-              { icon: "🔒", title: "Secure Payments", desc: "Protected escrow system ensures safe transactions for both parties", color: "from-purple-500 to-violet-600" },
+              { icon: <GraduationCap className="w-6 h-6 text-white" />, title: "Verified Students Only", desc: "All freelancers are verified college students with valid .edu emails or student IDs", color: "from-blue-500 to-indigo-600" },
+              { icon: <IndianRupee className="w-6 h-6 text-white" />, title: "Competitive Rates", desc: "Get quality work at student-friendly prices while supporting their education", color: "from-emerald-500 to-teal-600" },
+              { icon: <Lock className="w-6 h-6 text-white" />, title: "Secure Payments", desc: "Protected escrow system ensures safe transactions for both parties", color: "from-purple-500 to-violet-600" },
             ].map(f => (
               <div key={f.title} className="card-hover p-8 text-center group">
                 <div className={`w-16 h-16 bg-gradient-to-br ${f.color} rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <span className="text-2xl">{f.icon}</span>
+                  {f.icon}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{f.title}</h3>
                 <p className="text-gray-600 dark:text-gray-400">{f.desc}</p>
@@ -213,7 +244,7 @@ export function LandingPage() {
                 </p>
                 <div className="flex items-center justify-center gap-1 mb-4">
                   {[...Array(TESTIMONIALS[currentTestimonial].rating)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                   ))}
                 </div>
                 <div className="flex items-center justify-center gap-3">
@@ -284,11 +315,14 @@ export function LandingPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {CATEGORIES.map(c => (
-              <div key={c.name} className="card-hover p-5 md:p-6 group cursor-pointer" onClick={scrollTo(signInRef)}>
-                <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">{c.icon}</div>
+              <div key={c.name} className="card-hover p-5 md:p-6 group cursor-pointer flex flex-col items-start" onClick={scrollTo(signInRef)}>
+                <c.icon className="w-8 h-8 text-primary-600 dark:text-primary-400 mb-3 group-hover:scale-110 transition-transform duration-300" />
                 <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{c.name}</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{c.count} students</p>
-                <div className="mt-3 text-xs text-primary-600 dark:text-primary-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Browse →</div>
+                <div className="mt-3 text-xs text-primary-600 dark:text-primary-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                  <span>Browse</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
               </div>
             ))}
           </div>
@@ -341,9 +375,14 @@ export function LandingPage() {
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
                       {gig.freelancer.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">🎓 {gig.freelancer.college}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
+                      <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+                      {gig.freelancer.college}
+                    </p>
                   </div>
-                  <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200/50 dark:border-emerald-800/30">Verified Student</span>
+                  <span className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-emerald-200/50 dark:border-emerald-800/30 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Verified
+                  </span>
                 </div>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug mb-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{gig.title}</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-4">{gig.description}</p>
@@ -359,10 +398,12 @@ export function LandingPage() {
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1 justify-end">
-                      <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
                       <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{gig.rating.toFixed(1)}</span>
                     </div>
-                    <p className="text-xs text-gray-400 font-medium">{gig.deliveryTime} days delivery</p>
+                    <p className="text-xs text-gray-400 font-medium flex items-center gap-1 justify-end">
+                      <Clock className="w-3 h-3 text-gray-400" /> {gig.deliveryTime} days
+                    </p>
                   </div>
                 </div>
               </div>
@@ -384,8 +425,15 @@ export function LandingPage() {
           <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">Join 1,000+ Students & Clients</h2>
           <p className="text-xl text-white/80 mb-8 max-w-xl mx-auto">Verified students earn ₹5,000–₹50,000/month. Clients get quality work at 60% less.</p>
           <div className="flex flex-wrap justify-center gap-3 mb-10">
-            {["🎓 Free for students", "⚡ Post in 2 mins", "🔒 Escrow protected"].map(t => (
-              <div key={t} className="bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/20">{t}</div>
+            {[
+              { icon: <GraduationCap className="w-4 h-4 text-white" />, text: "Free for students" },
+              { icon: <Clock className="w-4 h-4 text-white" />, text: "Post in 2 mins" },
+              { icon: <Lock className="w-4 h-4 text-white" />, text: "Escrow protected" },
+            ].map(t => (
+              <div key={t.text} className="bg-white/10 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/20 flex items-center gap-1.5 font-medium">
+                {t.icon}
+                <span>{t.text}</span>
+              </div>
             ))}
           </div>
           <div className="max-w-md mx-auto">
@@ -415,7 +463,9 @@ export function LandingPage() {
           </div>
           <div className="border-t border-gray-800 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} CollegeGig. All rights reserved.</p>
-            <p className="text-gray-500 text-xs">Made with ❤️ for Indian college students</p>
+            <p className="text-gray-500 text-xs flex items-center gap-1">
+              Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-current inline mx-0.5" /> for Indian college students
+            </p>
           </div>
         </div>
       </footer>

@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { compressImage } from "@/lib/imageUtils";
 import { toast } from "sonner";
+import { sanitizeText } from "@/lib/sanitize";
 
 interface ChatInterfaceProps {
   isOpen: boolean;
@@ -32,13 +33,16 @@ export function ChatInterface({ isOpen, onClose, initialConversation, currentUse
     const setupInitial = async () => {
       if (initialConversation && isOpen) {
         try {
-          const payload: any = {
-            clientId: initialConversation.clientId,
-            freelancerId: initialConversation.freelancerId,
-          };
-          if (initialConversation.projectId) {
-            payload.projectId = initialConversation.projectId;
-          }
+          const payload = initialConversation.projectId
+            ? {
+                clientId: initialConversation.clientId,
+                freelancerId: initialConversation.freelancerId,
+                projectId: initialConversation.projectId,
+              }
+            : {
+                clientId: initialConversation.clientId,
+                freelancerId: initialConversation.freelancerId,
+              };
           const id = await getOrCreate(payload);
           setSelectedConversationId(id);
         } catch (err) {
@@ -290,7 +294,7 @@ function ChatWindow({ conversationId, currentUserId, recipientName, onClose }: {
                       )}
                     </div>
                   )}
-                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{sanitizeText(msg.text)}</p>
                   <p className={`text-[10px] mt-1.5 flex items-center justify-end gap-1 ${isMe ? "text-primary-100/90 dark:text-primary-400/80" : "text-gray-400 dark:text-gray-500"}`}>
                     {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {isMe && (

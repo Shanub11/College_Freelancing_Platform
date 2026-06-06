@@ -4,10 +4,28 @@ import { action, internalAction } from "./_generated/server";
 import { internal as internalApi } from "./_generated/api";
 import Razorpay from "razorpay";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type * as adminHelpers from "./adminHelpers";
+import type * as payments from "./payments";
+import type { InternalReference } from "./lib/functionRefs";
 
 declare const process: any;
 
-const internal = internalApi as any;
+const internal = internalApi as unknown as {
+  adminHelpers: {
+    checkIsAdminById: InternalReference<typeof adminHelpers.checkIsAdminById>;
+  };
+  payments: {
+    createPaymentRecord: InternalReference<typeof payments.createPaymentRecord>;
+    getFreelancerPayoutProfile: InternalReference<typeof payments.getFreelancerPayoutProfile>;
+    getOrderAndFreelancer: InternalReference<typeof payments.getOrderAndFreelancer>;
+    getPayment: InternalReference<typeof payments.getPayment>;
+    getPaymentByOrderId: InternalReference<typeof payments.getPaymentByOrderId>;
+    markAsRefunded: InternalReference<typeof payments.markAsRefunded>;
+    markAsReleased: InternalReference<typeof payments.markAsReleased>;
+    saveFreelancerAccountId: InternalReference<typeof payments.saveFreelancerAccountId>;
+    saveFreelancerPayoutOnboarding: InternalReference<typeof payments.saveFreelancerPayoutOnboarding>;
+  };
+};
 
 const DEFAULT_ROUTE_BUSINESS_MODEL =
   "Freelance student services provided through the CollegeGig marketplace.";
@@ -66,12 +84,24 @@ export const createRazorpayOrder = action({
   args: { orderId: v.id("orders") },
   returns: v.string(),
   handler: async (ctx, args) => {
+    // FIX C2: Verify the caller is authenticated and is the order's client.
+    // Without this check any logged-in user could create Razorpay orders for
+    // arbitrary order IDs, causing orphaned payment records and Razorpay abuse.
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+
     // 1. Get the order details to ensure correct price
     const { order, freelancerProfile } = await ctx.runQuery(internal.payments.getOrderAndFreelancer, {
       orderId: args.orderId,
     });
 
     if (!order) throw new Error("Order not found");
+
+    // Only the client who owns this order may initiate payment.
+    if (order.clientId !== callerId) {
+      throw new Error("Unauthorized: only the order's client can initiate payment.");
+    }
+
     if (!freelancerProfile?.isPayoutReady) {
       throw new Error("This freelancer is still completing Razorpay payout verification. Please choose a payout-ready freelancer.");
     }
@@ -86,14 +116,14 @@ export const createRazorpayOrder = action({
         currency: "INR",
         receipt: args.orderId,
       });
-  
+
       // 4. Save the payment record in DB
       await ctx.runMutation(internal.payments.createPaymentRecord, {
         orderId: args.orderId,
         razorpayOrderId: razorpayOrder.id,
         amount: order.price,
       });
-  
+
       return razorpayOrder.id;
     } catch (error: any) {
       console.error("Razorpay Error:", error);
@@ -104,12 +134,17 @@ export const createRazorpayOrder = action({
 
 export const onboardFreelancer = action({
   args: {
-    userId: v.id("users"),
+    // FIX C3: userId arg removed — we now derive it from the authenticated session.
+    // Accepting an arbitrary userId allowed any user to link a Razorpay account to
+    // another user's profile (auth bypass). The caller can only onboard themselves.
     email: v.string(),
     name: v.string(),
   },
   returns: v.string(),
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
     const razorpay = createRazorpayClient();
 
     const account: any = await razorpay.accounts.create({
@@ -119,7 +154,7 @@ export const onboardFreelancer = action({
     } as any);
 
     await ctx.runMutation(internal.payments.saveFreelancerAccountId, {
-      userId: args.userId,
+      userId,
       razorpayAccountId: account.id,
     });
 

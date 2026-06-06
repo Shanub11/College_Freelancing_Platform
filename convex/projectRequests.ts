@@ -282,16 +282,18 @@ export const getProposalsForProject = query({
     // Step 6: If neither client nor a bidding freelancer, deny access
     if (!isClient && !isFreelancerWithProposal) return [];
 
-    // Step 7: Fetch proposals based on role
-    // Clients see ALL proposals. Freelancers only see their own.
-    const proposals = await ctx.db
-      .query("proposals")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .collect();
-
+    // Step 7: Fetch proposals based on role. Clients see the latest proposals
+    // with a hard cap; freelancers only need their own proposal, so avoid a
+    // full project proposal scan on that path.
     const visibleProposals = isClient
-      ? proposals
-      : proposals.filter((p) => p.freelancerId === userId);
+      ? await ctx.db
+          .query("proposals")
+          .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+          .order("desc")
+          .take(100)
+      : ownProposal
+        ? [ownProposal]
+        : [];
 
     // Step 8: Enrich with freelancer profile name
     return Promise.all(

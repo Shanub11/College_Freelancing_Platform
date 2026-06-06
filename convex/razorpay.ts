@@ -9,6 +9,17 @@ const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET!;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID!;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
 
+function bytesToHex(bytes: ArrayBuffer): string {
+  return Array.from(new Uint8Array(bytes))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const encoded = new TextEncoder().encode(value);
+  return bytesToHex(await crypto.subtle.digest("SHA-256", encoded));
+}
+
 export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
   // Initialize Sentry for Convex (V8 Isolate environment)
   const sentry = new Toucan({
@@ -18,6 +29,12 @@ export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
 
   const signature = request.headers.get("x-razorpay-signature");
   const body = await request.text();
+
+  if (!RAZORPAY_WEBHOOK_SECRET) {
+    console.error("Razorpay webhook secret is not configured.");
+    sentry.captureMessage("Razorpay webhook secret missing", "fatal");
+    return new Response("Webhook not configured", { status: 500 });
+  }
 
   if (!signature) {
     console.error("Razorpay webhook signature missing from headers.");
@@ -62,6 +79,29 @@ export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
   try {
     // 2. Handle the event
     const event = JSON.parse(body);
+    const eventType = typeof event.event === "string" ? event.event : "unknown";
+    const bodyHash = await sha256Hex(body);
+    const providerEventId =
+      typeof event.id === "string"
+        ? event.id
+        : typeof event.payload?.payment?.entity?.id === "string"
+          ? `${eventType}:${event.payload.payment.entity.id}`
+          : typeof event.payload?.account?.entity?.id === "string"
+            ? `${eventType}:${event.payload.account.entity.id}`
+            : `${eventType}:${bodyHash}`;
+
+    const claimed = await ctx.runMutation(
+      internal.payments.claimRazorpayWebhookEvent,
+      {
+        eventId: providerEventId,
+        eventType,
+      }
+    );
+
+    if (!claimed) {
+      return new Response(null, { status: 200 });
+    }
+
     if (event.event === "payment.captured") {
       const paymentId = event.payload.payment.entity.id;
       const orderId = event.payload.payment.entity.order_id;

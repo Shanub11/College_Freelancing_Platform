@@ -14,16 +14,16 @@ const ENCRYPTED_PREFIX = "enc:";
 function getKey(): Buffer {
   const hexKey = process.env.MESSAGE_ENCRYPTION_KEY;
   if (!hexKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("MESSAGE_ENCRYPTION_KEY is required in production.");
-    }
-
-    console.warn(
-      "[Encryption] MESSAGE_ENCRYPTION_KEY not set. Using development fallback key. Set the env var for production."
-    );
-    return Buffer.from(
-      "0000000000000000000000000000000000000000000000000000000000000000",
-      "hex"
+    // FIX H6: Convex does NOT set NODE_ENV the same way Node.js does, so the
+    // previous `process.env.NODE_ENV === "production"` guard was unreliable.
+    // In a local dev environment without the key the error below will surface
+    // immediately during testing, ensuring developers set the key before launch.
+    // IMPORTANT: Set MESSAGE_ENCRYPTION_KEY in the Convex Dashboard → Settings
+    //            → Environment Variables before deploying to production.
+    throw new Error(
+      "[Encryption] MESSAGE_ENCRYPTION_KEY is not set. " +
+      "Generate a 64-char hex key with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\" " +
+      "and add it to Convex Dashboard → Settings → Environment Variables."
     );
   }
 

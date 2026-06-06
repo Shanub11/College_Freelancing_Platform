@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useNavigate, Link } from "react-router-dom";
@@ -6,6 +6,8 @@ import { Id } from "../../convex/_generated/dataModel";
 import { Helmet } from "react-helmet-async";
 import { useDebounce } from "../hooks/useDebounce";
 import LoadingState from "./LoadingState";
+import { sanitizeText } from "@/lib/sanitize";
+import { Search, X, Briefcase, ClipboardList, GraduationCap, Star, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 
 interface GigBrowserProps {
   userType: "freelancer" | "client";
@@ -17,6 +19,23 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
+  const [showFilters, setShowFilters] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+        setShowFilters(false);
+      } else {
+        setShowFilters(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const activeView = userType === "freelancer" ? "projects" : "gigs";
   const categories = useQuery(api.categories.getCategories) || [];
@@ -53,13 +72,13 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
       )}
 
       {/* Search + Filters */}
-      <div className="card p-4 md:p-5 sticky top-20 z-10">
+      <div className={`card p-4 md:p-5 sticky z-10 transition-all duration-300 ${
+        showFilters ? "top-20 opacity-100 translate-y-0" : "top-[-100px] opacity-0 translate-y-[-50px] pointer-events-none"
+      }`}>
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="w-4 h-4" />
             </div>
             <input
               type="text"
@@ -99,8 +118,8 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
             {debouncedSearch && <span> for "<span className="text-primary-600 dark:text-primary-400">{debouncedSearch}</span>"</span>}
           </p>
           {selectedCategory && (
-            <button onClick={() => setSelectedCategory("")} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-medium">
-              ✕ Clear filter
+            <button onClick={() => setSelectedCategory("")} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold transition-colors">
+              <X className="w-3 h-3" /> Clear filter
             </button>
           )}
         </div>
@@ -113,8 +132,8 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           {searchResults.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-gray-100 dark:bg-dark-surface-2 rounded-2xl flex items-center justify-center text-4xl mb-4">
-                {activeView === "gigs" ? "💼" : "📋"}
+              <div className="w-20 h-20 bg-gray-100 dark:bg-dark-surface-2 rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100 dark:border-dark-border">
+                {activeView === "gigs" ? <Briefcase className="w-10 h-10 text-gray-400 dark:text-gray-500" /> : <ClipboardList className="w-10 h-10 text-gray-400 dark:text-gray-500" />}
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
                 {searchTerm || selectedCategory ? "No results found" : `No ${activeView === "gigs" ? "services" : "projects"} yet`}
@@ -155,13 +174,18 @@ function GigCard({ gig, onViewProfile }: { gig: any; onViewProfile?: (userId: Id
           <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
             {gig.freelancer ? `${gig.freelancer.firstName} ${gig.freelancer.lastName}` : "Freelancer"}
           </p>
-          {gig.freelancer?.collegeName && <p className="text-micro text-gray-500 dark:text-gray-400 truncate">🎓 {gig.freelancer.collegeName}</p>}
+          {gig.freelancer?.collegeName && (
+            <p className="text-micro text-gray-500 dark:text-gray-400 truncate flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+              {gig.freelancer.collegeName}
+            </p>
+          )}
         </div>
         {gig.freelancer?.isVerified && <span className="badge-success text-micro">✓ Verified</span>}
       </div>
 
       <h3 className="text-base font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{gig.title}</h3>
-      <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3">{gig.description}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3">{sanitizeText(gig.description)}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {gig.tags?.slice(0, 2).map((tag: string) => <span key={tag} className="badge-primary text-micro">{tag}</span>)}
@@ -176,7 +200,7 @@ function GigCard({ gig, onViewProfile }: { gig: any; onViewProfile?: (userId: Id
           </div>
           <div className="text-right">
             <div className="flex items-center gap-1 justify-end">
-              <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <Star className="w-4 h-4 text-yellow-400 fill-current" />
               <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{gig.averageRating ? gig.averageRating.toFixed(1) : "New"}</span>
             </div>
             <p className="text-micro text-gray-400">{gig.deliveryTime}d delivery</p>
@@ -206,7 +230,7 @@ function ProjectCard({ project }: { project: any }) {
         {hoursAgo <= 24 && <span className="badge-success text-micro animate-pulse-soft">NEW</span>}
       </div>
 
-      <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3">{project.description}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-2 mb-3">{sanitizeText(project.description)}</p>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         {project.skills?.slice(0, 3).map((skill: string) => <span key={skill} className="badge-primary text-micro">{skill}</span>)}
@@ -216,16 +240,16 @@ function ProjectCard({ project }: { project: any }) {
       <div className="mt-auto">
         <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-dark-border mb-3 text-micro text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <Clock className="w-3.5 h-3.5" />
             {hoursAgo <= 1 ? "Just posted" : hoursAgo < 24 ? `${hoursAgo}h ago` : `${daysAgo}d ago`}
           </span>
           <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <CheckCircle2 className="w-3.5 h-3.5" />
             Verified
           </span>
         </div>
-        <Link to={`/projects/${project._id}`} className="btn-primary w-full !py-2.5 text-sm text-center block" aria-label={`Apply to ${project.title}`}>
-          Apply Now →
+        <Link to={`/projects/${project._id}`} className="btn-primary w-full !py-2.5 text-sm text-center flex items-center justify-center gap-1 font-semibold" aria-label={`Apply to ${project.title}`}>
+          Apply Now <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     </>

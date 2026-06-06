@@ -218,3 +218,10 @@ export const rejectProposal = mutation({
     return null;
   },
 });
+
+export const getProposalsDev = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("proposals").collect();
+  },
+});

@@ -34,7 +34,7 @@ export const getLogs = query({
 
     let matchingUserIds: string[] | undefined;
     if (args.performerName) {
-      const profiles = await ctx.db.query("profiles").collect();
+      const profiles = await ctx.db.query("profiles").take(500);
       const searchName = args.performerName.toLowerCase();
       matchingUserIds = profiles
         .filter((p) => {

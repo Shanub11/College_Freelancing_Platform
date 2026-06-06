@@ -1,18 +1,18 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { QueryCtx } from "./_generated/server";
+import { MutationCtx, QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { enforceRateLimit } from "./rateLimiter";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { enforceModerationOnFields } from "./moderation";
 
-type QueryIndexBuilder = any;
+type ProfilePortfolioItem = NonNullable<Doc<"profiles">["portfolioItems"]>[number];
 
-async function isAdminByUserId(ctx: any, userId: string) {
+async function isAdminByUserId(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
   const profile = await ctx.db
     .query("profiles")
-    .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
   return profile?.isAdmin === true;
 }
@@ -25,14 +25,14 @@ export const getCurrentProfile = query({
 
     const profile = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (!profile) return null;
 
     let portfolioItems = profile.portfolioItems || [];
     portfolioItems = await Promise.all(
-      portfolioItems.map(async (item: any) => ({
+      portfolioItems.map(async (item: ProfilePortfolioItem) => ({
         ...item,
         imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
       }))
@@ -49,26 +49,52 @@ export const getCurrentProfile = query({
 export const getProfile = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+
     const profile = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .unique();
 
     if (!profile) return null;
 
     let portfolioItems = profile.portfolioItems || [];
     portfolioItems = await Promise.all(
-      portfolioItems.map(async (item: any) => ({
+      portfolioItems.map(async (item: ProfilePortfolioItem) => ({
         ...item,
         imageUrl: item.image ? await ctx.storage.getUrl(item.image) : null,
       }))
     );
 
-    return {
+    const base = {
       ...profile,
       portfolioItems,
-      profilePictureUrl: profile.profilePicture ? await ctx.storage.getUrl(profile.profilePicture) : null,
+      profilePictureUrl: profile.profilePicture
+        ? await ctx.storage.getUrl(profile.profilePicture)
+        : null,
     };
+
+    // FIX C4: Strip sensitive financial / internal fields for any caller who is
+    // not the profile owner. These fields must never be visible to third parties:
+    //  - razorpayAccountId / razorpayStakeholderId / razorpayProductId
+    //  - bankAccountHolderName / bankIfsc / bankAccountLast4
+    //  - payoutOnboardingStatus / bankDetailsUpdatedAt
+    if (callerId !== args.userId) {
+      const {
+        razorpayAccountId: _ra,
+        razorpayStakeholderId: _rs,
+        razorpayProductId: _rp,
+        bankAccountHolderName: _bahn,
+        bankIfsc: _bi,
+        bankAccountLast4: _bl,
+        payoutOnboardingStatus: _pos,
+        bankDetailsUpdatedAt: _bdu,
+        ...publicProfile
+      } = base;
+      return publicProfile;
+    }
+
+    return base;
   },
 });
 
@@ -118,7 +144,7 @@ export const createProfile = mutation({
     // Check if profile already exists
     const existing = await ctx.db
       .query("profiles")
-      .withIndex("by_user", (q: QueryIndexBuilder) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (existing) {
@@ -239,6 +265,7 @@ export const updateProfile = mutation({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     bio: v.optional(v.string()),
+    tagline: v.optional(v.string()),
     profilePicture: v.optional(v.id("_storage")),
     skills: v.optional(v.array(v.string())),
     portfolioItems: v.optional(
@@ -266,12 +293,25 @@ export const updateProfile = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    // FIX H7: Explicitly block privileged fields from being set via this mutation.
+    // While these fields are not in the args validator above (so they cannot come
+    // from normal callers), this guard ensures that future careless additions to
+    // the args schema cannot accidentally escalate privileges.
+    // Admin status must ONLY be changed directly in the Convex Dashboard.
+    const forbidden = ["isAdmin", "userType", "isVerified"] as const;
+    for (const field of forbidden) {
+      if (field in args) {
+        throw new Error(`Field "${field}" cannot be updated via this mutation.`);
+      }
+    }
+
     const profile = await ctx.db
       .query("profiles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (!profile) throw new Error("Profile not found");
+
 
     const fieldsToCheck = [
       { fieldName: "bio", value: args.bio || "" },
@@ -292,10 +332,11 @@ export const updateProfile = mutation({
     }
     await enforceModerationOnFields(ctx, userId as Id<"users">, fieldsToCheck);
 
-    const updates: any = {};
+    const updates: Partial<Doc<"profiles">> = {};
     if (args.firstName !== undefined) updates.firstName = args.firstName;
     if (args.lastName !== undefined) updates.lastName = args.lastName;
     if (args.bio !== undefined) updates.bio = args.bio;
+    if (args.tagline !== undefined) updates.tagline = args.tagline;
     if (args.profilePicture !== undefined) updates.profilePicture = args.profilePicture;
     if (args.skills !== undefined) updates.skills = args.skills;
     if (args.portfolioItems !== undefined) updates.portfolioItems = args.portfolioItems;
@@ -455,7 +496,7 @@ export const getPendingVerifications = query({
     const requests = await ctx.db
       .query("verificationRequests")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
-      .collect();
+      .take(100);
 
     // Enrich requests with profile information
     return Promise.all(

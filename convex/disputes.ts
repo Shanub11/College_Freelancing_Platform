@@ -1,11 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { internal as internalApi } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { enforceRateLimit } from "./rateLimiter";
 import { Id } from "./_generated/dataModel";
 
-const internal = internalApi as any;
+// NOTE (H5): The `internal` import is now the fully-typed generated API.
+// Previously this was cast `as any`, defeating TypeScript's ability to catch
+// renames or signature changes in the admin-check path. Any breaking change
+// to checkIsAdminById will now surface as a compile-time error.
+
 
 export const openDispute = mutation({
   args: {
@@ -58,7 +62,7 @@ export const openDispute = mutation({
 
       await ctx.db.patch(args.orderId, { status: "disputed" });
       if (order.projectId) {
-         await ctx.db.patch(order.projectId, { status: "disputed" as any });
+         await ctx.db.patch(order.projectId, { status: "disputed" });
       }
 
       await ctx.db.insert("activityLogs", {
@@ -101,7 +105,7 @@ export const openDispute = mutation({
       });
 
       await ctx.db.patch(args.projectId, {
-        status: "disputed" as any,
+        status: "disputed",
       });
 
       await ctx.db.insert("activityLogs", {
@@ -160,17 +164,17 @@ export const openDispute = mutation({
 export const getOpenDisputes = query({
   handler: async (ctx) => {
     const adminId = await getAuthUserId(ctx);
-    if (!adminId) return [];
+    if (!adminId) throw new Error("Unauthorized");
 
     const isAdmin = await ctx.runQuery(internal.adminHelpers.checkIsAdminById, { userId: adminId });
     if (!isAdmin) {
-      return [];
+      throw new Error("Access denied: Admin privileges required");
     }
 
     const disputes = await ctx.db
       .query("disputes")
       .withIndex("by_status", (q) => q.eq("status", "open"))
-      .collect();
+      .take(100);
 
     return Promise.all(disputes.map(async (d) => {
       let project = null;
@@ -226,11 +230,11 @@ export const resolveDispute = mutation({
     if (args.resolution !== "resolved_general") {
       if (dispute.projectId) {
         const projectStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
-        await ctx.db.patch(dispute.projectId, { status: projectStatus as any });
+        await ctx.db.patch(dispute.projectId, { status: projectStatus });
       }
       if (dispute.orderId) {
         const orderStatus = args.resolution === "resolved_refund" ? "cancelled" : "completed";
-        await ctx.db.patch(dispute.orderId, { status: orderStatus as any });
+        await ctx.db.patch(dispute.orderId, { status: orderStatus });
 
         if (args.resolution === "resolved_release") {
           await ctx.scheduler.runAfter(

@@ -1,4 +1,30 @@
 import { useState, useRef, Suspense, lazy } from "react";
+import { 
+  Clock, 
+  CheckCircle2, 
+  AlertTriangle, 
+  X, 
+  Star, 
+  ClipboardList, 
+  Inbox, 
+  MessageSquare, 
+  Trophy, 
+  Briefcase, 
+  TrendingUp, 
+  Sparkles, 
+  Lock, 
+  Package, 
+  Eye, 
+  IndianRupee,
+  Search,
+  Plus,
+  ArrowRight,
+  TrendingDown,
+  XCircle,
+  HelpCircle,
+  ExternalLink,
+  ImageIcon
+} from "lucide-react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -170,7 +196,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
               </div>
             ) : myGigs.length === 0 ? (
               <div className="col-span-full text-center py-12">
-                <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">💼</div>
+                <Briefcase className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No gigs yet</h3>
                 <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">
                   {profile.isVerified 
@@ -188,10 +214,10 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                       <span className="text-gray-400 dark:text-gray-500 text-sm">Image</span>
                     </div>
                   ) : (
-                    <div className="w-full h-36 bg-gradient-to-br from-blue-50 to-indigo-100 
+                    <div className="w-full h-36 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-dark-surface-2 dark:to-dark-surface border-b border-gray-100 dark:border-dark-border
                                     flex flex-col items-center justify-center">
-                      <span className="text-3xl mb-1">💼</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">No image added</span>
+                      <Briefcase className="w-8 h-8 text-blue-500/70 dark:text-blue-400/50 mb-1" />
+                      <span className="text-xs text-gray-500 dark:text-gray-400">No image added</span>
                     </div>
                   )}
                   <div className="p-6">
@@ -247,7 +273,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
           <LoadingState message="Loading your orders..." />
         ) : myOrders.length === 0 ? (
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
-            <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📋</div>
+            <ClipboardList className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No orders yet</h3>
             <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Orders will appear here when clients hire you</p>
           </div>
@@ -330,14 +356,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <svg
-                className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <select
               value={selectedCategory}
@@ -362,7 +381,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
             </div>
           ) : filteredProjects.length === 0 ? (
             <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
-              <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">🔍</div>
+              <Search className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No matches found yet</h3>
               <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Try adjusting your search or add more skills to your profile.</p>
             </div>
@@ -419,7 +438,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
 
           {totalEarnings === 0 && (
             <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center mt-6">
-              <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">💰</div>
+              <IndianRupee className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No earnings yet</h3>
               <p className="text-gray-600 dark:text-gray-400 dark:text-gray-500">Complete orders to start earning money</p>
             </div>
@@ -460,9 +479,9 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
           <div className="bg-white dark:bg-dark-surface rounded-lg p-6 max-w-sm w-full text-center relative" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setShowProfilePhotoModal(false)}
-              className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-semibold mb-4">Profile Photo</h3>
             <div className="mb-6 flex justify-center">
@@ -500,7 +519,9 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
       {viewOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
-            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">✕</button>
+            <button onClick={() => setViewOrder(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Order Details</h2>
             <div className="space-y-4">
               <div>
@@ -646,7 +667,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Leave a Review</h2>
         <div className="bg-primary-50 dark:bg-primary-900/10 text-blue-800 p-3 rounded-lg text-sm mb-6">
           <strong>Double-Blind Review:</strong> Your review will remain hidden until both you and the other party have submitted feedback. This ensures honest ratings!
@@ -656,7 +679,9 @@ function ReviewModal({ orderId, onClose }: { orderId: string, onClose: () => voi
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Rating</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button type="button" key={star} onClick={() => setRating(star)} className={`text-3xl ${rating >= star ? 'text-yellow-400' : 'text-gray-300'} focus:outline-none`}>★</button>
+                <button type="button" key={star} onClick={() => setRating(star)} className="focus:outline-none transition-transform hover:scale-110">
+                  <Star className={`w-8 h-8 ${rating >= star ? 'text-yellow-400 fill-current' : 'text-gray-300 dark:text-gray-600'}`} />
+                </button>
               ))}
             </div>
           </div>
@@ -896,17 +921,17 @@ function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSu
   const isLate = order.deadline && Date.now() > order.deadline && (order.status === 'active' || order.status === 'revision_requested');
   
   const getStatusChip = (status: string) => {
-    if (isLate) return <span className="bg-red-100 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">⚠ Late Delivery</span>;
+    if (isLate) return <span className="bg-red-105 text-red-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-red-600" /> Late Delivery</span>;
     switch (status) {
       case 'active':
       case 'in_progress':
-        return <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1"><span className="animate-pulse">⏳</span> Active</span>;
+        return <span className="bg-primary-100 dark:bg-primary-900/20 text-blue-805 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"><Clock className="w-4 h-4 text-blue-605 animate-pulse" /> Active</span>;
       case 'submitted':
-        return <span className="bg-purple-100 text-purple-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">👀 In Review</span>;
+        return <span className="bg-purple-100 text-purple-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"><Eye className="w-4 h-4 text-purple-600" /> In Review</span>;
       case 'revision_requested':
-        return <span className="bg-orange-100 text-orange-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🔄 Revision Requested</span>;
+        return <span className="bg-orange-100 text-orange-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"><Clock className="w-4 h-4 text-orange-600" /> Revision Requested</span>;
       case 'completed':
-        return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">🎉 Completed</span>;
+        return <span className="bg-green-100 text-green-800 border-transparent px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-green-600" /> Completed</span>;
       default:
         return <span className="bg-gray-100 dark:bg-dark-surface-2 text-gray-800 dark:text-gray-200 border-transparent px-3 py-1.5 rounded-full text-sm font-bold capitalize">{status.replace('_', ' ')}</span>;
     }
@@ -1000,7 +1025,9 @@ function SubmitWorkModal({ order, onClose }: { order: any, onClose: () => void }
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-650 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Submit Work</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

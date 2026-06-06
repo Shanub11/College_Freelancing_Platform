@@ -1,3 +1,5 @@
+import { CreditCard, Landmark, Lock } from "lucide-react";
+
 /**
  * PaymentMethodBadges - Shows accepted payment methods below pay buttons.
  * 
@@ -29,17 +31,19 @@ export function PaymentMethodBadges() {
           <span className="text-blue-700 font-bold text-xs">Paytm</span>
         </div>
         {/* Cards */}
-        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-1 rounded-md">
-          <span className="text-gray-600 text-xs">💳 Cards</span>
+        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-2 py-1 rounded-md">
+          <CreditCard className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-gray-600 text-xs">Cards</span>
         </div>
         {/* Net Banking */}
-        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-1 rounded-md">
-          <span className="text-gray-600 text-xs">🏦 NetBanking</span>
+        <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 px-2 py-1 rounded-md">
+          <Landmark className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-gray-600 text-xs">NetBanking</span>
         </div>
       </div>
       {/* Trust indicator */}
       <p className="text-[10px] text-gray-400 flex items-center gap-1">
-        <span>🔒</span>
+        <Lock className="w-3 h-3 text-gray-400" />
         <span>Secured by Razorpay · 256-bit SSL encryption</span>
       </p>
     </div>

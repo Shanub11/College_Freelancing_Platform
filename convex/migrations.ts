@@ -2,8 +2,18 @@ import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal as internalApi } from "./_generated/api";
+import type * as adminHelpers from "./adminHelpers";
+import type * as encryptionActions from "./encryptionActions";
+import type { InternalReference } from "./lib/functionRefs";
 
-const internal = internalApi as any;
+const internal = internalApi as unknown as {
+  adminHelpers: {
+    checkIsAdminById: InternalReference<typeof adminHelpers.checkIsAdminById>;
+  };
+  encryptionActions: {
+    encryptStoredMessage: InternalReference<typeof encryptionActions.encryptStoredMessage>;
+  };
+};
 
 // ============================================================
 // MIGRATION FUNCTIONS - ADMIN ONLY
@@ -33,8 +43,8 @@ export const fixBudgets = mutation({
     for (const project of projects) {
       if (project.budget && typeof project.budget === "object") {
         const flatBudget = 
-          (project.budget as any).max || 
-          (project.budget as any).min || 
+          project.budget.max || 
+          project.budget.min || 
           0;
         await ctx.db.patch(project._id, { budget: flatBudget });
         count++;

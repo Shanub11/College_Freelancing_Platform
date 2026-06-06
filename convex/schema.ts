@@ -12,6 +12,7 @@ const applicationTables = {
     lastName: v.string(),
     profilePicture: v.optional(v.id("_storage")),
     bio: v.optional(v.string()),
+    tagline: v.optional(v.string()),
     // Freelancer specific fields
     collegeName: v.optional(v.string()),
     collegeEmail: v.optional(v.string()),
@@ -344,6 +345,12 @@ const applicationTables = {
   })
     .index("by_orderId", ["orderId"])
     .index("by_razorpayOrderId", ["razorpayOrderId"]),
+
+  razorpayWebhookEvents: defineTable({
+    eventId: v.string(),
+    eventType: v.string(),
+    processedAt: v.number(),
+  }).index("by_eventId", ["eventId"]),
 
   // Activity Logs for Admin
   activityLogs: defineTable({

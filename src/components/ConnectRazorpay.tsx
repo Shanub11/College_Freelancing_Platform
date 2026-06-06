@@ -4,14 +4,18 @@ import { useState } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 
-export function ConnectRazorpay({ userId, email, name }: { userId: Id<"users">, email: string, name: string }) {
+// userId prop is kept for parent-side use (display, etc.) but is NO longer
+// forwarded to onboardFreelancer — the server action now derives userId from
+// the authenticated session to prevent auth-bypass (see C3 fix in paymentActions.ts).
+export function ConnectRazorpay({ userId: _userId, email, name }: { userId: Id<"users">, email: string, name: string }) {
   const onboard = useAction(api.paymentActions.onboardFreelancer);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConnect = async () => {
     setIsLoading(true);
     try {
-      const accountId = await onboard({ userId, email, name });
+      // userId is intentionally omitted — the action uses the session identity.
+      const accountId = await onboard({ email, name });
       toast.success(`Razorpay Account Connected! ID: ${accountId}`);
     } catch (error) {
       console.error("Onboarding failed:", error);
@@ -30,4 +34,4 @@ export function ConnectRazorpay({ userId, email, name }: { userId: Id<"users">, 
       {isLoading ? "Connecting..." : "Connect Razorpay for Payouts"}
     </button>
   );
-}
+}
