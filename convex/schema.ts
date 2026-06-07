@@ -375,6 +375,30 @@ const applicationTables = {
   })
     .index("by_user_and_action", ["userId", "action"])
     .index("by_timestamp", ["timestamp"]),
+
+  // Contact form submissions (public & authenticated)
+  contactMessages: defineTable({
+    name: v.string(),
+    email: v.string(),
+    subject: v.string(),
+    message: v.string(),
+    projectId: v.optional(v.string()),   // optional project/order reference
+    userId: v.optional(v.id("users")),   // populated if user is logged in
+    status: v.union(
+      v.literal("open"),
+      v.literal("in_progress"),
+      v.literal("resolved")
+    ),
+    source: v.union(
+      v.literal("landing"),        // submitted from landing page (unauthenticated)
+      v.literal("dashboard")       // submitted from within the app (authenticated)
+    ),
+    adminNote: v.optional(v.string()),   // internal note added by admin
+    resolvedAt: v.optional(v.number()), // epoch ms when marked resolved
+  })
+    .index("by_status", ["status"])
+    .index("by_email", ["email"])
+    .index("by_userId", ["userId"]),
 };
 
 export default defineSchema({

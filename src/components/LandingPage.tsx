@@ -2,14 +2,15 @@ import { useRef, useState, useEffect } from "react";
 import { SignInForm } from "../SignInForm";
 import { Helmet } from "react-helmet-async";
 import { useTheme } from "../hooks/useTheme";
-import { 
-  Code, 
-  Paintbrush, 
-  PenTool, 
-  Video, 
-  BookOpen, 
-  TrendingUp, 
-  BarChart3, 
+import { Link } from "react-router-dom";
+import {
+  Code,
+  Paintbrush,
+  PenTool,
+  Video,
+  BookOpen,
+  TrendingUp,
+  BarChart3,
   Smartphone,
   Sparkles,
   ShieldCheck,
@@ -66,9 +67,9 @@ function ThemeToggle() {
   return (
     <button onClick={toggleTheme} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-surface-2 transition-colors" aria-label="Toggle dark mode">
       {resolvedTheme === "dark" ? (
-        <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/></svg>
+        <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
       ) : (
-        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+        <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>
       )}
     </button>
   );
@@ -260,7 +261,7 @@ export function LandingPage() {
             </div>
             <div className="flex justify-center gap-2 mt-6">
               {TESTIMONIALS.map((_, i) => (
-                <button key={i} onClick={() => setCurrentTestimonial(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentTestimonial ? "bg-primary-600 w-8" : "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400"}`} aria-label={`Testimonial ${i+1}`} />
+                <button key={i} onClick={() => setCurrentTestimonial(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === currentTestimonial ? "bg-primary-600 w-8" : "bg-gray-300 dark:bg-gray-700 hover:bg-gray-400"}`} aria-label={`Testimonial ${i + 1}`} />
               ))}
             </div>
           </div>
@@ -276,23 +277,27 @@ export function LandingPage() {
           </div>
           <div className="grid md:grid-cols-2 gap-16">
             {[
-              { title: "For Clients", color: "primary", steps: [
-                { t: "Post a Project", d: "Describe your project, budget, and required skills. Free and takes 2 minutes." },
-                { t: "Receive Proposals", d: "Get proposals from talented, verified college students eager to work." },
-                { t: "Hire & Collaborate", d: "Choose the best student. Use secure payments and easy collaboration." }
-              ]},
-              { title: "For Students", color: "success", steps: [
-                { t: "Create Your Profile", d: "Showcase skills, experience, and portfolio to attract clients." },
-                { t: "Find Projects", d: "Browse projects matching your skills. Send compelling proposals." },
-                { t: "Earn & Build Experience", d: "Get paid, receive feedback, build your portfolio for future career." }
-              ]}
+              {
+                title: "For Clients", color: "primary", steps: [
+                  { t: "Post a Project", d: "Describe your project, budget, and required skills. Free and takes 2 minutes." },
+                  { t: "Receive Proposals", d: "Get proposals from talented, verified college students eager to work." },
+                  { t: "Hire & Collaborate", d: "Choose the best student. Use secure payments and easy collaboration." }
+                ]
+              },
+              {
+                title: "For Students", color: "success", steps: [
+                  { t: "Create Your Profile", d: "Showcase skills, experience, and portfolio to attract clients." },
+                  { t: "Find Projects", d: "Browse projects matching your skills. Send compelling proposals." },
+                  { t: "Earn & Build Experience", d: "Get paid, receive feedback, build your portfolio for future career." }
+                ]
+              }
             ].map(col => (
               <div key={col.title}>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">{col.title}</h3>
                 <div className="space-y-8">
                   {col.steps.map((s, i) => (
                     <div key={i} className="flex gap-4 items-start">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${col.color === "primary" ? "bg-primary-600" : "bg-emerald-600"}`}>{i+1}</div>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${col.color === "primary" ? "bg-primary-600" : "bg-emerald-600"}`}>{i + 1}</div>
                       <div>
                         <h4 className="font-bold text-gray-900 dark:text-white text-lg">{s.t}</h4>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">{s.d}</p>
@@ -448,24 +453,36 @@ export function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4"><div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">CG</span></div><span className="text-xl font-bold">CollegeGig</span></div>
-              <p className="text-gray-400 text-sm">Empowering students. Connecting talent to opportunity.</p>
+              <p className="text-gray-400 text-sm">India's student freelancing marketplace. Empowering students, one gig at a time.</p>
             </div>
             {[
               { title: "For Clients", links: [{ t: "Browse Services", h: "#categories" }, { t: "Post a Project", h: "#" }, { t: "How It Works", h: "#how-it-works" }] },
               { title: "For Students", links: [{ t: "Start Freelancing", h: "#" }, { t: "Success Stories", h: "#" }, { t: "Resources", h: "#" }] },
-              { title: "Support", links: [{ t: "Help Center", h: "#" }, { t: "Contact Us", h: "#" }, { t: "Terms of Service", h: "#" }] },
+              { title: "Platform", links: [{ t: "Help Center", h: "/contact" }, { t: "Contact Us", h: "/contact" }, { t: "Terms of Service", h: "/terms" }, { t: "Privacy Policy", h: "/privacy" }] },
             ].map(col => (
               <div key={col.title}>
                 <h3 className="font-semibold mb-4 text-sm uppercase tracking-wider text-gray-300">{col.title}</h3>
-                <ul className="space-y-2.5">{col.links.map(l => <li key={l.t}><a href={l.h} className="text-gray-400 hover:text-white transition-colors text-sm">{l.t}</a></li>)}</ul>
+                <ul className="space-y-2.5">
+                  {col.links.map(l => (
+                    <li key={l.t}>
+                      {l.h.startsWith("/") ? (
+                        <Link to={l.h} className="text-gray-400 hover:text-white transition-colors text-sm">
+                          {l.t}
+                        </Link>
+                      ) : (
+                        <a href={l.h} className="text-gray-400 hover:text-white transition-colors text-sm">
+                          {l.t}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
           <div className="border-t border-gray-800 mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} CollegeGig. All rights reserved.</p>
-            <p className="text-gray-500 text-xs flex items-center gap-1">
-              Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-current inline mx-0.5" /> for Indian college students
-            </p>
+            <p className="text-gray-400 text-sm">&copy; {new Date().getFullYear()} CollegeGig. All rights reserved. Made in India 🇮🇳</p>
+            <p className="text-gray-500 text-xs">Empowering students. One gig at a time.</p>
           </div>
         </div>
       </footer>

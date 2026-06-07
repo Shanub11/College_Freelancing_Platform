@@ -353,3 +353,95 @@ export const sendPaymentReceivedEmail = internalAction({
     return null;
   },
 });
+
+// ─── Contact Form Notification ─────────────────────────────────────────────
+
+export const sendContactNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    subject: v.string(),
+    messageId: v.id("contactMessages"),
+  },
+  returns: v.null(),
+  handler: async (_ctx, args) => {
+    const siteUrl = process.env.CONVEX_SITE_URL || "https://www.collegegig.in";
+
+    // 1. Notify admin / support team
+    try {
+      const adminSubject = `[CollegeGig Support] New contact message: ${args.subject}`;
+      const adminBody = `
+        <p>A new contact form submission has been received.</p>
+        <table style="background:#f9fafb;border-radius:8px;padding:16px;width:100%;margin:16px 0;">
+          <tr>
+            <td style="color:#6b7280;font-size:14px;padding:4px 8px;">Name</td>
+            <td style="font-weight:700;color:#111827;text-align:right;padding:4px 8px;">${args.name}</td>
+          </tr>
+          <tr>
+            <td style="color:#6b7280;font-size:14px;padding:4px 8px;">Email</td>
+            <td style="font-weight:700;color:#111827;text-align:right;padding:4px 8px;">${args.email}</td>
+          </tr>
+          <tr>
+            <td style="color:#6b7280;font-size:14px;padding:4px 8px;">Subject</td>
+            <td style="font-weight:700;color:#111827;text-align:right;padding:4px 8px;">${args.subject}</td>
+          </tr>
+        </table>
+        <p>View the full message and respond in the admin panel.</p>
+      `;
+
+      await sendBrevoEmail(
+        "support@collegegig.in",
+        "CollegeGig Support",
+        adminSubject,
+        baseTemplate(
+          "New Contact Form Submission",
+          adminBody,
+          `${siteUrl}/admin/contact`,
+          "View in Admin Panel"
+        )
+      );
+    } catch (err) {
+      console.error("[Brevo] Failed to send admin notification for contact form:", err);
+    }
+
+    // 2. Send confirmation email to the user
+    try {
+      const userSubject = "We've received your message — CollegeGig Support";
+      const userBody = `
+        <p>Hi ${args.name},</p>
+        <p>
+          Thank you for reaching out! We've received your message regarding
+          <strong>"${args.subject}"</strong>.
+        </p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
+                    padding:16px;margin:16px 0;">
+          <p style="margin:0;color:#166534;font-weight:600;">What happens next?</p>
+          <p style="margin:8px 0 0 0;color:#15803d;font-size:14px;">
+            Our support team will review your message and get back to you within
+            <strong>1 business day</strong> (Mon–Sat, 9 AM–6 PM IST).
+          </p>
+        </div>
+        <p>
+          If your issue is urgent, you can also email us directly at
+          <a href="mailto:support@collegegig.in" style="color:#2563eb;">support@collegegig.in</a>.
+        </p>
+      `;
+
+      await sendBrevoEmail(
+        args.email,
+        args.name,
+        userSubject,
+        baseTemplate(
+          "We've Got Your Message!",
+          userBody,
+          `${siteUrl}/contact`,
+          "Visit CollegeGig"
+        )
+      );
+    } catch (err) {
+      console.error("[Brevo] Failed to send user confirmation for contact form:", err);
+    }
+
+    return null;
+  },
+});

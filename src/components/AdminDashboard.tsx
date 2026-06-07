@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
@@ -6,8 +6,12 @@ import { Id } from "../../convex/_generated/dataModel";
 import { SignOutButton } from "../SignOutButton";
 import type { ChatOpenData } from "@/lib/profileTypes";
 
+const ContactMessagesPage = lazy(() => import("../pages/admin/ContactMessagesPage"));
+
 export function AdminDashboard({ adminId, onOpenChat }: { adminId?: Id<"users">, onOpenChat?: (data: ChatOpenData) => void }) {
-  const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "tickets">("verifications");
+  const [activeTab, setActiveTab] = useState<"verifications" | "logs" | "tickets" | "contact">("verifications");
+  const contactMessages = useQuery(api.contact.getContactMessages);
+  const openContactCount = (contactMessages ?? []).filter((m) => m.status === "open").length;
   const [expandedRequestId, setExpandedRequestId] = useState<Id<"verificationRequests"> | null>(null);
   const pendingVerifications = useQuery(api.profiles.getPendingVerifications) || [];
   const approve = useMutation(api.profiles.approveVerification);
@@ -75,6 +79,21 @@ export function AdminDashboard({ adminId, onOpenChat }: { adminId?: Id<"users">,
                 }`}
               >
                 Activity Logs
+              </button>
+              <button
+                onClick={() => setActiveTab("contact")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  activeTab === "contact"
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Contact Messages
+                {openContactCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
+                    {openContactCount}
+                  </span>
+                )}
               </button>
             </div>
             <SignOutButton />
@@ -169,6 +188,10 @@ export function AdminDashboard({ adminId, onOpenChat }: { adminId?: Id<"users">,
             </div>
           ) : activeTab === "tickets" ? (
             <TicketsList adminId={adminId} onOpenChat={onOpenChat} />
+          ) : activeTab === "contact" ? (
+            <Suspense fallback={<div className="p-12 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" /></div>}>
+              <ContactMessagesPage />
+            </Suspense>
           ) : (
             <ActivityLogList />
           )}

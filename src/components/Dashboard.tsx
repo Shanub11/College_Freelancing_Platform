@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
 import { useTheme } from "../hooks/useTheme";
+import { useNavigate, useLocation } from "react-router-dom";
 // H1 fix: SupportTicketForm and UserProfile extracted into dedicated component files
-import { SupportTicketForm } from "./SupportTicketForm";
 import { UserProfile } from "./UserProfile";
 import { 
   Settings, 
@@ -23,13 +23,13 @@ import {
   CheckCircle2, 
   Bell, 
   MessageSquare, 
-  Menu 
+  Menu,
+  LifeBuoy
 } from "lucide-react";
-
 function ThemeToggleBtn() {
   const { resolvedTheme, toggleTheme } = useTheme();
   return (
-    <button onClick={toggleTheme} className="relative p-2 text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-xl hover:bg-gray-100 dark:bg-dark-surface-2 dark:hover:bg-dark-surface-2" aria-label="Toggle dark mode">
+    <button onClick={toggleTheme} className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-xl hover:bg-gray-100 dark:bg-dark-surface-2 dark:hover:bg-dark-surface-2" aria-label="Toggle dark mode">
       {resolvedTheme === "dark" ? (
         <svg className="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" /></svg>
       ) : (
@@ -45,6 +45,7 @@ const ClientDashboard = lazy(() => import("./ClientDashboard").then(m => ({ defa
 const AdminDashboard = lazy(() => import("./AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const VerificationUpload = lazy(() => import("./VerificationUpload").then(m => ({ default: m.VerificationUpload })));
 const ChatInterface = lazy(() => import("./Chat").then(m => ({ default: m.ChatInterface })));
+const ContactPage = lazy(() => import("./ContactPage").then(m => ({ default: m.ContactPage })));
 
 import { Id } from "../../convex/_generated/dataModel";
 import type { AppProfile, ChatOpenData } from "@/lib/profileTypes";
@@ -59,6 +60,7 @@ function SidebarIcon({ name }: { name: string }) {
     case "currency": return <IndianRupee className={cls} />;
     case "user": return <User className={cls} />;
     case "headset": return <Headset className={cls} />;
+    case "life-buoy": return <LifeBuoy className={cls} />;
     case "shield": return <Shield className={cls} />;
     case "plus": return <Plus className={cls} />;
     default: return <Settings className={cls} />;
@@ -68,19 +70,20 @@ function SidebarIcon({ name }: { name: string }) {
 
 interface DashboardProps {
   profile: AppProfile;
+  initialTab?: string;
 }
 
-export function Dashboard({ profile }: DashboardProps) {
+export function Dashboard({ profile, initialTab }: DashboardProps) {
   // Check if user is admin
   const isAdmin = useQuery(api.profiles.checkIsAdmin);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string | null>(initialTab || null);
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [supportOrderId, setSupportOrderId] = useState<Id<"orders"> | null>(null);
-  const [supportProjectId, setSupportProjectId] = useState<Id<"projectRequests"> | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
@@ -166,14 +169,13 @@ export function Dashboard({ profile }: DashboardProps) {
   useEffect(() => {
     // This effect runs when isAdmin is no longer undefined (i.e., loaded).
     if (isAdmin !== undefined) {
-      setActiveTab(isAdmin ? "admin" : "browse");
+      const stateTab = location.state?.activeTab;
+      setActiveTab(initialTab || stateTab || (isAdmin ? "admin" : "browse"));
     }
-  }, [isAdmin]);
+  }, [isAdmin, initialTab, location.state]);
 
   const handleOpenSupport = (orderId?: string, projectId?: string) => {
-    setSupportOrderId((orderId as Id<"orders">) || null);
-    setSupportProjectId((projectId as Id<"projectRequests">) || null);
-    setActiveTab("support");
+    navigate("/contact", { state: { projectId: projectId || orderId } });
   };
 
   let tabs: { id: string; label: string; icon: string }[] = [];
@@ -186,7 +188,7 @@ export function Dashboard({ profile }: DashboardProps) {
       { id: "orders", label: "Orders", icon: "clipboard" },
       { id: "earnings", label: "Earnings", icon: "currency" },
       { id: "profile", label: "My Profile", icon: "user" },
-      { id: "support", label: "Help & Support", icon: "headset" },
+      { id: "contact", label: "Help & Support", icon: "life-buoy" },
     ];
     // If freelancer is not verified, add verification tab
     if (!profile.isVerified) {
@@ -199,7 +201,7 @@ export function Dashboard({ profile }: DashboardProps) {
       { id: "orders", label: "Orders", icon: "briefcase" },
       { id: "post-project", label: "Post Project", icon: "plus" },
       { id: "profile", label: "My Profile", icon: "user" },
-      { id: "support", label: "Help & Support", icon: "headset" },
+      { id: "contact", label: "Help & Support", icon: "life-buoy" },
     ];
   }
 
@@ -435,6 +437,9 @@ export function Dashboard({ profile }: DashboardProps) {
                 <button
                   key={tab.id}
                   onClick={() => {
+                    if (location.pathname !== "/dashboard") {
+                      navigate("/dashboard", { state: { activeTab: tab.id } });
+                    }
                     setActiveTab(tab.id);
                     setIsSidebarOpen(false);
                   }}
@@ -451,10 +456,13 @@ export function Dashboard({ profile }: DashboardProps) {
 
             <nav className="bg-white dark:bg-dark-surface rounded-2xl border border-gray-100 dark:border-dark-border p-4 shadow-sm md:h-[calc(100vh-8rem)] md:min-h-[500px] flex flex-col justify-between overflow-y-auto no-scrollbar flex-1 md:flex-initial pb-safe-area-inset-bottom">
               <div className="space-y-1.5">
-                {tabs.filter(t => t.id !== "profile" && t.id !== "support").map((tab) => (
+                {tabs.filter(t => t.id !== "profile" && t.id !== "contact").map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => {
+                      if (location.pathname !== "/dashboard") {
+                        navigate("/dashboard", { state: { activeTab: tab.id } });
+                      }
                       setActiveTab(tab.id);
                       setIsSidebarOpen(false);
                     }}
@@ -470,11 +478,18 @@ export function Dashboard({ profile }: DashboardProps) {
               </div>
 
               <div className="space-y-1.5 pt-4 border-t border-gray-100 dark:border-dark-border mt-auto">
-                {tabs.filter(t => t.id === "profile" || t.id === "support").map((tab) => (
+                {tabs.filter(t => t.id === "profile" || t.id === "contact").map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id);
+                      if (tab.id === "contact") {
+                        navigate("/contact");
+                      } else {
+                        if (location.pathname !== "/dashboard") {
+                          navigate("/dashboard", { state: { activeTab: tab.id } });
+                        }
+                        setActiveTab(tab.id);
+                      }
                       setIsSidebarOpen(false);
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-150 group ${activeTab === tab.id
@@ -518,7 +533,7 @@ export function Dashboard({ profile }: DashboardProps) {
                 </>
               )}
               {activeTab === "profile" && <UserProfile profile={profile} onEditPhoto={() => setShowProfilePhotoModal(true)} />}
-              {activeTab === "support" && <SupportTicketForm initialOrderId={supportOrderId} initialProjectId={supportProjectId} />}
+              {activeTab === "contact" && <ContactPage />}
             </Suspense>
           </div>
         </div>

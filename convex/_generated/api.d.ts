@@ -12,6 +12,7 @@ import type * as adminHelpers from "../adminHelpers.js";
 import type * as auth from "../auth.js";
 import type * as categories from "../categories.js";
 import type * as chat from "../chat.js";
+import type * as contact from "../contact.js";
 import type * as disputes from "../disputes.js";
 import type * as email from "../email.js";
 import type * as encryptionActions from "../encryptionActions.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   categories: typeof categories;
   chat: typeof chat;
+  contact: typeof contact;
   disputes: typeof disputes;
   email: typeof email;
   encryptionActions: typeof encryptionActions;
