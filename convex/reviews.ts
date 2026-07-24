@@ -15,6 +15,25 @@ export const submitReview = mutation({
     if (!authUserId) throw new Error("Unauthorized");
     const userId = authUserId as Id<"users">;
 
+    // Item 17: Validate rating range server-side.
+    // v.number() only checks type — without this a client could submit
+    // rating: 999 and permanently corrupt a freelancer's average.
+    if (
+      args.rating < 1 ||
+      args.rating > 5 ||
+      !Number.isInteger(args.rating)
+    ) {
+      throw new Error("Rating must be a whole number between 1 and 5.");
+    }
+
+    // Comment length guard
+    if (args.comment.trim().length < 5) {
+      throw new Error("Review comment must be at least 5 characters.");
+    }
+    if (args.comment.length > 1000) {
+      throw new Error("Review comment must be 1000 characters or fewer.");
+    }
+
     const order = await ctx.db.get(args.orderId);
     if (!order) throw new Error("Order not found");
 
@@ -91,14 +110,17 @@ async function updateProfileRating(ctx: MutationCtx, userId: Id<"users">) {
     .query("profiles")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .unique();
-  
+
   if (!profile) return;
 
+  // Item 2: Cap at 1000 to avoid unbounded scans. At 1000 reviews the
+  // average is statistically stable. Use take() instead of collect() so
+  // Convex does not read tens of thousands of rows on popular freelancers.
   const publicReviews = await ctx.db
     .query("reviews")
     .withIndex("by_reviewee", (q) => q.eq("revieweeId", userId))
     .filter((q) => q.eq(q.field("isPublic"), true))
-    .collect();
+    .take(1000);
 
   if (publicReviews.length > 0) {
     const sum = publicReviews.reduce((acc: number, r: any) => acc + r.rating, 0);
@@ -111,11 +133,12 @@ async function updateProfileRating(ctx: MutationCtx, userId: Id<"users">) {
 }
 
 async function updateGigRating(ctx: MutationCtx, gigId: Id<"gigs">) {
+  // Item 4: Cap at 500 to prevent unbounded scans on popular gigs.
   const orders = await ctx.db
     .query("orders")
     .withIndex("by_gig", (q) => q.eq("gigId", gigId))
-    .collect();
-  
+    .take(500);
+
   let sum = 0;
   let count = 0;
 
@@ -126,7 +149,7 @@ async function updateGigRating(ctx: MutationCtx, gigId: Id<"gigs">) {
       .filter((q) => q.eq(q.field("isPublic"), true))
       .filter((q) => q.eq(q.field("reviewerId"), order.clientId))
       .first();
-    
+
     if (review) {
       sum += review.rating;
       count++;
@@ -145,12 +168,24 @@ export const getOrderReviews = query({
   // TODO: Replace v.any() with a precise validator once review shape is stable
   returns: v.any(),
   handler: async (ctx, args) => {
+    // Item 14: Require authentication. Reviews reveal order participants.
+    // Public review display (e.g. freelancer profile page) should use
+    // getPublicReviewsForUser instead, which only returns isPublic: true rows.
     const userId = await getAuthUserId(ctx) as Id<"users"> | null;
-    
+    if (!userId) return [];
+
     const reviews = await ctx.db
       .query("reviews")
       .withIndex("by_order", (q) => q.eq("orderId", args.orderId))
       .collect();
+
+    // Only participants of this order may view its reviews.
+    // Fetch the order to check — if it doesn't exist, return empty.
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return [];
+    if (order.clientId !== userId && order.freelancerId !== userId) {
+      return [];
+    }
 
     // Safe retrieval: Hide content for other's non-public review
     return reviews.map((r) => {

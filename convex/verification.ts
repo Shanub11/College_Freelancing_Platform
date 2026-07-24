@@ -317,7 +317,68 @@ export const verifyOtp = mutation({
       throw new Error("Invalid OTP.");
     }
 
+    // Mark email as verified. The record is consumed (deleted) when the
+    // user submits their full verification request, ensuring the OTP token
+    // can only be used once and stale rows don't accumulate.
     await ctx.db.patch(record._id, { verified: true });
+    return true;
+  },
+});
+
+// ─── Item 22: Client Email Verification ───────────────────────────────────────
+//
+// Clients sign up with any email and get full order-placing privileges with zero
+// verification. This is exploitable (fake emails, spam orders) and means
+// transactional emails go to unconfirmed addresses.
+//
+// Flow:
+//   1. Client clicks "Verify Email" in their dashboard.
+//   2. Frontend calls api.verification.sendOtpEmail({ email: user.email }).
+//      (Reuses the same Brevo OTP action used for freelancer college email.)
+//   3. Client enters the 6-digit code.
+//   4. Frontend calls api.verification.verifyClientEmail({ email, otp }).
+//   5. On success, profile.emailVerified is set to true.
+//   6. createDirectOrder checks emailVerified before allowing an order.
+
+export const verifyClientEmail = mutation({
+  args: { email: v.string(), otp: v.string() },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    await enforceRateLimit(
+      ctx,
+      userId as Id<"users">,
+      "otp_verify",
+      5,
+      15 * 60 * 1000,
+      "Too many OTP attempts. Please request a new code later."
+    );
+
+    const record = await ctx.db
+      .query("emailVerifications")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (!record) throw new Error("No OTP requested for this email.");
+    if (Date.now() > record.expiresAt) throw new Error("OTP has expired. Please request a new one.");
+    if (record.otp !== args.otp) {
+      throw new Error("Invalid OTP.");
+    }
+
+    // Consume the OTP record immediately — single-use.
+    await ctx.db.delete(record._id);
+
+    // Mark the profile as email-verified.
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+
+    if (!profile) throw new Error("Profile not found.");
+
+    await ctx.db.patch(profile._id, { emailVerified: true });
     return true;
   },
 });

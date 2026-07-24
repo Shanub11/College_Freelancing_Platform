@@ -6,6 +6,7 @@ import { Id } from "../../convex/_generated/dataModel";
 import { Helmet } from "react-helmet-async";
 import { sanitizeText } from "@/lib/sanitize";
 import { ArrowLeft, Star, CheckCircle2, CreditCard } from "lucide-react";
+import { toast } from "sonner";
 
 export function ProjectDetailsPage() {
   const { projectId } = useParams<{ projectId: Id<"projectRequests"> }>();
@@ -22,6 +23,16 @@ export function ProjectDetailsPage() {
     api.projects.getClientPublicProfile,
     project?.clientId ? { userId: project.clientId } : "skip"
   );
+
+  const profile = useQuery(api.profiles.getCurrentProfile);
+
+  const handleApplyClick = (e: React.MouseEvent) => {
+    if (profile && profile.userType === "freelancer" && !profile.isVerified) {
+      e.preventDefault();
+      toast.error("You must verify your account before applying for projects.");
+      navigate("/dashboard", { state: { activeTab: "verification" } });
+    }
+  };
 
   if (project === undefined) {
     return (
@@ -182,6 +193,7 @@ export function ProjectDetailsPage() {
 
                 <Link
                   to={`/projects/${project._id}/propose`}
+                  onClick={handleApplyClick}
                   className="btn-primary w-full block text-center !py-3.5"
                 >
                   Apply Now

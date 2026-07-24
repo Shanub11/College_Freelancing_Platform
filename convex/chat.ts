@@ -17,12 +17,20 @@ export const getOrCreateConversation = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
+    // SECURITY: The caller must be one of the two declared participants.
+    // Without this check, any logged-in user could create a conversation
+    // between two arbitrary third parties who never consented to talk.
+    if (userId !== args.clientId && userId !== args.freelancerId) {
+      throw new Error("Unauthorized: you can only start conversations you are part of.");
+    }
+
     // RACE CONDITION FIX: Use deterministic participant IDs.
     // Sort both user IDs so the pair is always stored in the same order
     // regardless of who initiates — this prevents duplicate conversations.
     const ids = [args.clientId as string, args.freelancerId as string].sort();
     const participant1Id = ids[0] as Id<"users">;
     const participant2Id = ids[1] as Id<"users">;
+
 
     // Primary lookup: use the deterministic index (fast, no duplicates).
     const existingByParticipants = await ctx.db
@@ -308,6 +316,20 @@ export const markAsRead = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
 
+    // SECURITY: Verify the caller is a participant in this conversation.
+    // Without this check any authenticated user could clear another user's
+    // unread count and mark their messages as seen.
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return null;
+
+    const isParticipant =
+      conversation.clientId === userId ||
+      conversation.freelancerId === userId;
+
+    if (!isParticipant) {
+      throw new Error("Unauthorized: you are not part of this conversation.");
+    }
+
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation_and_seen", (q) => 
@@ -320,13 +342,11 @@ export const markAsRead = mutation({
       await ctx.db.patch(msg._id, { seen: true });
     }
 
-    const conversation = await ctx.db.get(args.conversationId);
-    if (conversation) {
-      if (userId === conversation.clientId) {
-        await ctx.db.patch(args.conversationId, { clientUnreadCount: 0 });
-      } else {
-        await ctx.db.patch(args.conversationId, { freelancerUnreadCount: 0 });
-      }
+    // Use the already-fetched conversation — no second db.get() needed.
+    if (userId === conversation.clientId) {
+      await ctx.db.patch(args.conversationId, { clientUnreadCount: 0 });
+    } else {
+      await ctx.db.patch(args.conversationId, { freelancerUnreadCount: 0 });
     }
 
     return null;

@@ -1,6 +1,6 @@
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { Toucan } from "toucan-js";
+import { SimpleSentry } from "./lib/sentry";
 
 declare const process: any;
 
@@ -22,10 +22,7 @@ async function sha256Hex(value: string): Promise<string> {
 
 export const handleRazorpayWebhook = httpAction(async (ctx, request) => {
   // Initialize Sentry for Convex (V8 Isolate environment)
-  const sentry = new Toucan({
-    dsn: process.env.SENTRY_DSN || "",
-    request,
-  });
+  const sentry = new SimpleSentry(process.env.SENTRY_DSN || "");
 
   const signature = request.headers.get("x-razorpay-signature");
   const body = await request.text();

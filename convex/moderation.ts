@@ -200,12 +200,15 @@ export async function enforceModeration(
       timestamp: Date.now(),
     });
 
+    // FIX Item 11: Use .take(10) instead of .collect() — we only need to know
+    // whether violations >= 3, so reading more than 10 rows is wasteful and
+    // lets adversarial users create an ever-growing scan on every message send.
     const pastViolations = await ctx.db
       .query("activityLogs")
       .withIndex("by_user_and_action", (q) =>
         q.eq("userId", userId).eq("action", "Content Moderation Violation")
       )
-      .collect();
+      .take(10);
 
     if (pastViolations.length >= 3) {
       throw new Error(

@@ -21,6 +21,7 @@ import type * as gigs from "../gigs.js";
 import type * as http from "../http.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_functionRefs from "../lib/functionRefs.js";
+import type * as lib_sentry from "../lib/sentry.js";
 import type * as logs from "../logs.js";
 import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/encryption": typeof lib_encryption;
   "lib/functionRefs": typeof lib_functionRefs;
+  "lib/sentry": typeof lib_sentry;
   logs: typeof logs;
   migrations: typeof migrations;
   moderation: typeof moderation;

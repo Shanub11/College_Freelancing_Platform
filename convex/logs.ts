@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -25,7 +25,7 @@ export const getLogs = query({
     if (args.date) {
       const start = new Date(args.date).getTime();
       const end = start + 24 * 60 * 60 * 1000; // End of the day
-      logsQuery = ctx.db.query("activityLogs").withIndex("by_timestamp", (q) => 
+      logsQuery = ctx.db.query("activityLogs").withIndex("by_timestamp", (q) =>
         q.gte("timestamp", start).lt("timestamp", end)
       );
     } else {
@@ -49,7 +49,7 @@ export const getLogs = query({
     }
 
     // Apply Action and User Filters
-    // Also exclude ratelimit:* entries — those are now in the rateLimits 
+    // Also exclude ratelimit:* entries — those are now in the rateLimits
     // table. Legacy ratelimit:* entries in activityLogs are hidden here.
     const logs = await logsQuery
       .order("desc")
@@ -72,7 +72,7 @@ export const getLogs = query({
         if (args.action) filters.push(q.eq(q.field("action"), args.action));
         if (matchingUserIds) filters.push(q.or(...matchingUserIds.map(id => q.eq(q.field("userId"), id))));
         else if (args.userId) filters.push(q.eq(q.field("userId"), args.userId));
-        
+
         return filters.length > 0 ? q.and(...filters) : true;
       })
       .take(50);
@@ -96,23 +96,7 @@ export const getLogs = query({
   },
 });
 
-export const logActivity = mutation({
-  args: {
-    action: v.string(),
-    details: v.string(),
-    relatedId: v.optional(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    await ctx.db.insert("activityLogs", {
-      ...args,
-      userId,
-      timestamp: Date.now(),
-    });
-
-    return null;
-  },
-});
+// logActivity public mutation was removed — it let any authenticated user
+// insert arbitrary strings into the admin audit log with user-controlled
+// action and details. All legitimate logging is done server-side inside
+// individual mutations with hardcoded action names.

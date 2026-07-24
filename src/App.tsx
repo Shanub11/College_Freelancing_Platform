@@ -13,6 +13,8 @@ const SubmitProposalPage = lazy(() => import("./components/SubmitProposalPage").
 const ProjectDetailsPage = lazy(() => import("./components/ProjectDetailsPage").then(m => ({ default: m.ProjectDetailsPage })));
 const LandingPage = lazy(() => import("./components/LandingPage").then(m => ({ default: m.LandingPage })));
 const ContactPage = lazy(() => import("./components/ContactPage").then(m => ({ default: m.ContactPage })));
+const TermsOfServicePage = lazy(() => import("./components/TermsOfService").then(m => ({ default: m.TermsOfService })));
+const PrivacyPolicyPage = lazy(() => import("./components/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
 
 function BrandedLoader() {
   return (
@@ -93,6 +95,8 @@ export default function App() {
                 <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
                 <Route path="/projects/:projectId/propose" element={<SubmitProposalPage />} />
                 <Route path="/contact" element={<AuthenticatedApp initialTab="contact" />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/help" element={<Navigate to="/contact" replace />} />
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Routes>
@@ -103,18 +107,8 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/contact" element={<PublicContactPage />} />
-                <Route path="/terms" element={
-                  <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Terms of Service</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Coming soon. Contact us at support@collegegig.in for questions.</p>
-                  </div>
-                } />
-                <Route path="/privacy" element={
-                  <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Privacy Policy</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Coming soon. Contact us at support@collegegig.in for questions.</p>
-                  </div>
-                } />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Suspense>

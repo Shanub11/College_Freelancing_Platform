@@ -41,7 +41,13 @@ function createRazorpayClient(): Razorpay {
   });
 }
 
-async function releaseEscrowByPaymentId(ctx: any, paymentId: string) {
+/**
+ * Shared private helper: executes the actual Razorpay transfer and marks
+ * the payment as released. Called by BOTH completion paths below.
+ * Keep this function free of path-specific logic — route-specific audit
+ * logging or transfer overrides must live in the caller, not here.
+ */
+async function doReleaseEscrow(ctx: any, paymentId: string) {
   const payment = await ctx.runQuery(internal.payments.getPayment, {
     paymentId,
   });
@@ -132,35 +138,10 @@ export const createRazorpayOrder = action({
   },
 });
 
-export const onboardFreelancer = action({
-  args: {
-    // FIX C3: userId arg removed — we now derive it from the authenticated session.
-    // Accepting an arbitrary userId allowed any user to link a Razorpay account to
-    // another user's profile (auth bypass). The caller can only onboard themselves.
-    email: v.string(),
-    name: v.string(),
-  },
-  returns: v.string(),
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+// onboardFreelancer was removed — legacy action superseded by
+// saveBankDetailsAndStartRouteOnboarding which includes full KYC data.
+// No frontend code references this action.
 
-    const razorpay = createRazorpayClient();
-
-    const account: any = await razorpay.accounts.create({
-      email: args.email,
-      legal_business_name: args.name,
-      type: "route",
-    } as any);
-
-    await ctx.runMutation(internal.payments.saveFreelancerAccountId, {
-      userId,
-      razorpayAccountId: account.id,
-    });
-
-    return account.id;
-  },
-});
 
 export const releaseEscrow = action({
   args: { paymentId: v.id("payments") },
@@ -175,7 +156,7 @@ export const releaseEscrow = action({
 
     if (!payment) throw new Error("Payment not found");
 
-    const { freelancerProfile, order } = await ctx.runQuery(internal.payments.getOrderAndFreelancer, {
+    const { freelancerProfile: _fp, order } = await ctx.runQuery(internal.payments.getOrderAndFreelancer, {
       orderId: payment.orderId,
     });
 
@@ -186,7 +167,7 @@ export const releaseEscrow = action({
       throw new Error("Unauthorized: only the client or an admin can release escrow");
     }
 
-    await releaseEscrowByPaymentId(ctx, args.paymentId);
+    await doReleaseEscrow(ctx, args.paymentId);
     return null;
   },
 });
@@ -384,6 +365,12 @@ export const saveBankDetailsAndStartRouteOnboarding = action({
   },
 });
 
+/**
+ * DISPUTE PATH: Admin resolves a dispute in the freelancer's favour.
+ * Calls the shared doReleaseEscrow helper. If dispute-specific logic is
+ * ever added (partial release, different audit trail), add it HERE, not
+ * in doReleaseEscrow or releaseEscrowForNormalCompletion.
+ */
 export const releaseEscrowForDispute = internalAction({
   args: { orderId: v.id("orders") },
   returns: v.null(),
@@ -393,7 +380,26 @@ export const releaseEscrowForDispute = internalAction({
     });
     if (!payment) throw new Error("Payment not found for order");
 
-    await releaseEscrowByPaymentId(ctx, payment._id);
+    await doReleaseEscrow(ctx, payment._id);
+    return null;
+  },
+});
+
+/**
+ * NORMAL COMPLETION PATH: Client approves delivered work (or auto-complete timer fires).
+ * Calls the shared doReleaseEscrow helper. If normal-completion-specific logic is
+ * ever added (e.g., rating prompt, loyalty rewards), add it HERE.
+ */
+export const releaseEscrowForNormalCompletion = internalAction({
+  args: { orderId: v.id("orders") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const payment = await ctx.runQuery(internal.payments.getPaymentByOrderId, {
+      orderId: args.orderId,
+    });
+    if (!payment) throw new Error("Payment not found for order");
+
+    await doReleaseEscrow(ctx, payment._id);
     return null;
   },
 });

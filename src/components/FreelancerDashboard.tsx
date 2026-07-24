@@ -78,6 +78,7 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const updateProfile = useMutation((api as any).profiles.updateProfile);
   const validateUpload = useMutation(api.storage.validateUpload);
+  const toggleGigStatus = useMutation(api.gigs.toggleGigStatus);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDispute = (orderId: string, projectId?: string) => {
@@ -256,7 +257,17 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                     >
                       Edit
                     </button>
-                    <button className="flex-1 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const newStatus = await toggleGigStatus({ gigId: gig._id });
+                          toast.success(newStatus ? "Gig activated!" : "Gig paused.");
+                        } catch (err: any) {
+                          toast.error(err.message || "Failed to update gig status.");
+                        }
+                      }}
+                      className="flex-1 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
+                    >
                       {gig.isActive ? "Pause" : "Activate"}
                     </button>
                   </div>
@@ -400,7 +411,17 @@ export function FreelancerDashboard({ profile, activeTab, onOpenSupport }: Freel
                       </div>
                     </div>
                     <button 
-                      onClick={() => navigate(`/projects/${project._id}/propose`)}
+                      onClick={() => {
+                        if (!profile.isVerified) {
+                          toast.error("Please verify your account before applying for projects.", {
+                            description: "Go to your dashboard → Verify Account tab to get verified.",
+                            duration: 5000,
+                          });
+                          navigate("/dashboard?tab=verification");
+                          return;
+                        }
+                        navigate(`/projects/${project._id}/propose`);
+                      }}
                       className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700"
                     >
                       Apply Now

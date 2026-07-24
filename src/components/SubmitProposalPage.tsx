@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Id } from "../../convex/_generated/dataModel";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle2, Info } from "lucide-react";
 
 interface ProposalFormData {
@@ -20,6 +20,16 @@ export function SubmitProposalPage() {
   const project = useQuery(api.projectRequests.getProjectRequestById, {
     projectId: projectId!,
   });
+  
+  const profile = useQuery(api.profiles.getCurrentProfile);
+
+  useEffect(() => {
+    if (profile && profile.userType === "freelancer" && !profile.isVerified) {
+      toast.error("You must verify your account before submitting proposals.");
+      navigate("/dashboard", { state: { activeTab: "verification" } });
+    }
+  }, [profile, navigate]);
+
   const createProposal = useMutation(api.projectRequests.createProposal);
   const {
     register,

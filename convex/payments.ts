@@ -356,18 +356,7 @@ export const markAsRefunded = internalMutation({
   },
 });
 
-export const devSetFreelancerPayoutReady = mutation({
-  args: { userId: v.id("users"), isPayoutReady: v.boolean() },
-  handler: async (ctx, args) => {
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .unique();
-    if (!profile) throw new Error("Profile not found");
-    await ctx.db.patch(profile._id, {
-      isPayoutReady: args.isPayoutReady,
-      payoutOnboardingStatus: args.isPayoutReady ? "activated" : "failed",
-    });
-    return null;
-  }
-});
+
+// devSetFreelancerPayoutReady was removed — it had NO auth check and could be
+// called by any logged-in user to bypass Razorpay payout onboarding for any profile.
+

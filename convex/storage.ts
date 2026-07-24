@@ -62,10 +62,12 @@ async function userCanDeleteFile(
     }
   }
 
+  // FIX Item 23: Cap all queries with .take(200) to avoid unbounded full-table
+  // scans for power users who have many records.
   const verificationRequests = await ctx.db
     .query("verificationRequests")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+    .take(200);
   if (
     verificationRequests.some(
       (request) =>
@@ -79,7 +81,7 @@ async function userCanDeleteFile(
   const gigs = await ctx.db
     .query("gigs")
     .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
-    .collect();
+    .take(200);
   if (gigs.some((gig) => storageIdInArray(gig.images, storageId))) {
     return true;
   }
@@ -87,7 +89,7 @@ async function userCanDeleteFile(
   const projects = await ctx.db
     .query("projectRequests")
     .withIndex("by_client", (q) => q.eq("clientId", userId))
-    .collect();
+    .take(200);
   if (projects.some((project) => storageIdInArray(project.attachments, storageId))) {
     return true;
   }
@@ -95,7 +97,7 @@ async function userCanDeleteFile(
   const proposals = await ctx.db
     .query("proposals")
     .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
-    .collect();
+    .take(200);
   if (proposals.some((proposal) => storageIdInArray(proposal.attachments, storageId))) {
     return true;
   }
@@ -103,11 +105,11 @@ async function userCanDeleteFile(
   const clientOrders = await ctx.db
     .query("orders")
     .withIndex("by_client", (q) => q.eq("clientId", userId))
-    .collect();
+    .take(200);
   const freelancerOrders = await ctx.db
     .query("orders")
     .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
-    .collect();
+    .take(200);
   if (
     [...clientOrders, ...freelancerOrders].some((order) =>
       storageIdInArray(order.deliverables, storageId)

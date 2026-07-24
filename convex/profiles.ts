@@ -153,9 +153,8 @@ export const createProfile = mutation({
 
     // Admin status must NEVER be set by email pattern matching.
     // To grant admin access: go to Convex Dashboard → Data → profiles table →
-    // find the user's profile document → manually set isAdmin: true and 
+    // find the user's profile document → manually set isAdmin: true and
     // userType: "admin" directly in the dashboard.
-    const isAdmin = false;
     const userType = args.userType;
 
     const profileId = await ctx.db.insert("profiles", {
@@ -246,6 +245,10 @@ export const submitForVerification = mutation({
       ...args,
     });
 
+    // FIX Item 16: Delete the verified OTP record after it is consumed so
+    // stale rows don't accumulate in emailVerifications and the OTP cannot be replayed.
+    await ctx.db.delete(emailRecord._id);
+
     // Log activity
     await ctx.db.insert("activityLogs", {
       action: "Verification Requested",
@@ -312,7 +315,6 @@ export const updateProfile = mutation({
 
     if (!profile) throw new Error("Profile not found");
 
-
     const fieldsToCheck = [
       { fieldName: "bio", value: args.bio || "" },
       { fieldName: "company name", value: args.company || "" },
@@ -320,13 +322,13 @@ export const updateProfile = mutation({
 
     if (args.portfolioItems) {
       for (const item of args.portfolioItems) {
-        fieldsToCheck.push({ 
-          fieldName: `portfolio item "${item.title}" description`, 
-          value: item.description 
+        fieldsToCheck.push({
+          fieldName: `portfolio item "${item.title}" description`,
+          value: item.description
         });
-        fieldsToCheck.push({ 
-          fieldName: `portfolio item "${item.title}" link`, 
-          value: item.link || "" 
+        fieldsToCheck.push({
+          fieldName: `portfolio item "${item.title}" link`,
+          value: item.link || ""
         });
       }
     }
@@ -437,14 +439,14 @@ export const getFreelancers = query({
     // Perform full-text database search if skills are provided
     if (args.skills && args.skills.length > 0) {
       const searchTerm = args.skills.join(" ");
-      
+
       return await ctx.db
         .query("profiles")
         .withSearchIndex("search_skills", (q) => {
           const search = q.search("skills", searchTerm)
             .eq("userType", "freelancer")
             .eq("isVerified", true);
-            
+
           if (args.college) {
             return search.eq("collegeName", args.college);
           }
@@ -465,7 +467,7 @@ export const getFreelancers = query({
     }
 
     return await query
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("isVerified"), true),
           q.eq(q.field("userType"), "freelancer") // Ensure we restrict to freelancers even if we used by_college index

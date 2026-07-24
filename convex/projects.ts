@@ -110,29 +110,27 @@ export const getProjects = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // FIX H4: Require auth so unauthenticated scrapers cannot enumerate all projects.
-    // Also filter to "open" status only — completed/cancelled/disputed records
-    // contain sensitive requirement details that should not be publicly browsable.
+    // Require auth so unauthenticated scrapers cannot enumerate all projects.
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
     const cap = Math.min(args.limit || 20, 50); // hard cap at 50
 
     if (args.category) {
+      // Use by_status index first (index scan on "open"), then filter by category.
+      // This avoids a full-table scan as the table grows large.
       return await ctx.db
         .query("projectRequests")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("category"), args.category),
-            q.eq(q.field("status"), "open")
-          )
-        )
+        .withIndex("by_status", (q) => q.eq("status", "open"))
+        .filter((q) => q.eq(q.field("category"), args.category))
         .order("desc")
         .take(cap);
     }
+
+    // No category — use the by_status index directly.
     return await ctx.db
       .query("projectRequests")
-      .filter((q) => q.eq(q.field("status"), "open"))
+      .withIndex("by_status", (q) => q.eq("status", "open"))
       .order("desc")
       .take(cap);
   },
@@ -176,7 +174,9 @@ export const getProjectById = query({
       .first();
 
     if (!clientProfile) {
-      throw new Error("Client profile not found for this project");
+      // Return the project with a null client rather than crashing the page.
+      // This can happen if an admin account is deleted while a project remains.
+      return { ...project, client: null, proposalCount: project.proposalCount };
     }
 
     let profilePictureUrl = null;
@@ -195,11 +195,35 @@ export const getProjectById = query({
 export const getProposalsForProject = query({
   args: { projectId: v.id("projectRequests") },
   async handler(ctx, args) {
-    const proposals = await ctx.db
+    // SECURITY: Only the project's client or a freelancer who submitted a
+    // proposal may read proposals. Any other caller gets an empty array.
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const isClient = project.clientId === userId;
+
+    const ownProposal = await ctx.db
       .query("proposals")
-      .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
-      .order("desc")
-      .take(100);
+      .withIndex("by_project_and_freelancer", (q) =>
+        q.eq("projectId", args.projectId).eq("freelancerId", userId)
+      )
+      .first();
+
+    if (!isClient && !ownProposal) return [];
+
+    // Clients see all proposals; freelancers see only their own.
+    const proposals = isClient
+      ? await ctx.db
+          .query("proposals")
+          .withIndex("by_projectId", (q) => q.eq("projectId", args.projectId))
+          .order("desc")
+          .take(100)
+      : ownProposal
+      ? [ownProposal]
+      : [];
 
     const proposalsWithFreelancer = await Promise.all(
       proposals.map(async (p) => {
@@ -442,14 +466,14 @@ export const getClientPublicProfile = query({
     const postedProjects = await ctx.db
       .query("projectRequests")
       .withIndex("by_client", (q) => q.eq("clientId", args.userId))
-      .take(500);
+      .take(50); // FIX Item 13: was .take(500) — fetch only what we need for a count
 
     const completedOrders = await ctx.db
       .query("orders")
-      .withIndex("by_client_and_status", (q) => 
+      .withIndex("by_client_and_status", (q) =>
         q.eq("clientId", args.userId).eq("status", "completed")
       )
-      .take(500);
+      .take(50); // FIX Item 13: was .take(500) — fetch only what we need for a count
 
     const publicReviews = await ctx.db
       .query("reviews")
@@ -565,11 +589,11 @@ export const completeOrderAndReleaseFunds = mutation({
       isRead: false,
     });
 
-    // FIX C5: Trigger the actual Razorpay escrow transfer to the freelancer.
-    // Without this the DB shows "completed" but Razorpay never pays the freelancer.
+    // Trigger the actual Razorpay escrow transfer — uses the NORMAL COMPLETION
+    // path (not the dispute path) so they can diverge independently in future.
     await ctx.scheduler.runAfter(
       0,
-      internal.paymentActions.releaseEscrowForDispute,
+      internal.paymentActions.releaseEscrowForNormalCompletion,
       { orderId: args.orderId }
     );
 
@@ -591,6 +615,39 @@ export const createDirectOrder = mutation({
     const clientId = await getAuthUserId(ctx);
     if (!clientId) {
       throw new Error("You must be logged in to hire a freelancer.");
+    }
+
+    // Prevent a client from hiring themselves.
+    if (clientId === args.freelancerId) {
+      throw new Error("You cannot hire yourself.");
+    }
+
+    // Item 22: Require email verification before placing orders.
+    // This prevents fake-email signups from spamming orders and ensures all
+    // transactional emails reach a real inbox.
+    const clientProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", clientId))
+      .unique();
+    if (!clientProfile?.emailVerified) {
+      throw new Error(
+        "Please verify your email address before placing an order. " +
+        "Go to your dashboard → Settings → Verify Email."
+      );
+    }
+
+    // Validate price and delivery time.
+    if (!Number.isFinite(args.price) || args.price < 50) {
+      throw new Error("Order price must be at least ₹50.");
+    }
+    if (args.price > 500000) {
+      throw new Error("Order price cannot exceed ₹5,00,000. Contact support for larger orders.");
+    }
+    if (!Number.isInteger(args.deliveryTime) || args.deliveryTime < 1) {
+      throw new Error("Delivery time must be at least 1 day.");
+    }
+    if (args.deliveryTime > 365) {
+      throw new Error("Delivery time cannot exceed 365 days.");
     }
 
     const freelancerProfile = await ctx.db
@@ -644,6 +701,14 @@ export const submitDelivery = mutation({
     const userId = await getAuthUserId(ctx);
     const order = await ctx.db.get(args.orderId);
     if (!order || order.freelancerId !== userId) throw new Error("Unauthorized");
+
+    // Validate the delivery link to prevent javascript: / data: XSS vectors.
+    if (args.link !== undefined && args.link !== "") {
+      const trimmed = args.link.trim();
+      if (!/^https?:\/\/.+/i.test(trimmed)) {
+        throw new Error("Delivery link must be a valid URL starting with http:// or https://");
+      }
+    }
 
     const jobId = await ctx.scheduler.runAfter(
       3 * 24 * 60 * 60 * 1000,

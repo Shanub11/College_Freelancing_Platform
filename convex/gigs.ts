@@ -184,8 +184,6 @@ export const getGigs = query({
       gigs = await ctx.db
         .query("gigs")
         .withSearchIndex("search_gigs", (q) => {
-          // BUG FIX: Do not filter by category when it is empty string.
-          // Passing .eq("category", "") to the search index returns zero results.
           const baseSearch = q.search("title", args.search!).eq("isActive", true);
           if (args.category) {
             return baseSearch.eq("category", args.category);
@@ -194,16 +192,27 @@ export const getGigs = query({
         })
         .take(args.limit || 20);
     } else if (args.category) {
+      // Item 12: When price filtering, fetch more rows up-front so the
+      // in-memory filter has a larger pool to work with. The filter runs
+      // after .take() so results can appear empty if the first N rows don't
+      // match the price range. A dedicated by_price index would fix this
+      // properly but requires a schema change.
+      const fetchCount = (args.minPrice !== undefined || args.maxPrice !== undefined)
+        ? Math.min((args.limit || 20) * 5, 100)
+        : (args.limit || 20);
       gigs = await ctx.db
         .query("gigs")
         .withIndex("by_category", (q) => q.eq("category", args.category!))
         .filter((q) => q.eq(q.field("isActive"), true))
-        .take(args.limit || 20);
+        .take(fetchCount);
     } else {
+      const fetchCount = (args.minPrice !== undefined || args.maxPrice !== undefined)
+        ? 100
+        : (args.limit || 20);
       gigs = await ctx.db
         .query("gigs")
         .withIndex("by_active", (q) => q.eq("isActive", true))
-        .take(args.limit || 20);
+        .take(fetchCount);
     }
 
     // Filter by price range
@@ -253,48 +262,20 @@ export const getMyGigs = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
+    // Item 6: Cap at 100 — no freelancer legitimately needs more than this
+    // on a single dashboard load. Use pagination if ever needed beyond 100.
     const gigs = await ctx.db
       .query("gigs")
       .withIndex("by_freelancer", (q) => q.eq("freelancerId", userId))
-      .collect();
+      .take(100);
 
     return gigs;
   },
 });
 
-export const searchGigs = query({
-  args: {
-    searchTerm: v.string(),
-    category: v.optional(v.string()),
-  },
-  returns: v.array(v.object({ ...gigShape, freelancer: v.union(v.null(), v.object(profileShape)) })),
-  handler: async (ctx, args) => {
-    let results = await ctx.db
-      .query("gigs")
-      .withSearchIndex("search_gigs", (q) => 
-        q.search("title", args.searchTerm)
-          .eq("isActive", true)
-      )
-      .take(20);
+// searchGigs was removed — it was a duplicate of getGigs({ search: term }).
+// Use api.gigs.getGigs({ search: ..., category: ... }) from the frontend.
 
-    if (args.category) {
-      results = results.filter(gig => gig.category === args.category);
-    }
-
-    // Get freelancer profiles for each gig
-    const gigsWithProfiles = await Promise.all(
-      results.map(async (gig) => {
-        const freelancer = await ctx.db
-          .query("profiles")
-          .withIndex("by_user", (q) => q.eq("userId", gig.freelancerId))
-          .unique();
-        return { ...gig, freelancer };
-      })
-    );
-
-    return gigsWithProfiles;
-  },
-});
 
 export const updateGig = mutation({
   args: {
@@ -315,6 +296,26 @@ export const updateGig = mutation({
       throw new Error("Gig not found or unauthorized");
     }
 
+    // Item 11: Apply the same server-side validation as createGig so a
+    // freelancer cannot use the update path to bypass the creation rules.
+    if (args.title !== undefined) {
+      if (args.title.trim().length < 10) {
+        throw new Error("Gig title must be at least 10 characters.");
+      }
+      if (args.title.length > 200) {
+        throw new Error("Gig title is too long. Maximum 200 characters.");
+      }
+    }
+    if (args.description !== undefined && args.description.trim().length < 50) {
+      throw new Error("Gig description must be at least 50 characters.");
+    }
+    if (args.basePrice !== undefined && args.basePrice < 50) {
+      throw new Error("Minimum gig price is ₹50.");
+    }
+    if (args.deliveryTime !== undefined && (args.deliveryTime < 1 || args.deliveryTime > 90)) {
+      throw new Error("Delivery time must be between 1 and 90 days.");
+    }
+
     const updates: any = {};
     if (args.title !== undefined) updates.title = args.title;
     if (args.description !== undefined) updates.description = args.description;
@@ -324,5 +325,26 @@ export const updateGig = mutation({
 
     await ctx.db.patch(args.gigId, updates);
     return args.gigId;
+  },
+});
+
+// FIX Item 21: Mutation to toggle a gig between active and paused states.
+export const toggleGigStatus = mutation({
+  args: {
+    gigId: v.id("gigs"),
+  },
+  returns: v.boolean(), // returns the new isActive state
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const gig = await ctx.db.get(args.gigId);
+    if (!gig || gig.freelancerId !== userId) {
+      throw new Error("Gig not found or unauthorized");
+    }
+
+    const newIsActive = !gig.isActive;
+    await ctx.db.patch(args.gigId, { isActive: newIsActive });
+    return newIsActive;
   },
 });

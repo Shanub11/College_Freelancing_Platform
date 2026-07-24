@@ -24,6 +24,13 @@ export const markAsRead = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const notification = await ctx.db.get(args.notificationId);
+    // Only the notification's owner may mark it as read.
+    if (!notification || notification.userId !== userId) return null;
+
     await ctx.db.patch(args.notificationId, { isRead: true });
     return null;
   },
@@ -36,10 +43,12 @@ export const markAllAsRead = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
 
+    // Item 7: Cap at 200 — prevents unbounded scans for users who accumulate
+    // thousands of unread notifications (e.g. very active clients).
     const unreadNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_read_status", (q) => q.eq("userId", userId).eq("isRead", false))
-      .collect();
+      .take(200);
 
     for (const notification of unreadNotifications) {
       await ctx.db.patch(notification._id, { isRead: true });
@@ -54,23 +63,24 @@ export const getProposalWithDetails = query({
     proposalId: v.id("proposals"),
   },
   handler: async (ctx, args) => {
-    const proposal = await ctx.db.get(args.proposalId);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
 
-    if (!proposal) {
-      return null;
-    }
+    const proposal = await ctx.db.get(args.proposalId);
+    if (!proposal) return null;
 
     const project = await ctx.db.get(proposal.projectId);
+    if (!project) throw new Error("Project not found for this proposal");
 
-    if (!project) {
-      throw new Error("Project not found for this proposal");
+    // Only the freelancer who submitted, or the client who owns it, may view details.
+    if (proposal.freelancerId !== userId && project.clientId !== userId) {
+      return null;
     }
 
     return {
       ...proposal,
       projectTitle: project.title,
       clientId: project.clientId,
-      // We can enrich this with more data as needed, e.g., client/freelancer profiles
     };
   },
 });
@@ -118,7 +128,7 @@ export const acceptProposal = mutation({
 
     // Mark proposal as payment pending instead of accepted
     await ctx.db.patch(args.proposalId, { status: "payment_pending" });
-    
+
     const platformFee = Math.round(proposalToAccept.proposedPrice * 0.10);
     const freelancerPayout = proposalToAccept.proposedPrice - platformFee;
 
@@ -159,9 +169,7 @@ export const acceptProposal = mutation({
     if (freelancerUser?.email) {
       const latestFreelancerProfile = await ctx.db
         .query("profiles")
-        .withIndex("by_user", (q) =>
-          q.eq("userId", proposalToAccept.freelancerId)
-        )
+        .withIndex("by_user", (q) => q.eq("userId", proposalToAccept.freelancerId))
         .unique();
 
       await ctx.scheduler.runAfter(
@@ -219,9 +227,5 @@ export const rejectProposal = mutation({
   },
 });
 
-export const getProposalsDev = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("proposals").collect();
-  },
-});
+// getProposalsDev was removed — it returned ALL proposals with zero auth check.
+// Use getProposalsForProject (projectRequests.ts) which enforces client/freelancer ownership.

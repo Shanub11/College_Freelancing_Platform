@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
@@ -119,29 +119,34 @@ export const createProposal = mutation({
     const freelancerId = await getAuthUserId(ctx);
 
     if (!freelancerId) {
-
-      throw new Error("You must be logged in to submit a proposal.");
-
+      throw new ConvexError("You must be logged in to submit a proposal.");
     }
 
+    const freelancerProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", freelancerId))
+      .unique();
 
+    if (!freelancerProfile || freelancerProfile.userType !== "freelancer" || !freelancerProfile.isVerified) {
+      throw new ConvexError("You must be a verified freelancer to submit a proposal.");
+    }
 
     // Server-side length validation
     if (args.coverLetter.trim().length < 50) {
-      throw new Error(
+      throw new ConvexError(
         "Cover letter is too short. Please write at least 50 characters."
       );
     }
     if (args.coverLetter.length > 3000) {
-      throw new Error(
+      throw new ConvexError(
         "Cover letter is too long. Maximum 3000 characters allowed."
       );
     }
     if (args.proposedPrice < 50) {
-      throw new Error("Minimum proposal price is ₹50.");
+      throw new ConvexError("Minimum proposal price is ₹50.");
     }
     if (args.deliveryTime < 1 || args.deliveryTime > 365) {
-      throw new Error("Delivery time must be between 1 and 365 days.");
+      throw new ConvexError("Delivery time must be between 1 and 365 days.");
     }
     await enforceModerationOnFields(ctx, freelancerId as Id<"users">, [
       { fieldName: "cover letter", value: args.coverLetter },
@@ -160,7 +165,7 @@ export const createProposal = mutation({
 
     if (!project) {
 
-      throw new Error("Project not found");
+      throw new ConvexError("Project not found");
 
     }
 
@@ -173,7 +178,7 @@ export const createProposal = mutation({
       )
       .first();
     if (existingProposal) {
-      throw new Error("You have already submitted a proposal for this project.");
+      throw new ConvexError("You have already submitted a proposal for this project.");
     }
 
     const proposalId = await ctx.db.insert("proposals", {
@@ -207,10 +212,6 @@ export const createProposal = mutation({
     });
 
     // Send email notification to the client
-    const freelancerProfile = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", freelancerId))
-      .unique();
 
     const clientUser = await ctx.db.get(project.clientId);
 

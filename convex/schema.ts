@@ -54,6 +54,9 @@ const applicationTables = {
     paymentVerified: v.optional(v.boolean()),
     // Admin flag
     isAdmin: v.optional(v.boolean()),
+    // Item 22: Tracks whether the user has verified their login email address
+    // via OTP. Required for clients before they can place orders.
+    emailVerified: v.optional(v.boolean()),
     // Ratings
     averageRating: v.optional(v.number()),
     totalReviews: v.number(),

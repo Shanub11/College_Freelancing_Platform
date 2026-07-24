@@ -65,6 +65,11 @@ export function PayButton({
         name: "CollegeGig",
         description: "Escrow Payment for Order",
         order_id: razorpayOrderId,
+        // SECURITY: Do NOT call any Convex mutation here.
+        // Order activation is handled EXCLUSIVELY by the payment.captured
+        // webhook in convex/razorpay.ts → payments.markAsFunded.
+        // Trusting this client-side callback to mutate state would allow
+        // any user to forge payment by calling the handler directly.
         handler: function (_response: Record<string, unknown>) {
           toast.success(
             "Payment received! Your order will activate shortly once confirmed.",
