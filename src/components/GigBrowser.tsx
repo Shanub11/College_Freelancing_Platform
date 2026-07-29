@@ -18,6 +18,9 @@ interface GigBrowserProps {
 export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [minRating, setMinRating] = useState(""); // "" | "3" | "4" | "4.5"
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [showFilters, setShowFilters] = useState(true);
   const lastScrollY = useRef(0);
@@ -57,8 +60,26 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
         : { limit: 20, category: selectedCategory || undefined }
   );
 
-  const searchResults = results || [];
+  const searchResults = (results || []).filter((item: any) => {
+    if (activeView === "gigs") {
+      const price = item.basePrice ?? 0;
+      const rating = item.averageRating ?? 0;
+      if (minPrice !== "" && price < Number(minPrice)) return false;
+      if (maxPrice !== "" && price > Number(maxPrice)) return false;
+      if (minRating !== "" && rating < Number(minRating)) return false;
+    }
+    return true;
+  });
   const isLoading = results === undefined;
+  const hasActiveFilters = selectedCategory || minPrice || maxPrice || minRating;
+
+  const clearAllFilters = () => {
+    setSelectedCategory("");
+    setMinPrice("");
+    setMaxPrice("");
+    setMinRating("");
+    setSearchTerm("");
+  };
 
   return (
     <div className="space-y-6">
@@ -81,38 +102,94 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
       {/* Search + Filters */}
       <div className={`card p-4 md:p-5 sticky z-10 transition-all duration-300 ${showFilters ? "top-20 opacity-100 translate-y-0" : "top-[-100px] opacity-0 translate-y-[-50px] pointer-events-none"
         }`}>
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="flex-1 relative">
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
-              <Search className="w-4 h-4" />
-            </div>
-            <input
-              type="text"
-              placeholder={`Search ${activeView === "gigs" ? "services" : "projects"}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field !pl-10 !py-3"
-              id="gig-search"
-              aria-label={`Search ${activeView}`}
-            />
-            {searchTerm && searchTerm !== debouncedSearch && (
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col gap-3">
+          {/* Search row */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1 relative">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                <Search className="w-4 h-4" />
               </div>
-            )}
+              <input
+                type="text"
+                placeholder={`Search ${activeView === "gigs" ? "services" : "projects"}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-field !pl-10 !py-3"
+                id="gig-search"
+                aria-label={`Search ${activeView}`}
+              />
+              {searchTerm && searchTerm !== debouncedSearch && (
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <div className="md:w-56">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="input-field !py-3"
+                id="category-filter"
+                aria-label="Filter by category"
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => <option key={c._id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="md:w-56">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="input-field !py-3"
-              id="category-filter"
-              aria-label="Filter by category"
-            >
-              <option value="">All Categories</option>
-              {categories.map((c) => <option key={c._id} value={c.name}>{c.name}</option>)}
-            </select>
-          </div>
+
+          {/* Advanced filters row — gigs only */}
+          {activeView === "gigs" && (
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Price ₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Min"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="input-field !py-2 !px-3 w-24 text-sm"
+                  id="min-price-filter"
+                  aria-label="Minimum price filter"
+                />
+                <span className="text-gray-400 text-sm">–</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Max"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="input-field !py-2 !px-3 w-24 text-sm"
+                  id="max-price-filter"
+                  aria-label="Maximum price filter"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Min Rating</span>
+                <select
+                  value={minRating}
+                  onChange={(e) => setMinRating(e.target.value)}
+                  className="input-field !py-2 !px-3 text-sm w-28"
+                  id="rating-filter"
+                  aria-label="Minimum rating filter"
+                >
+                  <option value="">Any</option>
+                  <option value="3">3★ +</option>
+                  <option value="4">4★ +</option>
+                  <option value="4.5">4.5★ +</option>
+                </select>
+              </div>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                >
+                  <X className="w-3.5 h-3.5" /> Clear all
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -123,8 +200,8 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
             Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{searchResults.length}</span> {activeView === "gigs" ? "services" : "projects"}
             {debouncedSearch && <span> for "<span className="text-primary-600 dark:text-primary-400">{debouncedSearch}</span>"</span>}
           </p>
-          {selectedCategory && (
-            <button onClick={() => setSelectedCategory("")} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold transition-colors">
+          {hasActiveFilters && activeView !== "gigs" && (
+            <button onClick={clearAllFilters} className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-800 flex items-center gap-1 font-semibold transition-colors">
               <X className="w-3 h-3" /> Clear filter
             </button>
           )}
@@ -142,15 +219,17 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
                 {activeView === "gigs" ? <Briefcase className="w-10 h-10 text-gray-400 dark:text-gray-500" /> : <ClipboardList className="w-10 h-10 text-gray-400 dark:text-gray-500" />}
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                {searchTerm || selectedCategory ? "No results found" : `No ${activeView === "gigs" ? "services" : "projects"} yet`}
+                {searchTerm || hasActiveFilters
+                  ? "No results found"
+                  : `No ${activeView === "gigs" ? "services" : "projects"} yet`}
               </h3>
               <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs">
                 {searchTerm || selectedCategory
                   ? "Try different keywords or clear your filters"
                   : activeView === "gigs" ? "Be the first to list a service!" : "Post a project to get proposals"}
               </p>
-              {(searchTerm || selectedCategory) && (
-                <button onClick={() => { setSearchTerm(""); setSelectedCategory(""); }} className="mt-4 btn-ghost text-primary-600 dark:text-primary-400 text-sm font-semibold">
+              {(searchTerm || hasActiveFilters) && (
+                <button onClick={clearAllFilters} className="mt-4 btn-ghost text-primary-600 dark:text-primary-400 text-sm font-semibold">
                   Clear all filters
                 </button>
               )}

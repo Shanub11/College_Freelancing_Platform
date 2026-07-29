@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, Suspense, lazy } from "react";
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { SignOutButton } from "../SignOutButton";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/imageUtils";
 import posthog from "posthog-js";
 import { useTheme } from "../hooks/useTheme";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useImageUpload } from "../hooks/useImageUpload";
 // H1 fix: SupportTicketForm and UserProfile extracted into dedicated component files
 import { UserProfile } from "./UserProfile";
 import { ProfileProgressionTab } from "./ProfileProgressionTab";
@@ -81,18 +81,35 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
   const isAdmin = useQuery(api.profiles.checkIsAdmin);
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<string | null>(initialTab || null);
+  // Derive active tab from URL query param — single source of truth
+  // Falls back to initialTab prop, then to a role-appropriate default once isAdmin resolves.
+  const activeTab = searchParams.get("tab");
+
+  const setActiveTab = useCallback((tab: string) => {
+    setSearchParams((prev) => {
+      prev.set("tab", tab);
+      return prev;
+    }, { replace: false });
+  }, [setSearchParams]);
+
   const [showProfilePhotoModal, setShowProfilePhotoModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const verificationStatus = useQuery(api.profiles.getVerificationStatus);
-  // Profile Picture Upload
-  const generateUploadUrl = useMutation(api.profiles.generateUploadUrl);
+
+  // Profile picture upload via shared hook
   const updateProfile = useMutation(api.profiles.updateProfile);
+  const { fileInputRef, isUploading: isUploadingPhoto, handleFileChange } = useImageUpload({
+    category: "profile_image",
+    onSuccess: async (storageId) => {
+      await updateProfile({ profilePicture: storageId as Id<"_storage"> });
+      toast.success("Profile picture updated!");
+    },
+  });
 
   // Notifications
   const notifications = useQuery(api.proposals.getNotifications, {});
@@ -130,45 +147,13 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
     }
   }, [profile]);
 
-  const validateUpload = useMutation(api.storage.validateUpload);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const compressedFile = await compressImage(file, 800, 800, 0.8);
-      const postUrl = await generateUploadUrl();
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": compressedFile.type },
-        body: compressedFile,
-      });
-      const { storageId } = await result.json();
-
-      // SERVER-SIDE VALIDATION
-      const validatedId = await validateUpload({
-        storageId,
-        category: "profile_image",
-      });
-
-      await updateProfile({ profilePicture: validatedId });
-      toast.success("Profile picture updated!");
-    } catch (error: any) {
-      console.error(error);
-      e.target.value = "";
-      toast.error(error.message || "Failed to upload image");
-    }
-  };
-
-  // Set the initial tab after isAdmin query has resolved.
+  // Set default tab after isAdmin resolves — only if no ?tab= param is already in the URL
   useEffect(() => {
-    // This effect runs when isAdmin is no longer undefined (i.e., loaded).
-    if (isAdmin !== undefined) {
+    if (isAdmin !== undefined && !searchParams.get("tab")) {
       const stateTab = location.state?.activeTab;
       setActiveTab(initialTab || stateTab || (isAdmin ? "admin" : "browse"));
     }
-  }, [isAdmin, initialTab, location.state]);
+  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenSupport = (orderId?: string, projectId?: string) => {
     navigate("/contact", { state: { projectId: projectId || orderId } });
@@ -369,7 +354,8 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                   ref={fileInputRef}
                   className="hidden"
                   accept="image/*"
-                  onChange={handleImageUpload}
+                  onChange={handleFileChange}
+                  disabled={isUploadingPhoto}
                 />
               </div>
             </div>
@@ -431,9 +417,10 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                   key={tab.id}
                   onClick={() => {
                     if (location.pathname !== "/dashboard") {
-                      navigate("/dashboard", { state: { activeTab: tab.id } });
+                      navigate(`/dashboard?tab=${tab.id}`);
+                    } else {
+                      setActiveTab(tab.id);
                     }
-                    setActiveTab(tab.id);
                     setIsSidebarOpen(false);
                   }}
                   className={`flex items-center space-x-1 text-xs px-3 py-1.5 rounded-full border transition-colors ${activeTab === tab.id
@@ -454,9 +441,10 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                     key={tab.id}
                     onClick={() => {
                       if (location.pathname !== "/dashboard") {
-                        navigate("/dashboard", { state: { activeTab: tab.id } });
+                        navigate(`/dashboard?tab=${tab.id}`);
+                      } else {
+                        setActiveTab(tab.id);
                       }
-                      setActiveTab(tab.id);
                       setIsSidebarOpen(false);
                     }}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-150 group ${activeTab === tab.id
@@ -477,10 +465,9 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                     onClick={() => {
                       if (tab.id === "contact") {
                         navigate("/contact");
+                      } else if (location.pathname !== "/dashboard") {
+                        navigate(`/dashboard?tab=${tab.id}`);
                       } else {
-                        if (location.pathname !== "/dashboard") {
-                          navigate("/dashboard", { state: { activeTab: tab.id } });
-                        }
                         setActiveTab(tab.id);
                       }
                       setIsSidebarOpen(false);
@@ -502,7 +489,7 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
           <div className="flex-1 min-w-0">
             <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
               {/* Show a loading state until the active tab is determined */}
-              {activeTab === null && (
+              {!activeTab && (
                 <div className="flex justify-center items-center h-64">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 </div>

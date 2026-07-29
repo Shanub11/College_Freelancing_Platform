@@ -23,7 +23,9 @@ import {
   XCircle,
   HelpCircle,
   ExternalLink,
-  ImageIcon
+  ImageIcon,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -32,6 +34,7 @@ import { VerificationUpload } from "./VerificationUpload";
 import { useNavigate } from "react-router-dom";
 import { compressImage } from "@/lib/imageUtils";
 import LoadingState from "./LoadingState";
+import { useImageUpload } from "../hooks/useImageUpload";
 
 function useStorage(fileRef: any): string | null {
   if (!fileRef) return null;
@@ -728,6 +731,24 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
     basePrice: gigToEdit?.basePrice || 25,
     deliveryTime: gigToEdit?.deliveryTime || 3,
   });
+  const [uploadedImageIds, setUploadedImageIds] = useState<string[]>(gigToEdit?.images || []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reuse shared upload hook — no duplicate logic
+  const {
+    fileInputRef: gigImageInputRef,
+    isUploading: isUploadingImage,
+    previewUrl: imagePreview,
+    handleFileChange: handleGigImageChange,
+    openFilePicker: openImagePicker,
+  } = useImageUpload({
+    category: "gig_image",
+    maxSizeMB: 8,
+    maxWidth: 1200,
+    maxHeight: 900,
+    quality: 0.85,
+    onSuccess: (storageId) => setUploadedImageIds((prev) => [...prev, storageId]),
+  });
 
   const categories = useQuery(api.categories.getCategories) || [];
   const createGig = useMutation(api.gigs.createGig);
@@ -735,17 +756,15 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
     try {
       if (isEditMode) {
         await updateGig({
           gigId: gigToEdit._id,
-          // Only send fields the validator expects
           title: formData.title,
           description: formData.description,
           basePrice: formData.basePrice,
           deliveryTime: formData.deliveryTime,
-          // The backend validator is missing `category` and `tags`
         });
         toast.success("Gig updated successfully!");
       } else {
@@ -756,7 +775,7 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
           tags: formData.tags,
           basePrice: formData.basePrice,
           deliveryTime: formData.deliveryTime,
-          images: [], // TODO: Add image upload
+          images: uploadedImageIds,
         });
         toast.success("Gig created successfully!");
       }
@@ -764,44 +783,97 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || `Failed to ${isEditMode ? 'update' : 'create'} gig. Please try again.`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const addTag = (tag: string) => {
     if (tag && !formData.tags.includes(tag)) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tag]
-      }));
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
     }
   };
-
   const removeTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter((t: string) => t !== tag)
-    }));
+    setFormData(prev => ({ ...prev, tags: prev.tags.filter((t: string) => t !== tag) }));
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-dark-surface rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {isEditMode ? "Edit Gig" : "Create New Gig"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:text-gray-500"
-            >
-              ✕
-            </button>
-          </div>
+    <>
+      {/* Scrim */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Slide-out drawer from the right */}
+      <div
+        className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white dark:bg-dark-surface shadow-2xl flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditMode ? "Edit Gig" : "Create New Gig"}
+        style={{ animation: "slideInRight 0.25s ease-out" }}
+      >
+        {/* Sticky header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-dark-border shrink-0">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {isEditMode ? "Edit Gig" : "Create New Gig"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-surface-2 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable body — keyboard-safe on mobile */}
+        <div className="flex-1 overflow-y-auto">
+          <form id="create-gig-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+
+            {/* Cover Image Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Cover Image
+              </label>
+              <input
+                type="file"
+                ref={gigImageInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleGigImageChange}
+              />
+              {imagePreview ? (
+                <div className="relative group rounded-xl overflow-hidden border border-gray-200 dark:border-dark-border">
+                  <img src={imagePreview} alt="Gig cover preview" className="w-full h-44 object-cover" />
+                  <button
+                    type="button"
+                    onClick={openImagePicker}
+                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-2 text-sm font-semibold"
+                  >
+                    <Upload className="w-6 h-6" /> Change Image
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openImagePicker}
+                  disabled={isUploadingImage}
+                  className="w-full h-36 border-2 border-dashed border-gray-300 dark:border-dark-border rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-primary-600 hover:border-primary-400 transition-colors disabled:opacity-50"
+                >
+                  {isUploadingImage ? (
+                    <><Loader2 className="w-7 h-7 animate-spin" /><span className="text-sm">Uploading…</span></>
+                  ) : (
+                    <><ImageIcon className="w-7 h-7" /><span className="text-sm font-medium">Click to upload cover image</span><span className="text-xs">PNG, JPG up to 8 MB</span></>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Gig Title *
               </label>
               <input
@@ -810,31 +882,33 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="I will create a responsive website for your business"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Category *
-              </label>
-              <select
-                required
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category._id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Category — create only */}
+            {!isEditMode && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Category *
+                </label>
+                <select
+                  required
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  className="input-field"
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category._id} value={category.name}>{category.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Description *
               </label>
               <textarea
@@ -843,31 +917,31 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
                 placeholder="Describe what you'll deliver, your process, and what makes your service unique..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field resize-y min-h-[120px]"
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* Price + Delivery */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Starting Price *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400 dark:text-gray-500">₹</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">₹</span>
                   <input
                     type="number"
                     required
                     min="5"
                     value={formData.basePrice}
                     onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseInt(e.target.value) }))}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-field !pl-8"
                   />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Delivery Time (days) *
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Delivery (days) *
                 </label>
                 <input
                   type="number"
@@ -876,67 +950,73 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
                   max="30"
                   value={formData.deliveryTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, deliveryTime: parseInt(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-field"
                 />
               </div>
             </div>
 
+            {/* Tags */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {formData.tags.map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="bg-primary-100 dark:bg-primary-900/20 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center space-x-1"
-                  >
-                    <span>{tag}</span>
+                  <span key={tag} className="badge-primary flex items-center gap-1">
+                    {tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="text-primary-600 dark:text-primary-400 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
+                      className="hover:text-primary-900 dark:hover:text-primary-200 ml-0.5"
+                      aria-label={`Remove tag ${tag}`}
+                    >×</button>
                   </span>
                 ))}
               </div>
               <input
                 type="text"
-                placeholder="Add a tag and press Enter"
-                onKeyPress={(e) => {
+                placeholder="Type a tag and press Enter"
+                onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    addTag(e.currentTarget.value);
+                    addTag(e.currentTarget.value.trim());
                     e.currentTarget.value = "";
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field"
               />
-            </div>
-
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 border border-gray-300 dark:border-dark-border text-gray-700 dark:text-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 dark:bg-dark-surface-2 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors"
-              >
-                {isEditMode ? "Save Changes" : "Create Gig"}
-              </button>
             </div>
           </form>
         </div>
+
+        {/* Sticky footer — always visible, above keyboard */}
+        <div className="shrink-0 px-6 py-4 border-t border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface flex gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-gig-form"
+            disabled={isSubmitting || isUploadingImage}
+            className="btn-primary flex-1 flex items-center justify-center gap-2"
+          >
+            {isSubmitting
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+              : isEditMode ? "Save Changes" : "Create Gig"}
+          </button>
+        </div>
       </div>
-    </div>
+
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); }
+          to   { transform: translateX(0); }
+        }
+      `}</style>
+    </>
   );
 }
+
 
 function OrderCard({ order, onViewDetails, onGenerateTicket, onLeaveReview, onSubmitWork }: any) {
   const isLate = order.deadline && Date.now() > order.deadline && (order.status === 'active' || order.status === 'revision_requested');
