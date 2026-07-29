@@ -597,6 +597,48 @@ export const completeOrderAndReleaseFunds = mutation({
       { orderId: args.orderId }
     );
 
+    // ── Progression: Award XP for verified project completion ──
+    // CRITICAL: XP is only awarded here (verified, paid, client-confirmed).
+    // Never award from self-reported or unverified data.
+    await ctx.scheduler.runAfter(0, internal.progression.awardXp, {
+      userId: order.freelancerId,
+      eventType: "project_completed",
+      sourceId: args.orderId,
+    });
+
+    // Award on-time delivery bonus if submitted before deadline
+    if (order.deadline && order.submittedAt && order.submittedAt <= order.deadline) {
+      await ctx.scheduler.runAfter(0, internal.progression.awardXp, {
+        userId: order.freelancerId,
+        eventType: "on_time_delivery",
+        sourceId: args.orderId,
+      });
+    }
+
+    // Check repeat client bonus (same client has 2+ completed orders with this freelancer)
+    const priorOrders = await ctx.db
+      .query("orders")
+      .withIndex("by_freelancer_and_status", (q) =>
+        q.eq("freelancerId", order.freelancerId).eq("status", "completed")
+      )
+      .filter((q) => q.eq(q.field("clientId"), order.clientId))
+      .take(5);
+    if (priorOrders.length >= 2) {
+      await ctx.scheduler.runAfter(0, internal.progression.awardXp, {
+        userId: order.freelancerId,
+        eventType: "repeat_client",
+        sourceId: args.orderId,
+      });
+    }
+
+    // Re-evaluate badges and skills after the new completion
+    await ctx.scheduler.runAfter(0, internal.progression.evaluateBadges, {
+      userId: order.freelancerId,
+    });
+    await ctx.scheduler.runAfter(0, internal.progression.aggregateSkills, {
+      userId: order.freelancerId,
+    });
+
     return null;
   },
 });

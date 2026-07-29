@@ -38,6 +38,7 @@ const profileShape = {
   lastName: v.string(),
   profilePicture: v.optional(v.id("_storage")),
   bio: v.optional(v.string()),
+  tagline: v.optional(v.string()),
   collegeName: v.optional(v.string()),
   collegeEmail: v.optional(v.string()),
   graduationYear: v.optional(v.number()),
@@ -76,8 +77,25 @@ const profileShape = {
   teamSize: v.optional(v.string()),
   paymentVerified: v.optional(v.boolean()),
   isAdmin: v.optional(v.boolean()),
+  emailVerified: v.optional(v.boolean()),
   averageRating: v.optional(v.number()),
   totalReviews: v.number(),
+  // === Progression System fields ===
+  xp: v.optional(v.number()),
+  level: v.optional(v.number()),
+  tier: v.optional(v.union(
+    v.literal("Newcomer"),
+    v.literal("Rising Talent"),
+    v.literal("Pro"),
+    v.literal("Expert"),
+    v.literal("Elite")
+  )),
+  publicSlug: v.optional(v.string()),
+  isPublicProfile: v.optional(v.boolean()),
+  privacySettings: v.optional(v.object({
+    showEarnings: v.boolean(),
+    anonymizeClients: v.boolean(),
+  })),
 };
 
 export const createGig = mutation({

@@ -28,6 +28,7 @@ import type * as moderation from "../moderation.js";
 import type * as paymentActions from "../paymentActions.js";
 import type * as payments from "../payments.js";
 import type * as profiles from "../profiles.js";
+import type * as progression from "../progression.js";
 import type * as projectRequests from "../projectRequests.js";
 import type * as projects from "../projects.js";
 import type * as proposals from "../proposals.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   paymentActions: typeof paymentActions;
   payments: typeof payments;
   profiles: typeof profiles;
+  progression: typeof progression;
   projectRequests: typeof projectRequests;
   projects: typeof projects;
   proposals: typeof proposals;

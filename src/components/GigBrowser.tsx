@@ -40,14 +40,21 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
   const activeView = userType === "freelancer" ? "projects" : "gigs";
   const categories = useQuery(api.categories.getCategories) || [];
 
+  // searchGigs was removed — getGigs supports full-text search via its `search` arg.
   const results = useQuery(
-    debouncedSearch
-      ? activeView === "gigs" ? api.gigs.searchGigs : api.projects.searchProjects
-      : activeView === "gigs" ? api.gigs.getGigs : api.projects.getProjects,
-    {
-      ...(debouncedSearch ? { searchTerm: debouncedSearch } : { limit: 20 }),
-      category: selectedCategory || undefined,
-    }
+    activeView === "gigs"
+      ? api.gigs.getGigs
+      : debouncedSearch
+        ? api.projects.searchProjects
+        : api.projects.getProjects,
+    activeView === "gigs"
+      ? {
+        ...(debouncedSearch ? { search: debouncedSearch } : { limit: 20 }),
+        category: selectedCategory || undefined,
+      }
+      : debouncedSearch
+        ? { searchTerm: debouncedSearch, category: selectedCategory || undefined }
+        : { limit: 20, category: selectedCategory || undefined }
   );
 
   const searchResults = results || [];
@@ -72,9 +79,8 @@ export function GigBrowser({ userType, onViewProfile, hideHeader }: GigBrowserPr
       )}
 
       {/* Search + Filters */}
-      <div className={`card p-4 md:p-5 sticky z-10 transition-all duration-300 ${
-        showFilters ? "top-20 opacity-100 translate-y-0" : "top-[-100px] opacity-0 translate-y-[-50px] pointer-events-none"
-      }`}>
+      <div className={`card p-4 md:p-5 sticky z-10 transition-all duration-300 ${showFilters ? "top-20 opacity-100 translate-y-0" : "top-[-100px] opacity-0 translate-y-[-50px] pointer-events-none"
+        }`}>
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
@@ -248,8 +254,8 @@ function ProjectCard({ project }: { project: any }) {
             Verified
           </span>
         </div>
-        <Link to={`/projects/${project._id}`} className="btn-primary w-full !py-2.5 text-sm text-center flex items-center justify-center gap-1 font-semibold" aria-label={`Apply to ${project.title}`}>
-          Apply Now <ArrowRight className="w-4 h-4" />
+        <Link to={`/projects/${project._id}`} className="btn-primary w-full !py-2.5 text-sm text-center flex items-center justify-center gap-1 font-semibold" aria-label={`View details for ${project.title}`}>
+          View Details <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
     </>

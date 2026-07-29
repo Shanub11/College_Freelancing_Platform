@@ -60,6 +60,26 @@ const applicationTables = {
     // Ratings
     averageRating: v.optional(v.number()),
     totalReviews: v.number(),
+    // === Profile Progression System ===
+    // XP / Leveling (cached from xpEvents — never mutated directly)
+    xp: v.optional(v.number()),
+    level: v.optional(v.number()),
+    tier: v.optional(v.union(
+      v.literal("Newcomer"),
+      v.literal("Rising Talent"),
+      v.literal("Pro"),
+      v.literal("Expert"),
+      v.literal("Elite")
+    )),
+    // Public profile URL slug (e.g. platform.com/u/john-doe-abc1)
+    publicSlug: v.optional(v.string()),
+    // Whether this profile's public URL is visible to unauthenticated viewers
+    isPublicProfile: v.optional(v.boolean()),
+    // Privacy settings: controls what appears on the public profile
+    privacySettings: v.optional(v.object({
+      showEarnings: v.boolean(),      // false by default
+      anonymizeClients: v.boolean(),  // false by default (hides client names)
+    })),
   })
     .index("by_user", ["userId"])
     .index("by_type", ["userType"])
@@ -402,6 +422,78 @@ const applicationTables = {
     .index("by_status", ["status"])
     .index("by_email", ["email"])
     .index("by_userId", ["userId"]),
+
+  // === Profile Progression System Tables ===
+
+  // XP event audit log — the single source of truth for all XP.
+  // Level and tier on the profiles table are DERIVED from this table.
+  // Never award XP from self-reported or unverified data.
+  xpEvents: defineTable({
+    userId: v.id("users"),
+    // Event type driving this XP award
+    eventType: v.union(
+      v.literal("project_completed"),    // 100 XP — only from verified completed orders
+      v.literal("five_star_review"),      // 50 XP — rating == 5 from a verified order
+      v.literal("on_time_delivery"),      // 25 XP — submittedAt <= deadline
+      v.literal("repeat_client"),         // 30 XP — same clientId placed 2+ orders
+      v.literal("profile_completed")     // 50 XP — one-time, profile fields all filled
+    ),
+    xpAmount: v.number(),
+    // Optional reference to the order/review that triggered this event
+    sourceId: v.optional(v.string()),
+    createdAt: v.number(), // epoch ms
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_event", ["userId", "eventType"])
+    .index("by_createdAt", ["createdAt"]),
+
+  // Earned achievement badges per user.
+  // Badge rules are evaluated at the backend; never grant badges from self-reported data.
+  badges: defineTable({
+    userId: v.id("users"),
+    badgeType: v.union(
+      v.literal("first_project"),
+      v.literal("ten_projects"),
+      v.literal("fifty_projects"),
+      v.literal("top_rated"),
+      v.literal("on_time_streak"),
+      v.literal("rising_talent"),
+      v.literal("repeat_client_magnet"),
+      v.literal("elite_freelancer")
+    ),
+    earnedAt: v.number(), // epoch ms
+    // Snapshot of the stats that triggered the badge (for auditability)
+    criteriaMeta: v.optional(v.object({
+      projectCount: v.optional(v.number()),
+      avgRating: v.optional(v.number()),
+      onTimeRate: v.optional(v.number()),
+      repeatClientCount: v.optional(v.number()),
+    })),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_type", ["userId", "badgeType"]),
+
+  // Aggregated skill data per user, derived ONLY from verified completed orders.
+  // A skill becomes verified when it appears in SKILL_VERIFIED_MIN_PROJECTS
+  // verified projects with average rating >= SKILL_VERIFIED_MIN_RATING.
+  skillProfiles: defineTable({
+    userId: v.id("users"),
+    skillName: v.string(),
+    // Total times this skill appears across ALL completed orders (verified + unverified)
+    totalProjectCount: v.number(),
+    // Times this skill appears in VERIFIED (platform-paid, client-confirmed) completed orders
+    verifiedProjectCount: v.number(),
+    // Average rating of verified orders where this skill was used
+    avgVerifiedRating: v.optional(v.number()),
+    // true only when verifiedProjectCount >= SKILL_VERIFIED_MIN_PROJECTS
+    // AND avgVerifiedRating >= SKILL_VERIFIED_MIN_RATING
+    isVerified: v.boolean(),
+    // 0–100 proficiency score derived from count and rating
+    proficiencyScore: v.number(),
+    lastUpdatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_skill", ["userId", "skillName"]),
 };
 
 export default defineSchema({

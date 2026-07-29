@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 
 export const submitReview = mutation({
   args: {
@@ -90,6 +91,22 @@ export const submitReview = mutation({
       if (order.gigId) {
         await updateGigRating(ctx, order.gigId);
       }
+
+      // ── Progression: Award XP for 5-star review ──
+      // Only triggers when the client's review is 5 stars and the order is verified.
+      // isClient check: only the client's review earns XP for the freelancer.
+      if (isClient && args.rating === 5) {
+        await ctx.scheduler.runAfter(0, internal.progression.awardXp, {
+          userId: revieweeId,
+          eventType: "five_star_review",
+          sourceId: args.orderId,
+        });
+      }
+
+      // Re-evaluate badges with updated rating stats
+      await ctx.scheduler.runAfter(0, internal.progression.evaluateBadges, {
+        userId: revieweeId,
+      });
     }
 
     // Log activity

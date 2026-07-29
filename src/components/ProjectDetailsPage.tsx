@@ -101,103 +101,116 @@ export function ProjectDetailsPage() {
             <div className="space-y-6 sticky top-24 self-start">
               <div className="card p-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">About the Client</h3>
-                <div className="flex items-center gap-4 mb-6">
-                  {project.client.profilePictureUrl ? (
-                    <img src={project.client.profilePictureUrl} alt="Client" className="w-14 h-14 rounded-full object-cover shadow-sm ring-2 ring-gray-50 dark:ring-dark-surface-2" />
-                  ) : (
-                    <div className="w-14 h-14 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-400 font-bold text-xl shadow-sm ring-2 ring-gray-50 dark:ring-dark-surface-2">
-                      {project.client.firstName[0]}{project.client.lastName[0]}
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-bold text-gray-900 dark:text-white text-lg">{project.client.firstName} {project.client.lastName}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{project.client.identity || "Client"}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3.5 text-sm text-gray-600 dark:text-gray-300 mb-8">
-                  <div className="flex justify-between gap-4 items-center">
-                    <span>Average Rating</span>
-                    <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 bg-gray-50 dark:bg-dark-surface-2 px-2.5 py-1 rounded-lg">
-                      {project.client.averageRating ? project.client.averageRating.toFixed(1) : "New"} <Star className="w-4 h-4 text-yellow-405 fill-current" />
-                      {project.client.totalReviews > 0 && <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">({project.client.totalReviews})</span>}
-                    </span>
-                  </div>
-                  
-                  {clientData !== undefined && (
-                    <>
-                      <div className="flex justify-between gap-4">
-                        <span>Projects Posted</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{clientData?.postedProjectsCount || 0}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Completed Hires</span>
-                        <span className="font-medium text-gray-900 dark:text-white">{clientData?.completedHiresCount || 0}</span>
-                      </div>
-                    </>
-                  )}
-
-                  {project.client.company && (
-                    <div className="flex justify-between gap-4 border-t border-gray-100 dark:border-dark-border pt-3 mt-3">
-                      <span>Company</span>
-                      <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.company}</span>
-                    </div>
-                  )}
-                  {project.client.industry && (
-                    <div className="flex justify-between gap-4">
-                      <span>Industry</span>
-                      <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.industry}</span>
-                    </div>
-                  )}
-                  {project.client.teamSize && (
-                    <div className="flex justify-between gap-4">
-                      <span>Team Size</span>
-                      <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.teamSize}</span>
-                    </div>
-                  )}
-                  {project.client.preferredCommunication && (
-                    <div className="flex justify-between gap-4">
-                      <span>Communication</span>
-                      <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.preferredCommunication}</span>
-                    </div>
-                  )}
-                  
-                  {project.client.hiringPreferences && project.client.hiringPreferences.length > 0 && (
-                    <div className="flex flex-col gap-2 border-t border-gray-100 dark:border-dark-border pt-3 mt-3">
-                      <span>Hiring Preferences</span>
-                      <div className="flex flex-wrap gap-1">
-                        {project.client.hiringPreferences.map((pref: string) => (
-                          <span key={pref} className="bg-gray-100 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border px-2 py-0.5 rounded text-xs text-gray-700 dark:text-gray-300">{pref}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {(project.client.website || project.client.linkedin) && (
-                    <div className="flex gap-4 pt-3 border-t border-gray-100 dark:border-dark-border mt-3">
-                      {project.client.website && (
-                        <a href={project.client.website.startsWith('http') ? project.client.website : `https://${project.client.website}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">Website</a>
+                {project.client ? (
+                  <>
+                    <div className="flex items-center gap-4 mb-6">
+                      {project.client.profilePictureUrl ? (
+                        <img src={project.client.profilePictureUrl} alt="Client" className="w-14 h-14 rounded-full object-cover shadow-sm ring-2 ring-gray-50 dark:ring-dark-surface-2" />
+                      ) : (
+                        <div className="w-14 h-14 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center text-primary-700 dark:text-primary-400 font-bold text-xl shadow-sm ring-2 ring-gray-50 dark:ring-dark-surface-2">
+                          {project.client.firstName[0]}{project.client.lastName[0]}
+                        </div>
                       )}
-                      {project.client.linkedin && (
-                        <a href={project.client.linkedin.startsWith('http') ? project.client.linkedin : `https://${project.client.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">LinkedIn</a>
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-white text-lg">{project.client.firstName} {project.client.lastName}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{project.client.identity || "Client"}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3.5 text-sm text-gray-600 dark:text-gray-300 mb-8">
+                      <div className="flex justify-between gap-4 items-center">
+                        <span>Average Rating</span>
+                        <span className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 bg-gray-50 dark:bg-dark-surface-2 px-2.5 py-1 rounded-lg">
+                          {project.client.averageRating ? project.client.averageRating.toFixed(1) : "New"} <Star className="w-4 h-4 text-yellow-405 fill-current" />
+                          {project.client.totalReviews > 0 && <span className="text-gray-500 dark:text-gray-400 text-xs font-medium">({project.client.totalReviews})</span>}
+                        </span>
+                      </div>
+
+                      {clientData !== undefined && (
+                        <>
+                          <div className="flex justify-between gap-4">
+                            <span>Projects Posted</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{clientData?.postedProjectsCount || 0}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span>Completed Hires</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{clientData?.completedHiresCount || 0}</span>
+                          </div>
+                        </>
+                      )}
+
+                      {project.client.company && (
+                        <div className="flex justify-between gap-4 border-t border-gray-100 dark:border-dark-border pt-3 mt-3">
+                          <span>Company</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.company}</span>
+                        </div>
+                      )}
+                      {project.client.industry && (
+                        <div className="flex justify-between gap-4">
+                          <span>Industry</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.industry}</span>
+                        </div>
+                      )}
+                      {project.client.teamSize && (
+                        <div className="flex justify-between gap-4">
+                          <span>Team Size</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.teamSize}</span>
+                        </div>
+                      )}
+                      {project.client.preferredCommunication && (
+                        <div className="flex justify-between gap-4">
+                          <span>Communication</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate text-right">{project.client.preferredCommunication}</span>
+                        </div>
+                      )}
+
+                      {project.client.hiringPreferences && project.client.hiringPreferences.length > 0 && (
+                        <div className="flex flex-col gap-2 border-t border-gray-100 dark:border-dark-border pt-3 mt-3">
+                          <span>Hiring Preferences</span>
+                          <div className="flex flex-wrap gap-1">
+                            {project.client.hiringPreferences.map((pref: string) => (
+                              <span key={pref} className="bg-gray-100 dark:bg-dark-surface-2 border border-gray-200 dark:border-dark-border px-2 py-0.5 rounded text-xs text-gray-700 dark:text-gray-300">{pref}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(project.client.website || project.client.linkedin) && (
+                        <div className="flex gap-4 pt-3 border-t border-gray-100 dark:border-dark-border mt-3">
+                          {project.client.website && (
+                            <a href={project.client.website.startsWith('http') ? project.client.website : `https://${project.client.website}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">Website</a>
+                          )}
+                          {project.client.linkedin && (
+                            <a href={project.client.linkedin.startsWith('http') ? project.client.linkedin : `https://${project.client.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">LinkedIn</a>
+                          )}
+                        </div>
+                      )}
+
+                      {project.client.paymentVerified && (
+                        <div className="flex items-center justify-center gap-2 text-green-700 bg-green-50 p-2 rounded-lg font-medium mt-4">
+                          <CreditCard className="w-4 h-4" /> Payment Verified
+                        </div>
                       )}
                     </div>
-                  )}
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Client profile unavailable.</p>
+                )}
 
-                  {project.client.paymentVerified && (
-                    <div className="flex items-center justify-center gap-2 text-green-700 bg-green-50 p-2 rounded-lg font-medium mt-4">
-                      <CreditCard className="w-4 h-4" /> Payment Verified
-                    </div>
-                  )}
-                </div>
-
-                <Link
-                  to={`/projects/${project._id}/propose`}
-                  onClick={handleApplyClick}
-                  className="btn-primary w-full block text-center !py-3.5"
-                >
-                  Apply Now
-                </Link>
+                {profile?.userType === "client" ? (
+                  <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-surface-2 border border-gray-100 dark:border-dark-border rounded-xl p-4">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">Viewing as Client</span>
+                    <p className="mt-1">Only freelancers can submit proposals for projects.</p>
+                  </div>
+                ) : (
+                  <Link
+                    to={`/projects/${project._id}/propose`}
+                    onClick={handleApplyClick}
+                    className="btn-primary w-full block text-center !py-3.5"
+                  >
+                    Submit Proposal
+                  </Link>
+                )}
               </div>
 
               {clientData && clientData.reviews && clientData.reviews.length > 0 && (

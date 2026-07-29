@@ -15,6 +15,7 @@ const LandingPage = lazy(() => import("./components/LandingPage").then(m => ({ d
 const ContactPage = lazy(() => import("./components/ContactPage").then(m => ({ default: m.ContactPage })));
 const TermsOfServicePage = lazy(() => import("./components/TermsOfService").then(m => ({ default: m.TermsOfService })));
 const PrivacyPolicyPage = lazy(() => import("./components/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
+const PublicProfilePage = lazy(() => import("./components/PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
 
 function BrandedLoader() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
                 <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
                 <Route path="/projects/:projectId/propose" element={<SubmitProposalPage />} />
                 <Route path="/contact" element={<AuthenticatedApp initialTab="contact" />} />
+                <Route path="/u/:username" element={<PublicProfilePage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/help" element={<Navigate to="/contact" replace />} />
@@ -106,6 +108,7 @@ export default function App() {
             <Suspense fallback={<BrandedLoader />}>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/u/:username" element={<PublicProfilePage />} />
                 <Route path="/contact" element={<PublicContactPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />

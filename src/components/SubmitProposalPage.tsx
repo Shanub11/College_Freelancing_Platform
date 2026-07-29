@@ -28,6 +28,10 @@ export function SubmitProposalPage() {
       toast.error("You must verify your account before submitting proposals.");
       navigate("/dashboard", { state: { activeTab: "verification" } });
     }
+    if (profile && profile.userType === "client") {
+      toast.error("Only freelancers can submit proposals.");
+      navigate("/dashboard");
+    }
   }, [profile, navigate]);
 
   const createProposal = useMutation(api.projectRequests.createProposal);

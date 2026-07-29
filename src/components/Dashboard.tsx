@@ -9,6 +9,7 @@ import { useTheme } from "../hooks/useTheme";
 import { useNavigate, useLocation } from "react-router-dom";
 // H1 fix: SupportTicketForm and UserProfile extracted into dedicated component files
 import { UserProfile } from "./UserProfile";
+import { ProfileProgressionTab } from "./ProfileProgressionTab";
 import { 
   Settings, 
   Search, 
@@ -24,7 +25,8 @@ import {
   Bell, 
   MessageSquare, 
   Menu,
-  LifeBuoy
+  LifeBuoy,
+  TrendingUp
 } from "lucide-react";
 function ThemeToggleBtn() {
   const { resolvedTheme, toggleTheme } = useTheme();
@@ -63,6 +65,7 @@ function SidebarIcon({ name }: { name: string }) {
     case "life-buoy": return <LifeBuoy className={cls} />;
     case "shield": return <Shield className={cls} />;
     case "plus": return <Plus className={cls} />;
+    case "trending-up": return <TrendingUp className={cls} />;
     default: return <Settings className={cls} />;
   }
 }
@@ -90,7 +93,6 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
   // Profile Picture Upload
   const generateUploadUrl = useMutation(api.profiles.generateUploadUrl);
   const updateProfile = useMutation(api.profiles.updateProfile);
-  const logActivity = useMutation(api.logs.logActivity);
 
   // Notifications
   const notifications = useQuery(api.proposals.getNotifications, {});
@@ -114,17 +116,11 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Log User Login
+  // Identify user in PostHog on login
   useEffect(() => {
     const hasLogged = sessionStorage.getItem("hasLoggedLogin");
     if (!hasLogged && profile) {
-      logActivity({
-        action: "User Login",
-        details: `User ${profile.firstName} ${profile.lastName} logged in`,
-      });
       sessionStorage.setItem("hasLoggedLogin", "true");
-
-      // Identify user in PostHog
       posthog.identify(profile.userId, {
         name: `${profile.firstName} ${profile.lastName}`,
         userType: profile.userType,
@@ -187,6 +183,7 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
       { id: "my-gigs", label: "My Gigs", icon: "briefcase" },
       { id: "orders", label: "Orders", icon: "clipboard" },
       { id: "earnings", label: "Earnings", icon: "currency" },
+      { id: "progression", label: "Progression", icon: "trending-up" },
       { id: "profile", label: "My Profile", icon: "user" },
       { id: "contact", label: "Help & Support", icon: "life-buoy" },
     ];
@@ -356,10 +353,6 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                       </button>
                       <div
                         onClickCapture={() => {
-                          logActivity({
-                            action: "User Logout",
-                            details: `User ${profile.firstName} ${profile.lastName} logged out`,
-                          });
                           sessionStorage.removeItem("hasLoggedLogin");
                           posthog.reset(); // Clear PostHog session on logout
                         }}
@@ -522,6 +515,7 @@ export function Dashboard({ profile, initialTab }: DashboardProps) {
                   {activeTab === "my-gigs" && <FreelancerDashboard profile={profile} activeTab="gigs" />}
                   {activeTab === "orders" && <FreelancerDashboard profile={profile} activeTab="orders" onOpenSupport={handleOpenSupport} />}
                   {activeTab === "earnings" && <FreelancerDashboard profile={profile} activeTab="earnings" />}
+                  {activeTab === "progression" && <ProfileProgressionTab />}
                 </>
               )}
               {profile.userType === "client" && (
