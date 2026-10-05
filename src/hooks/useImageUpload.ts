@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 
@@ -12,7 +13,7 @@ interface UseImageUploadOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number;
-  onSuccess?: (storageId: string) => void;
+  onSuccess?: (storageId: Id<"_storage">) => void;
   onError?: (error: string) => void;
 }
 
@@ -36,7 +37,7 @@ export function useImageUpload({
   const generateUploadUrl = useMutation((api as any).profiles.generateUploadUrl);
   const validateUpload = useMutation(api.storage.validateUpload);
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = async (file: File): Promise<Id<"_storage"> | null> => {
     const maxBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxBytes) {
       const msg = `File must be smaller than ${maxSizeMB}MB.`;

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { VerificationUpload } from "./VerificationUpload";
 import { useNavigate } from "react-router-dom";
@@ -731,7 +732,7 @@ function CreateGigForm({ onClose, gigToEdit }: { onClose: () => void, gigToEdit?
     basePrice: gigToEdit?.basePrice || 25,
     deliveryTime: gigToEdit?.deliveryTime || 3,
   });
-  const [uploadedImageIds, setUploadedImageIds] = useState<string[]>(gigToEdit?.images || []);
+  const [uploadedImageIds, setUploadedImageIds] = useState<Id<"_storage">[]>(gigToEdit?.images || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reuse shared upload hook — no duplicate logic
